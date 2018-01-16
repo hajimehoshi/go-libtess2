@@ -1209,7 +1209,7 @@ static int InitPriorityQ( TESStesselator *tess )
 	for( v = vHead->next; v != vHead; v = v->next ) {
 		v->pqHandle = pqInsert( pq, v );
 	}
-	if (v != vHead || !pqInit( pq ) ) {
+	if (v != vHead ) {
 		pqDeletePriorityQ( tess->pq );
 		tess->pq = NULL;
 		return 0;

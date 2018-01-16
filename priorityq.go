@@ -82,11 +82,6 @@ func pqDeletePriorityQ(pqID unsafe.Pointer) {
 	delete(idToPQ, uintptr(pqID))
 }
 
-//export pqInit
-func pqInit(pqID unsafe.Pointer) C.int {
-	return 1
-}
-
 //export pqInsert
 func pqInsert(pqID unsafe.Pointer, key *C.struct_TESSvertex) C.PQhandle {
 	p := idToPQ[uintptr(pqID)]

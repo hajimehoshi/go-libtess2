@@ -40,10 +40,6 @@
 * for this purpose pqInsert returns a "handle" which is supplied
 * as the argument.
 *
-* An initial heap may be created efficiently by calling pqInsert
-* repeatedly, then calling pqInit.  In any case pqInit must be called
-* before any operations other than pqInsert are used.
-*
 * If the heap is empty, pqMinimum/pqExtractMin will return a NULL key.
 * This may also be tested with pqIsEmpty.
 */
@@ -56,7 +52,6 @@ typedef void* PQhandle;
 void *pqNewPriorityQ( int size );
 void pqDeletePriorityQ( void *pq );
 
-int pqInit( void* pq );
 PQhandle pqInsert( void* pq, struct TESSvertex *key );
 struct TESSvertex* pqExtractMin( void* pq );
 void pqDelete( void* pq, PQhandle handle );
