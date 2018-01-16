@@ -86,12 +86,17 @@ func NewTesselator() *Tesselator {
 	}
 }
 
-func (t *Tesselator) AddContour(contour []float32) {
+func (t *Tesselator) AddContour(contour []Vertex) {
+	fs := make([]float32, len(contour)*2)
+	for i, v := range contour {
+		fs[2*i] = v.X
+		fs[2*i+1] = v.Y
+	}
 	C.tessAddContour((*C.struct_TESStesselator)(t.p),
 		2,
-		unsafe.Pointer(&contour[0]),
+		unsafe.Pointer(&fs[0]),
 		2*C.sizeOfFloat,
-		C.int(len(contour)/2))
+		C.int(len(contour)))
 }
 
 func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
