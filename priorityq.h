@@ -32,6 +32,8 @@
 #ifndef PRIORITYQ_H
 #define PRIORITYQ_H
 
+#include <stdbool.h>
+
 /* The basic operations are insertion of a new key (pqInsert),
 * and examination/extraction of a key whose value is minimum
 * (pqMinimum/pqExtractMin).  Deletion is also allowed (pqDelete);
@@ -46,59 +48,20 @@
 * This may also be tested with pqIsEmpty.
 */
 
-/* Since we support deletion the data structure is a little more
-* complicated than an ordinary heap.  "nodes" is the heap itself;
-* active nodes are stored in the range 1..pq->size.  When the
-* heap exceeds its allocated size (pq->max), its size doubles.
-* The children of node i are nodes 2i and 2i+1.
-*
-* Each node stores an index into an array "handles".  Each handle
-* stores a key, plus a pointer back to the node which currently
-* represents that key (ie. nodes[handles[i].node].handle == i).
-*/
+struct TESSvertex;
 
-typedef void *PQkey;
-typedef int PQhandle;
-typedef struct PriorityQHeap PriorityQHeap;
+typedef void* PriorityQ;
+typedef void* PQhandle;
 
-#define INV_HANDLE 0x0fffffff
+void *pqNewPriorityQ( int size );
+void pqDeletePriorityQ( void *pq );
 
-typedef struct { PQhandle handle; } PQnode;
-typedef struct { PQkey key; PQhandle node; } PQhandleElem;
+int pqInit( void* pq );
+PQhandle pqInsert( void* pq, struct TESSvertex *key );
+struct TESSvertex* pqExtractMin( void* pq );
+void pqDelete( void* pq, PQhandle handle );
 
-struct PriorityQHeap {
-
-	PQnode *nodes;
-	PQhandleElem *handles;
-	int size, max;
-	PQhandle freeList;
-	int initialized;
-
-	int (*leq)(PQkey key1, PQkey key2);
-};
-
-typedef struct PriorityQ PriorityQ;
-
-struct PriorityQ {
-	PriorityQHeap *heap;
-
-	PQkey *keys;
-	PQkey **order;
-	PQhandle size, max;
-	int initialized;
-
-	int (*leq)(PQkey key1, PQkey key2);
-};
-
-PriorityQ *pqNewPriorityQ( TESSalloc* alloc, int size, int (*leq)(PQkey key1, PQkey key2) );
-void pqDeletePriorityQ( TESSalloc* alloc, PriorityQ *pq );
-
-int pqInit( TESSalloc* alloc, PriorityQ *pq );
-PQhandle pqInsert( TESSalloc* alloc, PriorityQ *pq, PQkey key );
-PQkey pqExtractMin( PriorityQ *pq );
-void pqDelete( PriorityQ *pq, PQhandle handle );
-
-PQkey pqMinimum( PriorityQ *pq );
-int pqIsEmpty( PriorityQ *pq );
+struct TESSvertex* pqMinimum( void* pq );
+bool pqIsEmpty( void* pq );
 
 #endif

@@ -696,12 +696,7 @@ static int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp )
 	if ( !tessMeshSplice( tess->mesh, eLo->Oprev, eUp ) ) longjmp(tess->env,1);
 	eUp->Org->s = isect.s;
 	eUp->Org->t = isect.t;
-	eUp->Org->pqHandle = pqInsert( &tess->alloc, tess->pq, eUp->Org );
-	if (eUp->Org->pqHandle == INV_HANDLE) {
-		pqDeletePriorityQ( &tess->alloc, tess->pq );
-		tess->pq = NULL;
-		longjmp(tess->env,1);
-	}
+	eUp->Org->pqHandle = pqInsert( tess->pq, eUp->Org );
 	GetIntersectData( tess, eUp->Org, orgUp, dstUp, orgLo, dstLo );
 	RegionAbove(regUp)->dirty = regUp->dirty = regLo->dirty = TRUE;
 	return FALSE;
@@ -1207,17 +1202,15 @@ static int InitPriorityQ( TESStesselator *tess )
 	/* Make sure there is enough space for sentinels. */
 	vertexCount += MAX( 8, tess->alloc.extraVertices );
 	
-	pq = tess->pq = pqNewPriorityQ( &tess->alloc, vertexCount, (int (*)(PQkey, PQkey)) tesvertLeq );
+	pq = tess->pq = pqNewPriorityQ( vertexCount /*(int (*)(PQkey, PQkey)) tesvertLeq*/ );
 	if (pq == NULL) return 0;
 
 	vHead = &tess->mesh->vHead;
 	for( v = vHead->next; v != vHead; v = v->next ) {
-		v->pqHandle = pqInsert( &tess->alloc, pq, v );
-		if (v->pqHandle == INV_HANDLE)
-			break;
+		v->pqHandle = pqInsert( pq, v );
 	}
-	if (v != vHead || !pqInit( &tess->alloc, pq ) ) {
-		pqDeletePriorityQ( &tess->alloc, tess->pq );
+	if (v != vHead || !pqInit( pq ) ) {
+		pqDeletePriorityQ( tess->pq );
 		tess->pq = NULL;
 		return 0;
 	}
@@ -1228,7 +1221,7 @@ static int InitPriorityQ( TESStesselator *tess )
 
 static void DonePriorityQ( TESStesselator *tess )
 {
-	pqDeletePriorityQ( &tess->alloc, tess->pq );
+	pqDeletePriorityQ( tess->pq );
 }
 
 
