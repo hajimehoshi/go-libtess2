@@ -32,43 +32,26 @@
 #ifndef DICT_LIST_H
 #define DICT_LIST_H
 
-typedef void *DictKey;
-typedef struct Dict Dict;
-typedef struct DictNode DictNode;
+struct ActiveRegion;
+struct TESStesselator;
 
-Dict *dictNewDict( TESSalloc* alloc, void *frame, int (*leq)(void *frame, DictKey key1, DictKey key2) );
+void *dictNewDict( struct TESStesselator *frame );
 
-void dictDeleteDict( TESSalloc* alloc, Dict *dict );
+void dictDeleteDict( void *dict );
 
 /* Search returns the node with the smallest key greater than or equal
 * to the given key.  If there is no such key, returns a node whose
 * key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
 */
-DictNode *dictSearch( Dict *dict, DictKey key );
-DictNode *dictInsertBefore( Dict *dict, DictNode *node, DictKey key );
-void dictDelete( Dict *dict, DictNode *node );
+void *dictSearch( void *dict, struct ActiveRegion* key );
+void *dictInsertBefore( void *dict, void *node, struct ActiveRegion *key );
+void dictDelete( void *node );
 
-#define dictKey(n)	((n)->key)
-#define dictSucc(n)	((n)->next)
-#define dictPred(n)	((n)->prev)
-#define dictMin(d)	((d)->head.next)
-#define dictMax(d)	((d)->head.prev)
-#define dictInsert(d,k) (dictInsertBefore((d),&(d)->head,(k)))
-
-
-/*** Private data structures ***/
-
-struct DictNode {
-	DictKey	key;
-	DictNode *next;
-	DictNode *prev;
-};
-
-struct Dict {
-	DictNode head;
-	void *frame;
-	struct BucketAlloc *nodePool;
-	int (*leq)(void *frame, DictKey key1, DictKey key2);
-};
+struct ActiveRegion* dictKey(void* node);
+void* dictSucc(void* node);
+void* dictPred(void* node);
+void* dictMin(void* dict);
+void* dictMax(void* dict);
+void* dictInsert(void* dict, struct ActiveRegion* key);
 
 #endif

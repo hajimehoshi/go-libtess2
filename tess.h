@@ -64,7 +64,7 @@ struct TESStesselator {
 	/*** state needed for the line sweep ***/
 	int	windingRule;	/* rule for determining polygon interior */
 
-	Dict *dict;		/* edge dictionary for sweep line */
+	void *dict;		/* edge dictionary for sweep line */
 	PriorityQ *pq;		/* priority queue of vertex events */
 	TESSvertex *event;		/* current sweep event being processed */
 

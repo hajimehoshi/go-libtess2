@@ -93,7 +93,7 @@ static void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
 static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 
-static int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
+int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
 /*
 * Both edges must be directed from right to left (this is the canonical
 * direction for the upper edge of each region).
@@ -146,7 +146,7 @@ static void DeleteRegion( TESStesselator *tess, ActiveRegion *reg )
 		assert( reg->eUp->winding == 0 );
 	}
 	reg->eUp->activeRegion = NULL;
-	dictDelete( tess->dict, reg->nodeUp );
+	dictDelete( reg->nodeUp );
 	bucketFree( tess->regionPool, reg );
 }
 
@@ -1115,7 +1115,7 @@ static void InitEdgeDict( TESStesselator *tess )
 	TESSreal w, h;
 	TESSreal smin, smax, tmin, tmax;
 
-	tess->dict = dictNewDict( &tess->alloc, tess, (int (*)(void *, DictKey, DictKey)) EdgeLeq );
+	tess->dict = dictNewDict(tess);
 	if (tess->dict == NULL) longjmp(tess->env,1);
 
 	w = (tess->bmax[0] - tess->bmin[0]);
@@ -1152,7 +1152,7 @@ static void DoneEdgeDict( TESStesselator *tess )
 		DeleteRegion( tess, reg );
 		/*    tessMeshDelete( reg->eUp );*/
 	}
-	dictDeleteDict( &tess->alloc, tess->dict );
+	dictDeleteDict(tess->dict);
 }
 
 

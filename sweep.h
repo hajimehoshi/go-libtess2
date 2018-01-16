@@ -55,7 +55,7 @@ int tessComputeInterior( TESStesselator *tess );
 
 struct ActiveRegion {
 	TESShalfEdge *eUp;		/* upper edge, directed right to left */
-	DictNode *nodeUp;	/* dictionary node corresponding to eUp */
+	void *nodeUp;	/* dictionary node corresponding to eUp */
 	int windingNumber;	/* used to determine which regions are
 							* inside the polygon */
 	int inside;		/* is this region inside the polygon? */
@@ -70,5 +70,7 @@ struct ActiveRegion {
 
 #define RegionBelow(r) ((ActiveRegion *) dictKey(dictPred((r)->nodeUp)))
 #define RegionAbove(r) ((ActiveRegion *) dictKey(dictSucc((r)->nodeUp)))
+
+int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 );
 
 #endif
