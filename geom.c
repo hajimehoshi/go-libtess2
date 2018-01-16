@@ -259,3 +259,11 @@ void tesedgeIntersect( TESSvertex *o1, TESSvertex *d1,
 		v->t = Interpolate( z1, o2->t, z2, d2->t );
 	}
 }
+
+int VertEq(TESSvertex* u, TESSvertex* v) {
+  return (u)->s == (v)->s && (u)->t == (v)->t;
+}
+
+int VertLeq(TESSvertex* u, TESSvertex* v) {
+  return ((u)->s < (v)->s) || ((u)->s == (v)->s && (u)->t <= (v)->t);
+}

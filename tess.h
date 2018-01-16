@@ -43,7 +43,7 @@
 extern "C" {
 #endif
 
-//typedef struct TESStesselator TESStesselator;
+typedef struct TESStesselator TESStesselator;
 
 struct TESStesselator {
 

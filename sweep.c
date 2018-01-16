@@ -89,7 +89,7 @@ extern void DebugEvent( TESStesselator *tess );
 #define AddWinding(eDst,eSrc)	(eDst->winding += eSrc->winding, \
 	eDst->Sym->winding += eSrc->Sym->winding)
 
-static void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
+void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
 static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 
@@ -397,8 +397,7 @@ static void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp,
 }
 
 
-static void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1,
-								TESShalfEdge *e2 )
+void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 )
 /*
 * Two vertices with idential coordinates are combined into one.
 * e1->Org is kept, while e2->Org is discarded.
@@ -1014,7 +1013,7 @@ static void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent )
 }
 
 
-static void SweepEvent( TESStesselator *tess, TESSvertex *vEvent )
+void SweepEvent( TESStesselator *tess, TESSvertex *vEvent )
 /*
 * Does everything necessary when the sweep line crosses a vertex.
 * Updates the mesh and the edge dictionary.
@@ -1101,7 +1100,7 @@ static void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TES
 }
 
 
-static void InitEdgeDict( TESStesselator *tess )
+void InitEdgeDict( TESStesselator *tess )
 /*
 * We maintain an ordering of edge intersections with the sweep line.
 * This order is maintained in a dynamic dictionary.
@@ -1128,7 +1127,7 @@ static void InitEdgeDict( TESStesselator *tess )
 }
 
 
-static void DoneEdgeDict( TESStesselator *tess )
+void DoneEdgeDict( TESStesselator *tess )
 {
 	ActiveRegion *reg;
 	int fixedEdges = 0;
@@ -1151,7 +1150,7 @@ static void DoneEdgeDict( TESStesselator *tess )
 }
 
 
-static void RemoveDegenerateEdges( TESStesselator *tess )
+void RemoveDegenerateEdges( TESStesselator *tess )
 /*
 * Remove zero-length edges, and contours with fewer than 3 vertices.
 */
@@ -1185,7 +1184,7 @@ static void RemoveDegenerateEdges( TESStesselator *tess )
 	}
 }
 
-static int InitPriorityQ( TESStesselator *tess )
+int InitPriorityQ( TESStesselator *tess )
 /*
 * Insert all vertices into the priority queue which determines the
 * order in which vertices cross the sweep line.
@@ -1219,13 +1218,13 @@ static int InitPriorityQ( TESStesselator *tess )
 }
 
 
-static void DonePriorityQ( TESStesselator *tess )
+void DonePriorityQ( TESStesselator *tess )
 {
 	pqDeletePriorityQ( tess->pq );
 }
 
 
-static int RemoveDegenerateFaces( TESStesselator *tess, TESSmesh *mesh )
+int RemoveDegenerateFaces( TESStesselator *tess, TESSmesh *mesh )
 /*
 * Delete any degenerate faces with only two edges.  WalkDirtyRegions()
 * will catch almost all of these, but it won't catch degenerate faces
@@ -1256,63 +1255,5 @@ static int RemoveDegenerateFaces( TESStesselator *tess, TESSmesh *mesh )
 			if ( !tessMeshDelete( tess->mesh, e ) ) return 0;
 		}
 	}
-	return 1;
-}
-
-int tessComputeInterior( TESStesselator *tess )
-/*
-* tessComputeInterior( tess ) computes the planar arrangement specified
-* by the given contours, and further subdivides this arrangement
-* into regions.  Each region is marked "inside" if it belongs
-* to the polygon, according to the rule given by tess->windingRule.
-* Each interior region is guaranteed be monotone.
-*/
-{
-	TESSvertex *v, *vNext;
-
-	/* Each vertex defines an event for our sweep line.  Start by inserting
-	* all the vertices in a priority queue.  Events are processed in
-	* lexicographic order, ie.
-	*
-	*	e1 < e2  iff  e1.x < e2.x || (e1.x == e2.x && e1.y < e2.y)
-	*/
-	RemoveDegenerateEdges( tess );
-	if ( !InitPriorityQ( tess ) ) return 0; /* if error */
-	InitEdgeDict( tess );
-
-	while( (v = (TESSvertex *)pqExtractMin( tess->pq )) != NULL ) {
-		for( ;; ) {
-			vNext = (TESSvertex *)pqMinimum( tess->pq );
-			if( vNext == NULL || ! VertEq( vNext, v )) break;
-
-			/* Merge together all vertices at exactly the same location.
-			* This is more efficient than processing them one at a time,
-			* simplifies the code (see ConnectLeftDegenerate), and is also
-			* important for correct handling of certain degenerate cases.
-			* For example, suppose there are two identical edges A and B
-			* that belong to different contours (so without this code they would
-			* be processed by separate sweep events).  Suppose another edge C
-			* crosses A and B from above.  When A is processed, we split it
-			* at its intersection point with C.  However this also splits C,
-			* so when we insert B we may compute a slightly different
-			* intersection point.  This might leave two edges with a small
-			* gap between them.  This kind of error is especially obvious
-			* when using boundary extraction (TESS_BOUNDARY_ONLY).
-			*/
-			vNext = (TESSvertex *)pqExtractMin( tess->pq );
-			SpliceMergeVertices( tess, v->anEdge, vNext->anEdge );
-		}
-		SweepEvent( tess, v );
-	}
-
-	/* Set tess->event for debugging purposes */
-	tess->event = ((ActiveRegion *) dictKey( dictMin( tess->dict )))->eUp->Org;
-	DebugEvent( tess );
-	DoneEdgeDict( tess );
-	DonePriorityQ( tess );
-
-	if ( !RemoveDegenerateFaces( tess, tess->mesh ) ) return 0;
-	tessMeshCheckMesh( tess->mesh );
-
 	return 1;
 }

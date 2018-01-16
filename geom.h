@@ -32,20 +32,11 @@
 #ifndef GEOM_H
 #define GEOM_H
 
+#include <stdbool.h>
 #include "mesh.h"
 
-#ifdef NO_BRANCH_CONDITIONS
-/* MIPS architecture has special instructions to evaluate boolean
-* conditions -- more efficient than branching, IF you can get the
-* compiler to generate the right instructions (SGI compiler doesn't)
-*/
-#define VertEq(u,v)	(((u)->s == (v)->s) & ((u)->t == (v)->t))
-#define VertLeq(u,v)	(((u)->s < (v)->s) | \
-	((u)->s == (v)->s & (u)->t <= (v)->t))
-#else
-#define VertEq(u,v) ((u)->s == (v)->s && (u)->t == (v)->t)
-#define VertLeq(u,v) (((u)->s < (v)->s) || ((u)->s == (v)->s && (u)->t <= (v)->t))
-#endif
+int VertEq(TESSvertex* u, TESSvertex* v);
+int VertLeq(TESSvertex* u, TESSvertex* v);
 
 #define EdgeEval(u,v,w)	tesedgeEval(u,v,w)
 #define EdgeSign(u,v,w)	tesedgeSign(u,v,w)

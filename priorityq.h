@@ -46,7 +46,7 @@
 
 struct TESSvertex;
 
-typedef void* PriorityQ;
+typedef void PriorityQ;
 typedef void* PQhandle;
 
 void *pqNewPriorityQ( int size );
