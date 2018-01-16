@@ -73,14 +73,14 @@ func dictNewDict(frame *C.struct_TESStesselator) unsafe.Pointer {
 }
 
 //export dictDeleteDict
-func dictDeleteDict(d unsafe.Pointer) {
-	delete(idToDict, uintptr(d))
+func dictDeleteDict(dictID unsafe.Pointer) {
+	delete(idToDict, uintptr(dictID))
 }
 
 //export dictInsertBefore
 func dictInsertBefore(dictID unsafe.Pointer, nodeID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
-	d := (*dict)(idToDict[uintptr(dictID)])
-	n := (*dictNode)(idToNode[uintptr(nodeID)])
+	d := idToDict[uintptr(dictID)]
+	n := idToNode[uintptr(nodeID)]
 	for {
 		n = n.prev
 		if n.key == nil || C.EdgeLeq(d.frame, n.key, key) != 0 {
@@ -105,14 +105,14 @@ func dictInsertBefore(dictID unsafe.Pointer, nodeID unsafe.Pointer, key *C.struc
 
 //export dictDelete
 func dictDelete(nodeID unsafe.Pointer) {
-	n := (*dictNode)(idToNode[uintptr(nodeID)])
+	n := idToNode[uintptr(nodeID)]
 	n.next.prev = n.prev
 	n.prev.next = n.next
 }
 
 //export dictSearch
 func dictSearch(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
-	d := (*dict)(idToDict[uintptr(dictID)])
+	d := idToDict[uintptr(dictID)]
 	n := &d.head
 	for {
 		n = n.next
@@ -125,36 +125,36 @@ func dictSearch(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointe
 
 //export dictKey
 func dictKey(nodeID unsafe.Pointer) *C.struct_ActiveRegion {
-	n := (*dictNode)(idToNode[uintptr(nodeID)])
+	n := idToNode[uintptr(nodeID)]
 	return n.key
 }
 
 //export dictSucc
 func dictSucc(nodeID unsafe.Pointer) unsafe.Pointer {
-	n := (*dictNode)(idToNode[uintptr(nodeID)])
+	n := idToNode[uintptr(nodeID)]
 	return unsafe.Pointer(nodeToID[n.next])
 }
 
 //export dictPred
 func dictPred(nodeID unsafe.Pointer) unsafe.Pointer {
-	n := (*dictNode)(idToNode[uintptr(nodeID)])
+	n := idToNode[uintptr(nodeID)]
 	return unsafe.Pointer(nodeToID[n.prev])
 }
 
 //export dictMin
 func dictMin(dictID unsafe.Pointer) unsafe.Pointer {
-	d := (*dict)(idToDict[uintptr(dictID)])
+	d := idToDict[uintptr(dictID)]
 	return unsafe.Pointer(nodeToID[d.head.next])
 }
 
 //export dictMax
 func dictMax(dictID unsafe.Pointer) unsafe.Pointer {
-	d := (*dict)(idToDict[uintptr(dictID)])
+	d := idToDict[uintptr(dictID)]
 	return unsafe.Pointer(nodeToID[d.head.prev])
 }
 
 //export dictInsert
 func dictInsert(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
-	d := (*dict)(idToDict[uintptr(dictID)])
+	d := idToDict[uintptr(dictID)]
 	return dictInsertBefore(dictID, unsafe.Pointer(nodeToID[&d.head]), key)
 }
