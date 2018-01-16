@@ -55,11 +55,11 @@ package libtess2
 //   return tessNewTess(&ma);
 // }
 //
-// TESSindex golibtess2_elementAt(TESSindex* elements, int i) {
+// static TESSindex golibtess2_elementAt(TESSindex* elements, int i) {
 //   return elements[i];
 // }
 //
-// TESSreal golibtess2_vertexAt(TESSreal* vertices, TESSindex i) {
+// static TESSreal golibtess2_vertexAt(TESSreal* vertices, TESSindex i) {
 //   return vertices[i];
 // }
 //
