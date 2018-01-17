@@ -34,10 +34,10 @@ package libtess2
 // #include "tesselator.h"
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
-// void DoneEdgeDict( TESStesselator *tess );
 // void InitEdgeDict( TESStesselator *tess );
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
+// void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
 func assert(cond bool) {
@@ -55,6 +55,28 @@ func max(a, b C.int) C.int {
 
 func dst(e *C.TESShalfEdge) *C.TESSvertex {
 	return e.Sym.Org
+}
+
+func doneEdgeDict(tess *C.TESStesselator) {
+	fixedEdges := 0
+	for {
+		reg := C.dictKey(C.dictMin(tess.dict))
+		if reg == nil {
+			break
+		}
+		// At the end of all processing, the dictionary should contain
+		// only the two sentinel edges, plus at most one "fixable" edge
+		// created by ConnectRightVertex().
+		if reg.sentinel == 0 {
+			assert(reg.fixUpperEdge != 0)
+			fixedEdges++
+			assert(fixedEdges == 1)
+		}
+		assert(reg.windingNumber == 0)
+		C.DeleteRegion(tess, reg)
+		// tessMeshDelete( reg.eUp );
+	}
+	C.dictDeleteDict(tess.dict)
 }
 
 // removeDegenerateEdges removes zero-length edges, and contours with fewer than 3 vertices.
@@ -194,7 +216,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	// Set tess.event for debugging purposes
 	//tess.event = dictKey(dictMin(tess.dict)).eUp.Org
 	//C.DebugEvent(tess)
-	C.DoneEdgeDict(tess)
+	doneEdgeDict(tess)
 	donePriorityQ(tess)
 
 	if !removeDegenerateFaces(tess, tess.mesh) {

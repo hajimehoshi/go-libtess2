@@ -138,7 +138,7 @@ int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
 }
 
 
-static void DeleteRegion( TESStesselator *tess, ActiveRegion *reg )
+void DeleteRegion( TESStesselator *tess, ActiveRegion *reg )
 {
 	if( reg->fixUpperEdge ) {
 		/* It was created with zero winding number, so it better be
@@ -1126,27 +1126,4 @@ void InitEdgeDict( TESStesselator *tess )
 
 	AddSentinel( tess, smin, smax, tmin );
 	AddSentinel( tess, smin, smax, tmax );
-}
-
-
-void DoneEdgeDict( TESStesselator *tess )
-{
-	ActiveRegion *reg;
-	int fixedEdges = 0;
-
-	while( (reg = (ActiveRegion *)dictKey( dictMin( tess->dict ))) != NULL ) {
-		/*
-		* At the end of all processing, the dictionary should contain
-		* only the two sentinel edges, plus at most one "fixable" edge
-		* created by ConnectRightVertex().
-		*/
-		if( ! reg->sentinel ) {
-			assert( reg->fixUpperEdge );
-			assert( ++fixedEdges == 1 );
-		}
-		assert( reg->windingNumber == 0 );
-		DeleteRegion( tess, reg );
-		/*    tessMeshDelete( reg->eUp );*/
-	}
-	dictDeleteDict(tess->dict);
 }

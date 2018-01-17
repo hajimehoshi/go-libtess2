@@ -32,8 +32,7 @@
 #ifndef DICT_LIST_H
 #define DICT_LIST_H
 
-struct ActiveRegion;
-struct TESStesselator;
+#include "sweep.h"
 
 void *dictNewDict( struct TESStesselator *frame );
 
@@ -43,11 +42,11 @@ void dictDeleteDict( void *dict );
 * to the given key.  If there is no such key, returns a node whose
 * key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
 */
-void *dictSearch( void *dict, struct ActiveRegion* key );
-void *dictInsertBefore( void *dict, void *node, struct ActiveRegion *key );
+void *dictSearch( void *dict, ActiveRegion* key );
+void *dictInsertBefore( void *dict, void *node, ActiveRegion *key );
 void dictDelete( void *node );
 
-struct ActiveRegion* dictKey(void* node);
+ActiveRegion* dictKey(void* node);
 void* dictSucc(void* node);
 void* dictPred(void* node);
 void* dictMin(void* dict);
