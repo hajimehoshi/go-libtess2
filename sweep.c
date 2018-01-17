@@ -1218,11 +1218,6 @@ int InitPriorityQ( TESStesselator *tess )
 }
 
 
-void DonePriorityQ( TESStesselator *tess )
-{
-	pqDeletePriorityQ( tess->pq );
-}
-
 
 int RemoveDegenerateFaces( TESStesselator *tess, TESSmesh *mesh )
 /*

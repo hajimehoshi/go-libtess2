@@ -34,7 +34,6 @@ package libtess2
 // #include "tesselator.h"
 //
 // void DoneEdgeDict( TESStesselator *tess );
-// void DonePriorityQ( TESStesselator *tess );
 // void InitEdgeDict( TESStesselator *tess );
 // int InitPriorityQ( TESStesselator *tess );
 // int RemoveDegenerateFaces( TESStesselator *tess, TESSmesh *mesh );
@@ -42,6 +41,10 @@ package libtess2
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 import "C"
+
+func donePriorityQ(tess *C.TESStesselator) {
+	pqDeletePriorityQ(tess.pq)
+}
 
 //export tessComputeInterior
 //
@@ -98,7 +101,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	//tess.event = dictKey(dictMin(tess.dict)).eUp.Org
 	//C.DebugEvent(tess)
 	C.DoneEdgeDict(tess)
-	C.DonePriorityQ(tess)
+	donePriorityQ(tess)
 
 	if C.RemoveDegenerateFaces(tess, tess.mesh) == 0 {
 		return 0
