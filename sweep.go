@@ -33,17 +33,53 @@ package libtess2
 // #include "tess.h"
 // #include "tesselator.h"
 //
+// void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DoneEdgeDict( TESStesselator *tess );
 // void InitEdgeDict( TESStesselator *tess );
 // int InitPriorityQ( TESStesselator *tess );
-// int RemoveDegenerateFaces( TESStesselator *tess, TESSmesh *mesh );
 // void RemoveDegenerateEdges( TESStesselator *tess );
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 import "C"
 
+func assert(cond bool) {
+	if !cond {
+		panic("libtess2: assertion error")
+	}
+}
+
 func donePriorityQ(tess *C.TESStesselator) {
 	pqDeletePriorityQ(tess.pq)
+}
+
+// removeDegenerateFaces deletes any degenerate faces with only two edges.  WalkDirtyRegions()
+// will catch almost all of these, but it won't catch degenerate faces
+// produced by splice operations on already-processed edges.
+// The two places this can happen are in FinishLeftRegions(), when
+// we splice in a "temporary" edge produced by ConnectRightVertex(),
+// and in CheckForLeftSplice(), where we splice already-processed
+// edges to ensure that our dictionary invariants are not violated
+// by numerical errors.
+//
+// In both these cases it is *very* dangerous to delete the offending
+// edge at the time, since one of the routines further up the stack
+// will sometimes be keeping a pointer to that edge.
+func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
+	var fNext *C.TESSface
+	for f := mesh.fHead.next; f != &mesh.fHead; f = fNext {
+		fNext = f.next
+		e := f.anEdge
+		assert(e.Lnext != e)
+
+		if e.Lnext.Lnext == e {
+			// A face with only two edges
+			C.AddWinding(e.Onext, e)
+			if C.tessMeshDelete(tess.mesh, e) == 0 {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 //export tessComputeInterior
@@ -103,7 +139,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	C.DoneEdgeDict(tess)
 	donePriorityQ(tess)
 
-	if C.RemoveDegenerateFaces(tess, tess.mesh) == 0 {
+	if !removeDegenerateFaces(tess, tess.mesh) {
 		return 0
 	}
 	C.tessMeshCheckMesh(tess.mesh)
