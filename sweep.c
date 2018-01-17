@@ -91,7 +91,6 @@ void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc) {
   eDst->Sym->winding += eSrc->Sym->winding;
 }
 
-void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
 static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 

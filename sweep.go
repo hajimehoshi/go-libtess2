@@ -127,7 +127,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		}
 		C.tessMeshSplice(tess.mesh, vEvent.anEdge, e)
 		// recurse
-		SweepEvent(tess, vEvent)
+		sweepEvent(tess, vEvent)
 		return
 	}
 
@@ -213,7 +213,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		} else {
 			C.ComputeWinding(tess, C.AddRegionBelow(tess, regUp, eNew))
 		}
-		SweepEvent(tess, vEvent)
+		sweepEvent(tess, vEvent)
 	} else {
 		// The new vertex is in a region which does not belong to the polygon.
 		// We don''t need to connect this vertex to the rest of the mesh.
@@ -221,11 +221,9 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	}
 }
 
-//export SweepEvent
-//
 // sweepEvent does everything necessary when the sweep line crosses a vertex.
 // Updates the mesh and the edge dictionary.
-func SweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
+func sweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	tess.event = vEvent // for access in EdgeLeq()
 
 	// Check if this vertex is the right endpoint of an edge that is
@@ -458,7 +456,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 			vNext = (*C.TESSvertex)(C.pqExtractMin(tess.pq))
 			C.SpliceMergeVertices(tess, v.anEdge, vNext.anEdge)
 		}
-		SweepEvent(tess, v)
+		sweepEvent(tess, v)
 	}
 
 	// Set tess.event for debugging purposes
