@@ -1185,36 +1185,3 @@ void RemoveDegenerateEdges( TESStesselator *tess )
 		}
 	}
 }
-
-int InitPriorityQ( TESStesselator *tess )
-/*
-* Insert all vertices into the priority queue which determines the
-* order in which vertices cross the sweep line.
-*/
-{
-	PriorityQ *pq;
-	TESSvertex *v, *vHead;
-	int vertexCount = 0;
-	
-	vHead = &tess->mesh->vHead;
-	for( v = vHead->next; v != vHead; v = v->next ) {
-		vertexCount++;
-	}
-	/* Make sure there is enough space for sentinels. */
-	vertexCount += MAX( 8, tess->alloc.extraVertices );
-	
-	pq = tess->pq = pqNewPriorityQ( vertexCount /*(int (*)(PQkey, PQkey)) tesvertLeq*/ );
-	if (pq == NULL) return 0;
-
-	vHead = &tess->mesh->vHead;
-	for( v = vHead->next; v != vHead; v = v->next ) {
-		v->pqHandle = pqInsert( pq, v );
-	}
-	if (v != vHead ) {
-		pqDeletePriorityQ( tess->pq );
-		tess->pq = NULL;
-		return 0;
-	}
-
-	return 1;
-}

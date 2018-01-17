@@ -36,7 +36,6 @@ package libtess2
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DoneEdgeDict( TESStesselator *tess );
 // void InitEdgeDict( TESStesselator *tess );
-// int InitPriorityQ( TESStesselator *tess );
 // void RemoveDegenerateEdges( TESStesselator *tess );
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
@@ -45,6 +44,33 @@ import "C"
 func assert(cond bool) {
 	if !cond {
 		panic("libtess2: assertion error")
+	}
+}
+
+func max(a, b C.int) C.int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+// initPriorityQ inserts all vertices into the priority queue which determines the
+// order in which vertices cross the sweep line.
+func initPriorityQ(tess *C.TESStesselator) {
+	vertexCount := C.int(0)
+
+	vHead := &tess.mesh.vHead
+	for v := vHead.next; v != vHead; v = v.next {
+		vertexCount++
+	}
+	// Make sure there is enough space for sentinels.
+	vertexCount += max(8, tess.alloc.extraVertices)
+
+	tess.pq = pqNewPriorityQ(vertexCount)
+
+	vHead = &tess.mesh.vHead
+	for v := vHead.next; v != vHead; v = v.next {
+		v.pqHandle = pqInsert(tess.pq, v)
 	}
 }
 
@@ -98,9 +124,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	//
 	//	e1 < e2  iff  e1.x < e2.x || (e1.x == e2.x && e1.y < e2.y)
 	C.RemoveDegenerateEdges(tess)
-	if C.InitPriorityQ(tess) == 0 {
-		return 0
-	}
+	initPriorityQ(tess)
 	C.InitEdgeDict(tess)
 
 	for {
