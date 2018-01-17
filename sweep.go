@@ -214,8 +214,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	}
 
 	// Set tess.event for debugging purposes
-	//tess.event = dictKey(dictMin(tess.dict)).eUp.Org
-	//C.DebugEvent(tess)
+	tess.event = dictKey(dictMin(tess.dict)).eUp.Org
 	doneEdgeDict(tess)
 	donePriorityQ(tess)
 
