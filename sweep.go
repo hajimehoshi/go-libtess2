@@ -39,8 +39,14 @@ package libtess2
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
-// void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
+// void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent );
+// void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp );
+// void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent );
+// void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent );
+// void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eBottomLeft );
+// TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast );
+// ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
 func assert(cond bool) {
@@ -60,11 +66,62 @@ func dst(e *C.TESShalfEdge) *C.TESSvertex {
 	return e.Sym.Org
 }
 
+func regionBelow(r *C.ActiveRegion) *C.ActiveRegion {
+	return dictKey(dictPred(r.nodeUp))
+}
+
+func regionAbove(r *C.ActiveRegion) *C.ActiveRegion  {
+	return dictKey(dictSucc(r.nodeUp))
+}
+
 func adjust(x C.TESSreal) C.TESSreal {
 	if x > 0 {
 		return x
 	}
 	return 0.01
+}
+
+//export SweepEvent
+//
+// sweepEvent does everything necessary when the sweep line crosses a vertex.
+// Updates the mesh and the edge dictionary.
+func SweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
+	tess.event = vEvent /* for access in EdgeLeq() */
+
+	// Check if this vertex is the right endpoint of an edge that is
+	// already in the dictionary.  In this case we don't need to waste
+	// time searching for the location to insert new edges.
+	e := vEvent.anEdge
+	for e.activeRegion == nil {
+		e = e.Onext
+		if e == vEvent.anEdge {
+			// All edges go right -- not incident to any processed edges
+			C.ConnectLeftVertex(tess, vEvent)
+			return
+		}
+	}
+
+	// Processing consists of two phases: first we "finish" all the
+	// active regions where both the upper and lower edges terminate
+	// at vEvent (ie. vEvent is closing off these regions).
+	// We mark these faces "inside" or "outside" the polygon according
+	// to their winding number, and delete the edges from the dictionary.
+	// This takes care of all the left-going edges from vEvent.
+	regUp := C.TopLeftRegion(tess, e.activeRegion)
+	reg := regionBelow(regUp)
+	eTopLeft := reg.eUp
+	eBottomLeft := C.FinishLeftRegions(tess, reg, nil)
+
+	// Next we process all the right-going edges from vEvent.  This
+	// involves adding the edges to the dictionary, and creating the
+	// associated "active regions" which record information about the
+	// regions between adjacent dictionary edges.
+	if eBottomLeft.Onext == eTopLeft {
+		// No right-going edges -- add a temporary "fixable" edge
+		C.ConnectRightVertex(tess, regUp, eBottomLeft)
+	} else {
+		C.AddRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, 1)
+	}
 }
 
 // addSentinel makes the sentinel coordinates big enough that they will never be
@@ -261,7 +318,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 			vNext = (*C.TESSvertex)(C.pqExtractMin(tess.pq))
 			C.SpliceMergeVertices(tess, v.anEdge, vNext.anEdge)
 		}
-		C.SweepEvent(tess, v)
+		SweepEvent(tess, v)
 	}
 
 	// Set tess.event for debugging purposes

@@ -167,7 +167,7 @@ static int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *
 	return 1; 
 }
 
-static ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg )
+ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg )
 {
 	TESSvertex *org = reg->eUp->Org;
 	TESShalfEdge *e;
@@ -200,9 +200,7 @@ static ActiveRegion *TopRightRegion( ActiveRegion *reg )
 	return reg;
 }
 
-static ActiveRegion *AddRegionBelow( TESStesselator *tess,
-									ActiveRegion *regAbove,
-									TESShalfEdge *eNewUp )
+static ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp )
 /*
 * Add a new active region to the sweep line, *somewhere* below "regAbove"
 * (according to where the new edge belongs in the sweep-line dictionary).
@@ -271,8 +269,7 @@ static void FinishRegion( TESStesselator *tess, ActiveRegion *reg )
 }
 
 
-static TESShalfEdge *FinishLeftRegions( TESStesselator *tess,
-									  ActiveRegion *regFirst, ActiveRegion *regLast )
+TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast )
 /*
 * We are given a vertex with one or more left-going edges.  All affected
 * edges should be in the edge dictionary.  Starting at regFirst->eUp,
@@ -327,9 +324,7 @@ static TESShalfEdge *FinishLeftRegions( TESStesselator *tess,
 }
 
 
-static void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp,
-						  TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft,
-						  int cleanUp )
+void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp )
 /*
 * Purpose: insert right-going edges into the edge dictionary, and update
 * winding numbers and mesh connectivity appropriately.  All right-going
@@ -790,8 +785,7 @@ static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp )
 }
 
 
-static void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp,
-							   TESShalfEdge *eBottomLeft )
+void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eBottomLeft )
 /*
 * Purpose: connect a "right" vertex vEvent (one where all edges go left)
 * to the unprocessed portion of the mesh.  Since there are no right-going
@@ -884,8 +878,7 @@ static void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp,
 */
 #define TOLERANCE_NONZERO	FALSE
 
-static void ConnectLeftDegenerate( TESStesselator *tess,
-								  ActiveRegion *regUp, TESSvertex *vEvent )
+void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent )
 /*
 * The event vertex lies exacty on an already-processed edge or vertex.
 * Adding the new vertex involves splicing it into the already-processed
@@ -944,7 +937,7 @@ static void ConnectLeftDegenerate( TESStesselator *tess,
 }
 
 
-static void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent )
+void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent )
 /*
 * Purpose: connect a "left" vertex (one where both edges go right)
 * to the processed portion of the mesh.  Let R be the active region
@@ -1011,58 +1004,5 @@ static void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent )
 		* We don''t need to connect this vertex to the rest of the mesh.
 		*/
 		AddRightEdges( tess, regUp, vEvent->anEdge, vEvent->anEdge, NULL, TRUE );
-	}
-}
-
-
-void SweepEvent( TESStesselator *tess, TESSvertex *vEvent )
-/*
-* Does everything necessary when the sweep line crosses a vertex.
-* Updates the mesh and the edge dictionary.
-*/
-{
-	ActiveRegion *regUp, *reg;
-	TESShalfEdge *e, *eTopLeft, *eBottomLeft;
-
-	tess->event = vEvent;		/* for access in EdgeLeq() */
-	DebugEvent( tess );
-
-	/* Check if this vertex is the right endpoint of an edge that is
-	* already in the dictionary.  In this case we don't need to waste
-	* time searching for the location to insert new edges.
-	*/
-	e = vEvent->anEdge;
-	while( e->activeRegion == NULL ) {
-		e = e->Onext;
-		if( e == vEvent->anEdge ) {
-			/* All edges go right -- not incident to any processed edges */
-			ConnectLeftVertex( tess, vEvent );
-			return;
-		}
-	}
-
-	/* Processing consists of two phases: first we "finish" all the
-	* active regions where both the upper and lower edges terminate
-	* at vEvent (ie. vEvent is closing off these regions).
-	* We mark these faces "inside" or "outside" the polygon according
-	* to their winding number, and delete the edges from the dictionary.
-	* This takes care of all the left-going edges from vEvent.
-	*/
-	regUp = TopLeftRegion( tess, e->activeRegion );
-	if (regUp == NULL) longjmp(tess->env,1);
-	reg = RegionBelow( regUp );
-	eTopLeft = reg->eUp;
-	eBottomLeft = FinishLeftRegions( tess, reg, NULL );
-
-	/* Next we process all the right-going edges from vEvent.  This
-	* involves adding the edges to the dictionary, and creating the
-	* associated "active regions" which record information about the
-	* regions between adjacent dictionary edges.
-	*/
-	if( eBottomLeft->Onext == eTopLeft ) {
-		/* No right-going edges -- add a temporary "fixable" edge */
-		ConnectRightVertex( tess, regUp, eBottomLeft );
-	} else {
-		AddRightEdges( tess, regUp, eBottomLeft->Onext, eTopLeft, eTopLeft, TRUE );
 	}
 }
