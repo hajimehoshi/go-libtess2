@@ -1150,38 +1150,3 @@ void DoneEdgeDict( TESStesselator *tess )
 	}
 	dictDeleteDict(tess->dict);
 }
-
-
-void RemoveDegenerateEdges( TESStesselator *tess )
-/*
-* Remove zero-length edges, and contours with fewer than 3 vertices.
-*/
-{
-	TESShalfEdge *e, *eNext, *eLnext;
-	TESShalfEdge *eHead = &tess->mesh->eHead;
-
-	/*LINTED*/
-	for( e = eHead->next; e != eHead; e = eNext ) {
-		eNext = e->next;
-		eLnext = e->Lnext;
-
-		if( VertEq( e->Org, e->Dst ) && e->Lnext->Lnext != e ) {
-			/* Zero-length edge, contour has at least 3 edges */
-
-			SpliceMergeVertices( tess, eLnext, e );	/* deletes e->Org */
-			if ( !tessMeshDelete( tess->mesh, e ) ) longjmp(tess->env,1); /* e is a self-loop */
-			e = eLnext;
-			eLnext = e->Lnext;
-		}
-		if( eLnext->Lnext == e ) {
-			/* Degenerate contour (one or two edges) */
-
-			if( eLnext != e ) {
-				if( eLnext == eNext || eLnext == eNext->Sym ) { eNext = eNext->next; }
-				if ( !tessMeshDelete( tess->mesh, eLnext ) ) longjmp(tess->env,1);
-			}
-			if( e == eNext || e == eNext->Sym ) { eNext = eNext->next; }
-			if ( !tessMeshDelete( tess->mesh, e ) ) longjmp(tess->env,1);
-		}
-	}
-}

@@ -36,7 +36,6 @@ package libtess2
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DoneEdgeDict( TESStesselator *tess );
 // void InitEdgeDict( TESStesselator *tess );
-// void RemoveDegenerateEdges( TESStesselator *tess );
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 import "C"
@@ -52,6 +51,41 @@ func max(a, b C.int) C.int {
 		return b
 	}
 	return a
+}
+
+func dst(e *C.TESShalfEdge) *C.TESSvertex {
+	return e.Sym.Org
+}
+
+// removeDegenerateEdges removes zero-length edges, and contours with fewer than 3 vertices.
+func removeDegenerateEdges(tess *C.TESStesselator) {
+	eHead := &tess.mesh.eHead
+	var eNext *C.TESShalfEdge
+	for e := eHead.next; e != eHead; e = eNext {
+		eNext = e.next
+		eLnext := e.Lnext
+
+		if C.VertEq(e.Org, dst(e)) != 0 && e.Lnext.Lnext != e {
+			// Zero-length edge, contour has at least 3 edges
+			C.SpliceMergeVertices(tess, eLnext, e) /* deletes e.Org */
+			C.tessMeshDelete(tess.mesh, e)
+			e = eLnext
+			eLnext = e.Lnext
+		}
+		if eLnext.Lnext == e {
+			// Degenerate contour (one or two edges)
+			if eLnext != e {
+				if eLnext == eNext || eLnext == eNext.Sym {
+					eNext = eNext.next
+				}
+				C.tessMeshDelete(tess.mesh, eLnext)
+			}
+			if e == eNext || e == eNext.Sym {
+				eNext = eNext.next
+			}
+			C.tessMeshDelete(tess.mesh, e)
+		}
+	}
 }
 
 // initPriorityQ inserts all vertices into the priority queue which determines the
@@ -123,7 +157,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	// lexicographic order, ie.
 	//
 	//	e1 < e2  iff  e1.x < e2.x || (e1.x == e2.x && e1.y < e2.y)
-	C.RemoveDegenerateEdges(tess)
+	removeDegenerateEdges(tess)
 	initPriorityQ(tess)
 	C.InitEdgeDict(tess)
 
