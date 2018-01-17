@@ -33,11 +33,14 @@ package libtess2
 // #include "tess.h"
 // #include "tesselator.h"
 //
+// static ActiveRegion* allocActiveRegion(TESStesselator* tess) {
+//   return (ActiveRegion*)bucketAlloc(tess->regionPool);
+// }
+//
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
-// void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TESSreal t );
 import "C"
 
 func assert(cond bool) {
@@ -64,24 +67,45 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// addSentinel makes the sentinel coordinates big enough that they will never be
+// merged with real input features.
+//
+// We add two sentinel edges above and below all other edges,
+// to avoid special cases at the top and bottom.
+func addSentinel(tess *C.TESStesselator, smin, smax C.TESSreal, t C.TESSreal) {
+	reg := C.allocActiveRegion(tess)
+
+	e := C.tessMeshMakeEdge(tess.mesh)
+
+	e.Org.s = smax
+	e.Org.t = t
+	dst(e).s = smin
+	dst(e).t = t
+	tess.event = dst(e)
+
+	reg.eUp = e
+	reg.sentinel = 1
+	reg.nodeUp = dictInsert(tess.dict, reg)
+}
+
 // initEdgeDict:
 // We maintain an ordering of edge intersections with the sweep line.
 // This order is maintained in a dynamic dictionary.
 func initEdgeDict(tess *C.TESStesselator) {
-	tess.dict = dictNewDict(tess);
+	tess.dict = dictNewDict(tess)
 
-	w := (tess.bmax[0] - tess.bmin[0]);
-	h := (tess.bmax[1] - tess.bmin[1]);
+	w := (tess.bmax[0] - tess.bmin[0])
+	h := (tess.bmax[1] - tess.bmin[1])
 
-        // If the bbox is empty, ensure that sentinels are not coincident by
-        // slightly enlarging it.
+	// If the bbox is empty, ensure that sentinels are not coincident by
+	// slightly enlarging it.
 	smin := tess.bmin[0] - adjust(w)
-        smax := tess.bmax[0] + adjust(w)
-        tmin := tess.bmin[1] - adjust(h)
-        tmax := tess.bmax[1] + adjust(h)
+	smax := tess.bmax[0] + adjust(w)
+	tmin := tess.bmin[1] - adjust(h)
+	tmax := tess.bmax[1] + adjust(h)
 
-	C.AddSentinel( tess, smin, smax, tmin );
-	C.AddSentinel( tess, smin, smax, tmax );
+	addSentinel(tess, smin, smax, tmin)
+	addSentinel(tess, smin, smax, tmax)
 }
 
 func doneEdgeDict(tess *C.TESStesselator) {

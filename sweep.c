@@ -1066,37 +1066,3 @@ void SweepEvent( TESStesselator *tess, TESSvertex *vEvent )
 		AddRightEdges( tess, regUp, eBottomLeft->Onext, eTopLeft, eTopLeft, TRUE );
 	}
 }
-
-
-/* Make the sentinel coordinates big enough that they will never be
-* merged with real input features.
-*/
-
-void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TESSreal t )
-/*
-* We add two sentinel edges above and below all other edges,
-* to avoid special cases at the top and bottom.
-*/
-{
-	TESShalfEdge *e;
-	ActiveRegion *reg = (ActiveRegion *)bucketAlloc( tess->regionPool );
-	if (reg == NULL) longjmp(tess->env,1);
-
-	e = tessMeshMakeEdge( tess->mesh );
-	if (e == NULL) longjmp(tess->env,1);
-
-	e->Org->s = smax;
-	e->Org->t = t;
-	e->Dst->s = smin;
-	e->Dst->t = t;
-	tess->event = e->Dst;		/* initialize it */
-
-	reg->eUp = e;
-	reg->windingNumber = 0;
-	reg->inside = FALSE;
-	reg->fixUpperEdge = FALSE;
-	reg->sentinel = TRUE;
-	reg->dirty = FALSE;
-	reg->nodeUp = dictInsert( tess->dict, reg );
-	if (reg->nodeUp == NULL) longjmp(tess->env,1);
-}
