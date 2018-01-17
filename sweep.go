@@ -43,10 +43,12 @@ package libtess2
 // void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent );
 // void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp );
 // void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent );
-// void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent );
 // void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eBottomLeft );
 // TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast );
 // ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
+// void ComputeWinding( TESStesselator *tess, ActiveRegion *reg );
+// int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
+// ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 import "C"
 
 func assert(cond bool) {
@@ -66,11 +68,19 @@ func dst(e *C.TESShalfEdge) *C.TESSvertex {
 	return e.Sym.Org
 }
 
+func rPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
+	return e.Sym.Onext
+}
+
+func dNext(e *C.TESShalfEdge) *C.TESShalfEdge {
+	return rPrev(e).Sym
+}
+
 func regionBelow(r *C.ActiveRegion) *C.ActiveRegion {
 	return dictKey(dictPred(r.nodeUp))
 }
 
-func regionAbove(r *C.ActiveRegion) *C.ActiveRegion  {
+func regionAbove(r *C.ActiveRegion) *C.ActiveRegion {
 	return dictKey(dictSucc(r.nodeUp))
 }
 
@@ -81,12 +91,78 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// connectLeftVertex:
+// Purpose: connect a "left" vertex (one where both edges go right)
+// to the processed portion of the mesh.  Let R be the active region
+// containing vEvent, and let U and L be the upper and lower edge
+// chains of R.  There are two possibilities:
+//
+// - the normal case: split R into two regions, by connecting vEvent to
+//   the rightmost vertex of U or L lying to the left of the sweep line
+//
+// - the degenerate case: if vEvent is close enough to U or L, we
+//   merge vEvent into that edge chain.  The subcases are:
+//	- merging with the rightmost vertex of U or L
+//	- merging with the active edge of U or L
+//	- merging with an already-processed portion of U or L
+func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
+	var tmp C.ActiveRegion
+
+	// assert( vEvent.anEdge.Onext.Onext == vEvent.anEdge );
+
+	// Get a pointer to the active region containing vEvent
+	tmp.eUp = vEvent.anEdge.Sym
+	regUp := dictKey(dictSearch(tess.dict, &tmp))
+	regLo := regionBelow(regUp)
+	if regLo == nil {
+		// This may happen if the input polygon is coplanar.
+		return
+	}
+	eUp := regUp.eUp
+	eLo := regLo.eUp
+
+	// Try merging with U or L first
+	if C.tesedgeSign(dst(eUp), vEvent, eUp.Org) == 0 {
+		C.ConnectLeftDegenerate(tess, regUp, vEvent)
+		return
+	}
+
+	// Connect vEvent to rightmost processed vertex of either chain.
+	// e.Dst is the vertex that we will connect to vEvent.
+	var reg *C.ActiveRegion
+	if C.VertLeq(dst(eLo), dst(eUp)) != 0 {
+		reg = regUp
+	} else {
+		reg = regLo
+	}
+
+	if regUp.inside != 0 || reg.fixUpperEdge != 0 {
+		var eNew *C.TESShalfEdge
+		if reg == regUp {
+			eNew = C.tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
+		} else {
+			tempHalfEdge := C.tessMeshConnect(tess.mesh, dNext(eLo), vEvent.anEdge)
+			eNew = tempHalfEdge.Sym
+		}
+		if reg.fixUpperEdge != 0 {
+			C.FixUpperEdge(tess, reg, eNew)
+		} else {
+			C.ComputeWinding(tess, C.AddRegionBelow(tess, regUp, eNew))
+		}
+		SweepEvent(tess, vEvent)
+	} else {
+		// The new vertex is in a region which does not belong to the polygon.
+		// We don''t need to connect this vertex to the rest of the mesh.
+		C.AddRightEdges(tess, regUp, vEvent.anEdge, vEvent.anEdge, nil, 1)
+	}
+}
+
 //export SweepEvent
 //
 // sweepEvent does everything necessary when the sweep line crosses a vertex.
 // Updates the mesh and the edge dictionary.
 func SweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
-	tess.event = vEvent /* for access in EdgeLeq() */
+	tess.event = vEvent // for access in EdgeLeq()
 
 	// Check if this vertex is the right endpoint of an edge that is
 	// already in the dictionary.  In this case we don't need to waste
@@ -96,7 +172,7 @@ func SweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		e = e.Onext
 		if e == vEvent.anEdge {
 			// All edges go right -- not incident to any processed edges
-			C.ConnectLeftVertex(tess, vEvent)
+			connectLeftVertex(tess, vEvent)
 			return
 		}
 	}

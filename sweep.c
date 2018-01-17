@@ -153,7 +153,7 @@ void DeleteRegion( TESStesselator *tess, ActiveRegion *reg )
 }
 
 
-static int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge )
+int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge )
 /*
 * Replace an upper edge which needs fixing (see ConnectRightVertex).
 */
@@ -200,7 +200,7 @@ static ActiveRegion *TopRightRegion( ActiveRegion *reg )
 	return reg;
 }
 
-static ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp )
+ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp )
 /*
 * Add a new active region to the sweep line, *somewhere* below "regAbove"
 * (according to where the new edge belongs in the sweep-line dictionary).
@@ -244,7 +244,7 @@ static int IsWindingInside( TESStesselator *tess, int n )
 }
 
 
-static void ComputeWinding( TESStesselator *tess, ActiveRegion *reg )
+void ComputeWinding( TESStesselator *tess, ActiveRegion *reg )
 {
 	reg->windingNumber = RegionAbove(reg)->windingNumber + reg->eUp->winding;
 	reg->inside = IsWindingInside( tess, reg->windingNumber );
@@ -934,75 +934,4 @@ void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSverte
 		eTopLeft = NULL;
 	}
 	AddRightEdges( tess, regUp, eTopRight->Onext, eLast, eTopLeft, TRUE );
-}
-
-
-void ConnectLeftVertex( TESStesselator *tess, TESSvertex *vEvent )
-/*
-* Purpose: connect a "left" vertex (one where both edges go right)
-* to the processed portion of the mesh.  Let R be the active region
-* containing vEvent, and let U and L be the upper and lower edge
-* chains of R.  There are two possibilities:
-*
-* - the normal case: split R into two regions, by connecting vEvent to
-*   the rightmost vertex of U or L lying to the left of the sweep line
-*
-* - the degenerate case: if vEvent is close enough to U or L, we
-*   merge vEvent into that edge chain.  The subcases are:
-*	- merging with the rightmost vertex of U or L
-*	- merging with the active edge of U or L
-*	- merging with an already-processed portion of U or L
-*/
-{
-	ActiveRegion *regUp, *regLo, *reg;
-	TESShalfEdge *eUp, *eLo, *eNew;
-	ActiveRegion tmp;
-
-	/* assert( vEvent->anEdge->Onext->Onext == vEvent->anEdge ); */
-
-	/* Get a pointer to the active region containing vEvent */
-	tmp.eUp = vEvent->anEdge->Sym;
-	/* __GL_DICTLISTKEY */ /* tessDictListSearch */
-	regUp = (ActiveRegion *)dictKey( dictSearch( tess->dict, &tmp ));
-	regLo = RegionBelow( regUp );
-	if( !regLo ) {
-		// This may happen if the input polygon is coplanar.
-		return;
-	}
-	eUp = regUp->eUp;
-	eLo = regLo->eUp;
-
-	/* Try merging with U or L first */
-	if( EdgeSign( eUp->Dst, vEvent, eUp->Org ) == 0 ) {
-		ConnectLeftDegenerate( tess, regUp, vEvent );
-		return;
-	}
-
-	/* Connect vEvent to rightmost processed vertex of either chain.
-	* e->Dst is the vertex that we will connect to vEvent.
-	*/
-	reg = VertLeq( eLo->Dst, eUp->Dst ) ? regUp : regLo;
-
-	if( regUp->inside || reg->fixUpperEdge) {
-		if( reg == regUp ) {
-			eNew = tessMeshConnect( tess->mesh, vEvent->anEdge->Sym, eUp->Lnext );
-			if (eNew == NULL) longjmp(tess->env,1);
-		} else {
-			TESShalfEdge *tempHalfEdge= tessMeshConnect( tess->mesh, eLo->Dnext, vEvent->anEdge);
-			if (tempHalfEdge == NULL) longjmp(tess->env,1);
-
-			eNew = tempHalfEdge->Sym;
-		}
-		if( reg->fixUpperEdge ) {
-			if ( !FixUpperEdge( tess, reg, eNew ) ) longjmp(tess->env,1);
-		} else {
-			ComputeWinding( tess, AddRegionBelow( tess, regUp, eNew ));
-		}
-		SweepEvent( tess, vEvent );
-	} else {
-		/* The new vertex is in a region which does not belong to the polygon.
-		* We don''t need to connect this vertex to the rest of the mesh.
-		*/
-		AddRightEdges( tess, regUp, vEvent->anEdge, vEvent->anEdge, NULL, TRUE );
-	}
 }
