@@ -40,15 +40,14 @@ package libtess2
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
-// void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent );
 // void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp );
-// void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent );
 // void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eBottomLeft );
 // TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast );
 // ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
 // void ComputeWinding( TESStesselator *tess, ActiveRegion *reg );
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
+// ActiveRegion *TopRightRegion( ActiveRegion *reg );
 import "C"
 
 func assert(cond bool) {
@@ -72,6 +71,10 @@ func rPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
 	return e.Sym.Onext
 }
 
+func oPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
+	return e.Sym.Lnext
+}
+
 func dNext(e *C.TESShalfEdge) *C.TESShalfEdge {
 	return rPrev(e).Sym
 }
@@ -89,6 +92,67 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+// connectLeftDegenerate:
+// The event vertex lies exacty on an already-processed edge or vertex.
+// Adding the new vertex involves splicing it into the already-processed
+// part of the mesh.
+func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent *C.TESSvertex) {
+	// Because vertices at exactly the same location are merged together
+	// before we process the sweep event, some degenerate cases can't occur.
+	// However if someone eventually makes the modifications required to
+	// merge features which are close together, the cases below marked
+	// TOLERANCE_NONZERO will be useful.  They were debugged before the
+	// code to merge identical vertices in the main loop was added.
+	const TOLERANCE_NONZERO = false
+
+	e := regUp.eUp
+	if C.VertEq(e.Org, vEvent) != 0 {
+		/* e.Org is an unprocessed vertex - just combine them, and wait
+		* for e.Org to be pulled from the queue
+		 */
+		assert(TOLERANCE_NONZERO)
+		C.SpliceMergeVertices(tess, e, vEvent.anEdge)
+		return
+	}
+
+	if C.VertEq(dst(e), vEvent) == 0 {
+		/* General case -- splice vEvent into edge e which passes through it */
+		C.tessMeshSplitEdge(tess.mesh, e.Sym)
+		if regUp.fixUpperEdge != 0 {
+			/* This edge was fixable -- delete unused portion of original edge */
+			C.tessMeshDelete(tess.mesh, e.Onext)
+			regUp.fixUpperEdge = 0 // false
+		}
+		C.tessMeshSplice(tess.mesh, vEvent.anEdge, e)
+		// recurse
+		SweepEvent(tess, vEvent)
+		return
+	}
+
+	// vEvent coincides with e.Dst, which has already been processed.
+	// Splice in the additional right-going edges.
+	assert(TOLERANCE_NONZERO)
+	regUp = C.TopRightRegion(regUp)
+	reg := regionBelow(regUp)
+	eTopRight := reg.eUp.Sym
+	eTopLeft := eTopRight.Onext
+	eLast := eTopRight.Onext
+	if reg.fixUpperEdge != 0 {
+		// Here e.Dst has only a single fixable edge going right.
+		// We can delete it since now we have some real right-going edges.
+		assert(eTopLeft != eTopRight) // there are some left edges too
+		C.DeleteRegion(tess, reg)
+		C.tessMeshDelete(tess.mesh, eTopRight)
+		eTopRight = oPrev(eTopLeft)
+	}
+	C.tessMeshSplice(tess.mesh, vEvent.anEdge, eTopRight)
+	if C.EdgeGoesLeft(eTopLeft) == 0 {
+		// e.Dst had no left-going edges -- indicate this to AddRightEdges()
+		eTopLeft = nil
+	}
+	C.AddRightEdges(tess, regUp, eTopRight.Onext, eLast, eTopLeft, 1 /* true */)
 }
 
 // connectLeftVertex:
@@ -123,7 +187,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 
 	// Try merging with U or L first
 	if C.tesedgeSign(dst(eUp), vEvent, eUp.Org) == 0 {
-		C.ConnectLeftDegenerate(tess, regUp, vEvent)
+		connectLeftDegenerate(tess, regUp, vEvent)
 		return
 	}
 

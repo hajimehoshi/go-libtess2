@@ -47,9 +47,8 @@ int VertLeq(TESSvertex* u, TESSvertex* v);
 #define TransEval(u,v,w) testransEval(u,v,w)
 #define TransSign(u,v,w) testransSign(u,v,w)
 
-
-#define EdgeGoesLeft(e) VertLeq( (e)->Dst, (e)->Org )
-#define EdgeGoesRight(e) VertLeq( (e)->Org, (e)->Dst )
+int EdgeGoesLeft(TESShalfEdge* e);
+int EdgeGoesRight(TESShalfEdge* e);
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 #define VertL1dist(u,v) (ABS(u->s - v->s) + ABS(u->t - v->t))

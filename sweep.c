@@ -189,7 +189,7 @@ ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg )
 	return reg;
 }
 
-static ActiveRegion *TopRightRegion( ActiveRegion *reg )
+ActiveRegion *TopRightRegion( ActiveRegion *reg )
 {
 	TESSvertex *dst = reg->eUp->Dst;
 
@@ -869,69 +869,3 @@ void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge
 	WalkDirtyRegions( tess, regUp );
 }
 
-/* Because vertices at exactly the same location are merged together
-* before we process the sweep event, some degenerate cases can't occur.
-* However if someone eventually makes the modifications required to
-* merge features which are close together, the cases below marked
-* TOLERANCE_NONZERO will be useful.  They were debugged before the
-* code to merge identical vertices in the main loop was added.
-*/
-#define TOLERANCE_NONZERO	FALSE
-
-void ConnectLeftDegenerate( TESStesselator *tess, ActiveRegion *regUp, TESSvertex *vEvent )
-/*
-* The event vertex lies exacty on an already-processed edge or vertex.
-* Adding the new vertex involves splicing it into the already-processed
-* part of the mesh.
-*/
-{
-	TESShalfEdge *e, *eTopLeft, *eTopRight, *eLast;
-	ActiveRegion *reg;
-
-	e = regUp->eUp;
-	if( VertEq( e->Org, vEvent )) {
-		/* e->Org is an unprocessed vertex - just combine them, and wait
-		* for e->Org to be pulled from the queue
-		*/
-		assert( TOLERANCE_NONZERO );
-		SpliceMergeVertices( tess, e, vEvent->anEdge );
-		return;
-	}
-
-	if( ! VertEq( e->Dst, vEvent )) {
-		/* General case -- splice vEvent into edge e which passes through it */
-		if (tessMeshSplitEdge( tess->mesh, e->Sym ) == NULL) longjmp(tess->env,1);
-		if( regUp->fixUpperEdge ) {
-			/* This edge was fixable -- delete unused portion of original edge */
-			if ( !tessMeshDelete( tess->mesh, e->Onext ) ) longjmp(tess->env,1);
-			regUp->fixUpperEdge = FALSE;
-		}
-		if ( !tessMeshSplice( tess->mesh, vEvent->anEdge, e ) ) longjmp(tess->env,1);
-		SweepEvent( tess, vEvent );	/* recurse */
-		return;
-	}
-
-	/* vEvent coincides with e->Dst, which has already been processed.
-	* Splice in the additional right-going edges.
-	*/
-	assert( TOLERANCE_NONZERO );
-	regUp = TopRightRegion( regUp );
-	reg = RegionBelow( regUp );
-	eTopRight = reg->eUp->Sym;
-	eTopLeft = eLast = eTopRight->Onext;
-	if( reg->fixUpperEdge ) {
-		/* Here e->Dst has only a single fixable edge going right.
-		* We can delete it since now we have some real right-going edges.
-		*/
-		assert( eTopLeft != eTopRight );   /* there are some left edges too */
-		DeleteRegion( tess, reg );
-		if ( !tessMeshDelete( tess->mesh, eTopRight ) ) longjmp(tess->env,1);
-		eTopRight = eTopLeft->Oprev;
-	}
-	if ( !tessMeshSplice( tess->mesh, vEvent->anEdge, eTopRight ) ) longjmp(tess->env,1);
-	if( ! EdgeGoesLeft( eTopLeft )) {
-		/* e->Dst had no left-going edges -- indicate this to AddRightEdges() */
-		eTopLeft = NULL;
-	}
-	AddRightEdges( tess, regUp, eTopRight->Onext, eLast, eTopLeft, TRUE );
-}

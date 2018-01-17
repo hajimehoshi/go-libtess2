@@ -267,3 +267,11 @@ int VertEq(TESSvertex* u, TESSvertex* v) {
 int VertLeq(TESSvertex* u, TESSvertex* v) {
   return ((u)->s < (v)->s) || ((u)->s == (v)->s && (u)->t <= (v)->t);
 }
+
+int EdgeGoesLeft(TESShalfEdge* e) {
+  return VertLeq((e)->Dst, (e)->Org);
+}
+
+int EdgeGoesRight(TESShalfEdge* e) {
+  return VertLeq((e)->Org, (e)->Dst);
+}
