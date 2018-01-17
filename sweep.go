@@ -34,10 +34,10 @@ package libtess2
 // #include "tesselator.h"
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
-// void InitEdgeDict( TESStesselator *tess );
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void SweepEvent( TESStesselator *tess, TESSvertex *vEvent );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
+// void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TESSreal t );
 import "C"
 
 func assert(cond bool) {
@@ -55,6 +55,33 @@ func max(a, b C.int) C.int {
 
 func dst(e *C.TESShalfEdge) *C.TESSvertex {
 	return e.Sym.Org
+}
+
+func adjust(x C.TESSreal) C.TESSreal {
+	if x > 0 {
+		return x
+	}
+	return 0.01
+}
+
+// initEdgeDict:
+// We maintain an ordering of edge intersections with the sweep line.
+// This order is maintained in a dynamic dictionary.
+func initEdgeDict(tess *C.TESStesselator) {
+	tess.dict = dictNewDict(tess);
+
+	w := (tess.bmax[0] - tess.bmin[0]);
+	h := (tess.bmax[1] - tess.bmin[1]);
+
+        // If the bbox is empty, ensure that sentinels are not coincident by
+        // slightly enlarging it.
+	smin := tess.bmin[0] - adjust(w)
+        smax := tess.bmax[0] + adjust(w)
+        tmin := tess.bmin[1] - adjust(h)
+        tmax := tess.bmax[1] + adjust(h)
+
+	C.AddSentinel( tess, smin, smax, tmin );
+	C.AddSentinel( tess, smin, smax, tmax );
 }
 
 func doneEdgeDict(tess *C.TESStesselator) {
@@ -181,7 +208,7 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	//	e1 < e2  iff  e1.x < e2.x || (e1.x == e2.x && e1.y < e2.y)
 	removeDegenerateEdges(tess)
 	initPriorityQ(tess)
-	C.InitEdgeDict(tess)
+	initEdgeDict(tess)
 
 	for {
 		v := (*C.TESSvertex)(C.pqExtractMin(tess.pq))

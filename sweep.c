@@ -1072,7 +1072,7 @@ void SweepEvent( TESStesselator *tess, TESSvertex *vEvent )
 * merged with real input features.
 */
 
-static void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TESSreal t )
+void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TESSreal t )
 /*
 * We add two sentinel edges above and below all other edges,
 * to avoid special cases at the top and bottom.
@@ -1099,31 +1099,4 @@ static void AddSentinel( TESStesselator *tess, TESSreal smin, TESSreal smax, TES
 	reg->dirty = FALSE;
 	reg->nodeUp = dictInsert( tess->dict, reg );
 	if (reg->nodeUp == NULL) longjmp(tess->env,1);
-}
-
-
-void InitEdgeDict( TESStesselator *tess )
-/*
-* We maintain an ordering of edge intersections with the sweep line.
-* This order is maintained in a dynamic dictionary.
-*/
-{
-	TESSreal w, h;
-	TESSreal smin, smax, tmin, tmax;
-
-	tess->dict = dictNewDict(tess);
-	if (tess->dict == NULL) longjmp(tess->env,1);
-
-	w = (tess->bmax[0] - tess->bmin[0]);
-	h = (tess->bmax[1] - tess->bmin[1]);
-
-        /* If the bbox is empty, ensure that sentinels are not coincident by
-           slightly enlarging it. */
-	smin = tess->bmin[0] - (w > 0 ? w : 0.01);
-        smax = tess->bmax[0] + (w > 0 ? w : 0.01);
-        tmin = tess->bmin[1] - (h > 0 ? h : 0.01);
-        tmax = tess->bmax[1] + (h > 0 ? h : 0.01);
-
-	AddSentinel( tess, smin, smax, tmin );
-	AddSentinel( tess, smin, smax, tmax );
 }
