@@ -26,7 +26,7 @@
 
 package libtess2
 
-// #include "tesselator.h"
+// #include "tess.h"
 //
 // #include <stdlib.h>
 // #include <string.h>

@@ -33,6 +33,7 @@
 #define SWEEP_H
 
 #include "mesh.h"
+#include "tess.h"
 
 /* tessComputeInterior( tess ) computes the planar arrangement specified
 * by the given contours, and further subdivides this arrangement
@@ -40,7 +41,7 @@
 * to the polygon, according to the rule given by tess->windingRule.
 * Each interior region is guaranteed be monotone.
 */
-int tessComputeInterior( TESStesselator *tess );
+int tessComputeInterior( struct TESStesselator *tess );
 
 
 /* The following is here *only* for access by debugging routines */
@@ -71,6 +72,6 @@ struct ActiveRegion {
 #define RegionBelow(r) ((ActiveRegion *) dictKey(dictPred((r)->nodeUp)))
 #define RegionAbove(r) ((ActiveRegion *) dictKey(dictSucc((r)->nodeUp)))
 
-int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 );
+int EdgeLeq( struct TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 );
 
 #endif
