@@ -91,7 +91,7 @@ void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc) {
   eDst->Sym->winding += eSrc->Sym->winding;
 }
 
-static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
+void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
 static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 
 int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
@@ -548,7 +548,7 @@ static int CheckForLeftSplice( TESStesselator *tess, ActiveRegion *regUp )
 }
 
 
-static int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp )
+int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp )
 /*
 * Check the upper and lower edges of the given region to see if
 * they intersect.  If so, create the intersection and add it
@@ -697,7 +697,7 @@ static int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp )
 	return FALSE;
 }
 
-static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp )
+void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp )
 /*
 * When the upper or lower edge of any region changes, the region is
 * marked "dirty".  This routine walks through all the dirty regions
@@ -782,89 +782,3 @@ static void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp )
 		}
 	}
 }
-
-
-void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eBottomLeft )
-/*
-* Purpose: connect a "right" vertex vEvent (one where all edges go left)
-* to the unprocessed portion of the mesh.  Since there are no right-going
-* edges, two regions (one above vEvent and one below) are being merged
-* into one.  "regUp" is the upper of these two regions.
-*
-* There are two reasons for doing this (adding a right-going edge):
-*  - if the two regions being merged are "inside", we must add an edge
-*    to keep them separated (the combined region would not be monotone).
-*  - in any case, we must leave some record of vEvent in the dictionary,
-*    so that we can merge vEvent with features that we have not seen yet.
-*    For example, maybe there is a vertical edge which passes just to
-*    the right of vEvent; we would like to splice vEvent into this edge.
-*
-* However, we don't want to connect vEvent to just any vertex.  We don''t
-* want the new edge to cross any other edges; otherwise we will create
-* intersection vertices even when the input data had no self-intersections.
-* (This is a bad thing; if the user's input data has no intersections,
-* we don't want to generate any false intersections ourselves.)
-*
-* Our eventual goal is to connect vEvent to the leftmost unprocessed
-* vertex of the combined region (the union of regUp and regLo).
-* But because of unseen vertices with all right-going edges, and also
-* new vertices which may be created by edge intersections, we don''t
-* know where that leftmost unprocessed vertex is.  In the meantime, we
-* connect vEvent to the closest vertex of either chain, and mark the region
-* as "fixUpperEdge".  This flag says to delete and reconnect this edge
-* to the next processed vertex on the boundary of the combined region.
-* Quite possibly the vertex we connected to will turn out to be the
-* closest one, in which case we won''t need to make any changes.
-*/
-{
-	TESShalfEdge *eNew;
-	TESShalfEdge *eTopLeft = eBottomLeft->Onext;
-	ActiveRegion *regLo = RegionBelow(regUp);
-	TESShalfEdge *eUp = regUp->eUp;
-	TESShalfEdge *eLo = regLo->eUp;
-	int degenerate = FALSE;
-
-	if( eUp->Dst != eLo->Dst ) {
-		(void) CheckForIntersect( tess, regUp );
-	}
-
-	/* Possible new degeneracies: upper or lower edge of regUp may pass
-	* through vEvent, or may coincide with new intersection vertex
-	*/
-	if( VertEq( eUp->Org, tess->event )) {
-		if ( !tessMeshSplice( tess->mesh, eTopLeft->Oprev, eUp ) ) longjmp(tess->env,1);
-		regUp = TopLeftRegion( tess, regUp );
-		if (regUp == NULL) longjmp(tess->env,1);
-		eTopLeft = RegionBelow( regUp )->eUp;
-		FinishLeftRegions( tess, RegionBelow(regUp), regLo );
-		degenerate = TRUE;
-	}
-	if( VertEq( eLo->Org, tess->event )) {
-		if ( !tessMeshSplice( tess->mesh, eBottomLeft, eLo->Oprev ) ) longjmp(tess->env,1);
-		eBottomLeft = FinishLeftRegions( tess, regLo, NULL );
-		degenerate = TRUE;
-	}
-	if( degenerate ) {
-		AddRightEdges( tess, regUp, eBottomLeft->Onext, eTopLeft, eTopLeft, TRUE );
-		return;
-	}
-
-	/* Non-degenerate situation -- need to add a temporary, fixable edge.
-	* Connect to the closer of eLo->Org, eUp->Org.
-	*/
-	if( VertLeq( eLo->Org, eUp->Org )) {
-		eNew = eLo->Oprev;
-	} else {
-		eNew = eUp;
-	}
-	eNew = tessMeshConnect( tess->mesh, eBottomLeft->Lprev, eNew );
-	if (eNew == NULL) longjmp(tess->env,1);
-
-	/* Prevent cleanup, otherwise eNew might disappear before we've even
-	* had a chance to mark it as a temporary edge.
-	*/
-	AddRightEdges( tess, regUp, eNew, eNew->Onext, eNew->Onext, FALSE );
-	eNew->Sym->activeRegion->fixUpperEdge = TRUE;
-	WalkDirtyRegions( tess, regUp );
-}
-

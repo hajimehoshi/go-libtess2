@@ -41,13 +41,14 @@ package libtess2
 // void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 // void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp );
-// void ConnectRightVertex( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eBottomLeft );
 // TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast );
 // ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
 // void ComputeWinding( TESStesselator *tess, ActiveRegion *reg );
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
+// int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp );
+// void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
 import "C"
 
 func assert(cond bool) {
@@ -75,6 +76,10 @@ func oPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
 	return e.Sym.Lnext
 }
 
+func lPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
+	return e.Onext.Sym
+}
+
 func dNext(e *C.TESShalfEdge) *C.TESShalfEdge {
 	return rPrev(e).Sym
 }
@@ -92,6 +97,83 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+// connectRightVertex:
+// Purpose: connect a "right" vertex vEvent (one where all edges go left)
+// to the unprocessed portion of the mesh.  Since there are no right-going
+// edges, two regions (one above vEvent and one below) are being merged
+// into one.  "regUp" is the upper of these two regions.
+//
+// There are two reasons for doing this (adding a right-going edge):
+//  - if the two regions being merged are "inside", we must add an edge
+//    to keep them separated (the combined region would not be monotone).
+//  - in any case, we must leave some record of vEvent in the dictionary,
+//    so that we can merge vEvent with features that we have not seen yet.
+//    For example, maybe there is a vertical edge which passes just to
+//    the right of vEvent; we would like to splice vEvent into this edge.
+//
+// However, we don't want to connect vEvent to just any vertex.  We don''t
+// want the new edge to cross any other edges; otherwise we will create
+// intersection vertices even when the input data had no self-intersections.
+// (This is a bad thing; if the user's input data has no intersections,
+// we don't want to generate any false intersections ourselves.)
+//
+// Our eventual goal is to connect vEvent to the leftmost unprocessed
+// vertex of the combined region (the union of regUp and regLo).
+// But because of unseen vertices with all right-going edges, and also
+// new vertices which may be created by edge intersections, we don''t
+// know where that leftmost unprocessed vertex is.  In the meantime, we
+// connect vEvent to the closest vertex of either chain, and mark the region
+// as "fixUpperEdge".  This flag says to delete and reconnect this edge
+// to the next processed vertex on the boundary of the combined region.
+// Quite possibly the vertex we connected to will turn out to be the
+// closest one, in which case we won''t need to make any changes.
+func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLeft *C.TESShalfEdge) {
+	eTopLeft := eBottomLeft.Onext
+	regLo := regionBelow(regUp)
+	eUp := regUp.eUp
+	eLo := regLo.eUp
+	degenerate := false
+
+	if dst(eUp) != dst(eLo) {
+		C.CheckForIntersect(tess, regUp)
+	}
+
+	// Possible new degeneracies: upper or lower edge of regUp may pass
+	// through vEvent, or may coincide with new intersection vertex
+	if C.VertEq(eUp.Org, tess.event) != 0 {
+		C.tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
+		regUp = C.TopLeftRegion(tess, regUp)
+		eTopLeft = regionBelow(regUp).eUp
+		C.FinishLeftRegions(tess, regionBelow(regUp), regLo)
+		degenerate = true
+	}
+	if C.VertEq(eLo.Org, tess.event) != 0 {
+		C.tessMeshSplice(tess.mesh, eBottomLeft, oPrev(eLo))
+		eBottomLeft = C.FinishLeftRegions(tess, regLo, nil)
+		degenerate = true
+	}
+	if degenerate {
+		C.AddRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, 1 /* true */)
+		return
+	}
+
+	// Non-degenerate situation -- need to add a temporary, fixable edge.
+	// Connect to the closer of eLo.Org, eUp.Org.
+	var eNew *C.TESShalfEdge
+	if C.VertLeq(eLo.Org, eUp.Org) != 0 {
+		eNew = oPrev(eLo)
+	} else {
+		eNew = eUp
+	}
+	eNew = C.tessMeshConnect(tess.mesh, lPrev(eBottomLeft), eNew)
+
+	// Prevent cleanup, otherwise eNew might disappear before we've even
+	// had a chance to mark it as a temporary edge.
+	C.AddRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, 0 /* false */)
+	eNew.Sym.activeRegion.fixUpperEdge = 1 /* true */
+	C.WalkDirtyRegions(tess, regUp)
 }
 
 // connectLeftDegenerate:
@@ -256,7 +338,7 @@ func sweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	// regions between adjacent dictionary edges.
 	if eBottomLeft.Onext == eTopLeft {
 		// No right-going edges -- add a temporary "fixable" edge
-		C.ConnectRightVertex(tess, regUp, eBottomLeft)
+		connectRightVertex(tess, regUp, eBottomLeft)
 	} else {
 		C.AddRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, 1)
 	}
