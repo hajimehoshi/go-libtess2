@@ -47,9 +47,9 @@ package libtess2
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
-// int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp );
 // int CheckForLeftSplice( TESStesselator *tess, ActiveRegion *regUp );
 // int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
+// void GetIntersectData( TESStesselator *tess, TESSvertex *isect, TESSvertex *orgUp, TESSvertex *dstUp, TESSvertex *orgLo, TESSvertex *dstLo );
 import "C"
 
 func assert(cond bool) {
@@ -58,7 +58,28 @@ func assert(cond bool) {
 	}
 }
 
+func min(a, b C.int) C.int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func minf(a, b C.TESSreal) C.TESSreal {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func max(a, b C.int) C.int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func maxf(a, b C.TESSreal) C.TESSreal {
 	if a < b {
 		return b
 	}
@@ -98,6 +119,156 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+// Check the upper and lower edges of the given region to see if
+// they intersect.  If so, create the intersection and add it
+// to the data structures.
+//
+// Returns TRUE if adding the new intersection resulted in a recursive
+// call to AddRightEdges(); in this case all "dirty" regions have been
+// checked for intersections, and possibly regUp has been deleted.
+func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
+	regLo := regionBelow(regUp)
+	eUp := regUp.eUp
+	eLo := regLo.eUp
+	orgUp := eUp.Org
+	orgLo := eLo.Org
+	dstUp := dst(eUp)
+	dstLo := dst(eLo)
+
+	assert(C.VertEq(dstLo, dstUp) == 0 /* false */)
+	assert(C.tesedgeSign(dstUp, tess.event, orgUp) <= 0)
+	assert(C.tesedgeSign(dstLo, tess.event, orgLo) >= 0)
+	assert(orgUp != tess.event && orgLo != tess.event)
+	assert(regUp.fixUpperEdge == 0 && regLo.fixUpperEdge == 0)
+
+	if orgUp == orgLo {
+		// right endpoints are the same
+		return false
+	}
+
+	tMinUp := minf(orgUp.t, dstUp.t)
+	tMaxLo := maxf(orgLo.t, dstLo.t)
+	if tMinUp > tMaxLo {
+		// t ranges do not overlap
+		return false
+	}
+
+	if C.VertLeq(orgUp, orgLo) != 0 {
+		if C.tesedgeSign(dstLo, orgUp, orgLo) > 0 {
+			return false
+		}
+	} else {
+		if C.tesedgeSign(dstUp, orgLo, orgUp) < 0 {
+			return false
+		}
+	}
+
+	var isect C.TESSvertex
+	C.tesedgeIntersect(dstUp, orgUp, dstLo, orgLo, &isect)
+	// The following properties are guaranteed:
+	assert(minf(orgUp.t, dstUp.t) <= isect.t)
+	assert(isect.t <= maxf(orgLo.t, dstLo.t))
+	assert(minf(dstLo.s, dstUp.s) <= isect.s)
+	assert(isect.s <= maxf(orgLo.s, orgUp.s))
+
+	if C.VertLeq(&isect, tess.event) != 0 {
+		// The intersection point lies slightly to the left of the sweep line,
+		// so move it until it''s slightly to the right of the sweep line.
+		// (If we had perfect numerical precision, this would never happen
+		// in the first place).  The easiest and safest thing to do is
+		// replace the intersection by tess.event.
+		isect.s = tess.event.s
+		isect.t = tess.event.t
+	}
+	// Similarly, if the computed intersection lies to the right of the
+	// rightmost origin (which should rarely happen), it can cause
+	// unbelievable inefficiency on sufficiently degenerate inputs.
+	// (If you have the test program, try running test54.d with the
+	// "X zoom" option turned on).
+	var orgMin *C.TESSvertex
+	if C.VertLeq(orgUp, orgLo) != 0 {
+		orgMin = orgUp
+	} else {
+		orgMin = orgLo
+	}
+	if C.VertLeq(orgMin, &isect) != 0 {
+		isect.s = orgMin.s
+		isect.t = orgMin.t
+	}
+
+	if C.VertEq(&isect, orgUp) != 0 || C.VertEq(&isect, orgLo) != 0 {
+		// Easy case -- intersection at one of the right endpoints
+		C.CheckForRightSplice(tess, regUp)
+		return false
+	}
+
+	if (C.VertEq(dstUp, tess.event) == 0 && C.tesedgeSign(dstUp, tess.event, &isect) >= 0) || (C.VertEq(dstLo, tess.event) == 0 && C.tesedgeSign(dstLo, tess.event, &isect) <= 0) {
+		// Very unusual -- the new upper or lower edge would pass on the
+		// wrong side of the sweep event, or through it.  This can happen
+		// due to very small numerical errors in the intersection calculation.
+		if dstLo == tess.event {
+			// Splice dstLo into eUp, and process the new region(s)
+			C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+			C.tessMeshSplice(tess.mesh, eLo.Sym, eUp)
+			regUp = C.TopLeftRegion(tess, regUp)
+			eUp = regionBelow(regUp).eUp
+			C.FinishLeftRegions(tess, regionBelow(regUp), regLo)
+			C.AddRightEdges(tess, regUp, oPrev(eUp), eUp, eUp, 1 /* true */)
+			return true
+		}
+		if dstUp == tess.event {
+			// Splice dstUp into eLo, and process the new region(s)
+			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+			C.tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
+			regLo = regUp
+			regUp = C.TopRightRegion(regUp)
+			e := rPrev(regionBelow(regUp).eUp)
+			regLo.eUp = oPrev(eLo)
+			eLo = C.FinishLeftRegions(tess, regLo, nil)
+			C.AddRightEdges(tess, regUp, eLo.Onext, rPrev(eUp), e, 1 /* true */)
+			return true
+		}
+		// Special case: called from ConnectRightVertex.  If either
+		// edge passes on the wrong side of tess.event, split it
+		// (and wait for ConnectRightVertex to splice it appropriately).
+		if C.tesedgeSign(dstUp, tess.event, &isect) >= 0 {
+			regionAbove(regUp).dirty = 1 /* true */
+			regUp.dirty = 1              /* true */
+			C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+			eUp.Org.s = tess.event.s
+			eUp.Org.t = tess.event.t
+		}
+		if C.tesedgeSign(dstLo, tess.event, &isect) <= 0 {
+			regUp.dirty = 1 /* true */
+			regLo.dirty = 1 /* true */
+			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+			eLo.Org.s = tess.event.s
+			eLo.Org.t = tess.event.t
+		}
+		// leave the rest for ConnectRightVertex
+		return false
+	}
+
+	// General case -- split both edges, splice into new vertex.
+	// When we do the splice operation, the order of the arguments is
+	// arbitrary as far as correctness goes.  However, when the operation
+	// creates a new face, the work done is proportional to the size of
+	// the new face.  We expect the faces in the processed part of
+	// the mesh (ie. eUp.Lface) to be smaller than the faces in the
+	// unprocessed original contours (which will be eLo.Oprev.Lface).
+	C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+	C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+	C.tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
+	eUp.Org.s = isect.s
+	eUp.Org.t = isect.t
+	eUp.Org.pqHandle = pqInsert(tess.pq, eUp.Org)
+	C.GetIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
+	regionAbove(regUp).dirty = 1 /* true */
+	regUp.dirty = 1              /* true */
+	regLo.dirty = 1              /* true */
+	return false
 }
 
 //export WalkDirtyRegions
@@ -159,7 +330,7 @@ func WalkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 				// case it might splice one of these edges into tess.event, and
 				// violate the invariant that fixable edges are the only right-going
 				// edge from their associated vertex).
-				if C.CheckForIntersect(tess, regUp) != 0 {
+				if checkForIntersect(tess, regUp) {
 					// WalkDirtyRegions() was called recursively; we're done
 					return
 				}
@@ -217,7 +388,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	degenerate := false
 
 	if dst(eUp) != dst(eLo) {
-		C.CheckForIntersect(tess, regUp)
+		checkForIntersect(tess, regUp)
 	}
 
 	// Possible new degeneracies: upper or lower edge of regUp may pass
