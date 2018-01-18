@@ -92,7 +92,7 @@ void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc) {
 }
 
 void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
-static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
+int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 
 int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
 /*
@@ -441,7 +441,7 @@ static void GetIntersectData( TESStesselator *tess, TESSvertex *isect,
 	VertexWeights( isect, orgLo, dstLo, &weights[2] );
 }
 
-static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp )
+int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp )
 /*
 * Check the upper and lower edge of "regUp", to make sure that the
 * eUp->Org is above eLo, or eLo->Org is below eUp (depending on which
@@ -498,7 +498,7 @@ static int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp )
 	return TRUE;
 }
 
-static int CheckForLeftSplice( TESStesselator *tess, ActiveRegion *regUp )
+int CheckForLeftSplice( TESStesselator *tess, ActiveRegion *regUp )
 /*
 * Check the upper and lower edge of "regUp", to make sure that the
 * eUp->Dst is above eLo, or eLo->Dst is below eUp (depending on which
@@ -695,90 +695,4 @@ int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp )
 	GetIntersectData( tess, eUp->Org, orgUp, dstUp, orgLo, dstLo );
 	RegionAbove(regUp)->dirty = regUp->dirty = regLo->dirty = TRUE;
 	return FALSE;
-}
-
-void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp )
-/*
-* When the upper or lower edge of any region changes, the region is
-* marked "dirty".  This routine walks through all the dirty regions
-* and makes sure that the dictionary invariants are satisfied
-* (see the comments at the beginning of this file).  Of course
-* new dirty regions can be created as we make changes to restore
-* the invariants.
-*/
-{
-	ActiveRegion *regLo = RegionBelow(regUp);
-	TESShalfEdge *eUp, *eLo;
-
-	for( ;; ) {
-		/* Find the lowest dirty region (we walk from the bottom up). */
-		while( regLo->dirty ) {
-			regUp = regLo;
-			regLo = RegionBelow(regLo);
-		}
-		if( ! regUp->dirty ) {
-			regLo = regUp;
-			regUp = RegionAbove( regUp );
-			if( regUp == NULL || ! regUp->dirty ) {
-				/* We've walked all the dirty regions */
-				return;
-			}
-		}
-		regUp->dirty = FALSE;
-		eUp = regUp->eUp;
-		eLo = regLo->eUp;
-
-		if( eUp->Dst != eLo->Dst ) {
-			/* Check that the edge ordering is obeyed at the Dst vertices. */
-			if( CheckForLeftSplice( tess, regUp )) {
-
-				/* If the upper or lower edge was marked fixUpperEdge, then
-				* we no longer need it (since these edges are needed only for
-				* vertices which otherwise have no right-going edges).
-				*/
-				if( regLo->fixUpperEdge ) {
-					DeleteRegion( tess, regLo );
-					if ( !tessMeshDelete( tess->mesh, eLo ) ) longjmp(tess->env,1);
-					regLo = RegionBelow( regUp );
-					eLo = regLo->eUp;
-				} else if( regUp->fixUpperEdge ) {
-					DeleteRegion( tess, regUp );
-					if ( !tessMeshDelete( tess->mesh, eUp ) ) longjmp(tess->env,1);
-					regUp = RegionAbove( regLo );
-					eUp = regUp->eUp;
-				}
-			}
-		}
-		if( eUp->Org != eLo->Org ) {
-			if(    eUp->Dst != eLo->Dst
-				&& ! regUp->fixUpperEdge && ! regLo->fixUpperEdge
-				&& (eUp->Dst == tess->event || eLo->Dst == tess->event) )
-			{
-				/* When all else fails in CheckForIntersect(), it uses tess->event
-				* as the intersection location.  To make this possible, it requires
-				* that tess->event lie between the upper and lower edges, and also
-				* that neither of these is marked fixUpperEdge (since in the worst
-				* case it might splice one of these edges into tess->event, and
-				* violate the invariant that fixable edges are the only right-going
-				* edge from their associated vertex).
-				*/
-				if( CheckForIntersect( tess, regUp )) {
-					/* WalkDirtyRegions() was called recursively; we're done */
-					return;
-				}
-			} else {
-				/* Even though we can't use CheckForIntersect(), the Org vertices
-				* may violate the dictionary edge ordering.  Check and correct this.
-				*/
-				(void) CheckForRightSplice( tess, regUp );
-			}
-		}
-		if( eUp->Org == eLo->Org && eUp->Dst == eLo->Dst ) {
-			/* A degenerate loop consisting of only two edges -- delete it. */
-			AddWinding( eLo, eUp );
-			DeleteRegion( tess, regUp );
-			if ( !tessMeshDelete( tess->mesh, eUp ) ) longjmp(tess->env,1);
-			regUp = RegionAbove( regLo );
-		}
-	}
 }

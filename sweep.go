@@ -48,7 +48,8 @@ package libtess2
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
 // int CheckForIntersect( TESStesselator *tess, ActiveRegion *regUp );
-// void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
+// int CheckForLeftSplice( TESStesselator *tess, ActiveRegion *regUp );
+// int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 import "C"
 
 func assert(cond bool) {
@@ -97,6 +98,85 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+//export WalkDirtyRegions
+//
+// walkDirtyRegions:
+// When the upper or lower edge of any region changes, the region is
+// marked "dirty".  This routine walks through all the dirty regions
+// and makes sure that the dictionary invariants are satisfied
+// (see the comments at the beginning of this file).  Of course
+// new dirty regions can be created as we make changes to restore
+// the invariants.
+func WalkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
+	regLo := regionBelow(regUp)
+
+	for {
+		// Find the lowest dirty region (we walk from the bottom up).
+		for regLo.dirty != 0 {
+			regUp = regLo
+			regLo = regionBelow(regLo)
+		}
+		if regUp.dirty == 0 {
+			regLo = regUp
+			regUp = regionAbove(regUp)
+			if regUp == nil || regUp.dirty == 0 {
+				// We've walked all the dirty regions
+				return
+			}
+		}
+		regUp.dirty = 0 /* false */
+		eUp := regUp.eUp
+		eLo := regLo.eUp
+
+		if dst(eUp) != dst(eLo) {
+			// Check that the edge ordering is obeyed at the Dst vertices.
+			if C.CheckForLeftSplice(tess, regUp) != 0 {
+
+				// If the upper or lower edge was marked fixUpperEdge, then
+				// we no longer need it (since these edges are needed only for
+				// vertices which otherwise have no right-going edges).
+				if regLo.fixUpperEdge != 0 {
+					C.DeleteRegion(tess, regLo)
+					C.tessMeshDelete(tess.mesh, eLo)
+					regLo = regionBelow(regUp)
+					eLo = regLo.eUp
+				} else if regUp.fixUpperEdge != 0 {
+					C.DeleteRegion(tess, regUp)
+					C.tessMeshDelete(tess.mesh, eUp)
+					regUp = regionAbove(regLo)
+					eUp = regUp.eUp
+				}
+			}
+		}
+		if eUp.Org != eLo.Org {
+			if dst(eUp) != dst(eLo) && regUp.fixUpperEdge == 0 && regLo.fixUpperEdge == 0 && (dst(eUp) == tess.event || dst(eLo) == tess.event) {
+				// When all else fails in CheckForIntersect(), it uses tess.event
+				// as the intersection location.  To make this possible, it requires
+				// that tess.event lie between the upper and lower edges, and also
+				// that neither of these is marked fixUpperEdge (since in the worst
+				// case it might splice one of these edges into tess.event, and
+				// violate the invariant that fixable edges are the only right-going
+				// edge from their associated vertex).
+				if C.CheckForIntersect(tess, regUp) != 0 {
+					// WalkDirtyRegions() was called recursively; we're done
+					return
+				}
+			} else {
+				// Even though we can't use CheckForIntersect(), the Org vertices
+				// may violate the dictionary edge ordering.  Check and correct this.
+				C.CheckForRightSplice(tess, regUp)
+			}
+		}
+		if eUp.Org == eLo.Org && dst(eUp) == dst(eLo) {
+			// A degenerate loop consisting of only two edges -- delete it.
+			C.AddWinding(eLo, eUp)
+			C.DeleteRegion(tess, regUp)
+			C.tessMeshDelete(tess.mesh, eUp)
+			regUp = regionAbove(regLo)
+		}
+	}
 }
 
 // connectRightVertex:
@@ -173,7 +253,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	// had a chance to mark it as a temporary edge.
 	C.AddRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, 0 /* false */)
 	eNew.Sym.activeRegion.fixUpperEdge = 1 /* true */
-	C.WalkDirtyRegions(tess, regUp)
+	WalkDirtyRegions(tess, regUp)
 }
 
 // connectLeftDegenerate:
