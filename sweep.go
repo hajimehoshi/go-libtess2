@@ -47,7 +47,6 @@ package libtess2
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
-// int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 // void GetIntersectData( TESStesselator *tess, TESSvertex *isect, TESSvertex *orgUp, TESSvertex *dstUp, TESSvertex *orgLo, TESSvertex *dstLo );
 import "C"
 
@@ -122,6 +121,68 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+//export CheckForRightSplice
+//
+// checkForRightSplice checks the upper and lower edge of "regUp", to make sure that the
+// eUp->Org is above eLo, or eLo->Org is below eUp (depending on which
+// origin is leftmost).
+//
+// The main purpose is to splice right-going edges with the same
+// dest vertex and nearly identical slopes (ie. we can't distinguish
+// the slopes numerically).  However the splicing can also help us
+// to recover from numerical errors.  For example, suppose at one
+// point we checked eUp and eLo, and decided that eUp->Org is barely
+// above eLo.  Then later, we split eLo into two edges (eg. from
+// a splice operation like this one).  This can change the result of
+// our test so that now eUp->Org is incident to eLo, or barely below it.
+// We must correct this condition to maintain the dictionary invariants.
+//
+// One possibility is to check these edges for intersection again
+// (ie. CheckForIntersect).  This is what we do if possible.  However
+// CheckForIntersect requires that tess->event lies between eUp and eLo,
+// so that it has something to fall back on when the intersection
+// calculation gives us an unusable answer.  So, for those cases where
+// we can't check for intersection, this routine fixes the problem
+// by just splicing the offending vertex into the other edge.
+// This is a guaranteed solution, no matter how degenerate things get.
+// Basically this is a combinatorial solution to a numerical problem.
+func CheckForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
+	regLo := regionBelow(regUp)
+	eUp := regUp.eUp
+	eLo := regLo.eUp
+
+	if C.VertLeq(eUp.Org, eLo.Org) != 0 {
+		if C.tesedgeSign(dst(eLo), eUp.Org, eLo.Org) > 0 {
+			return false
+		}
+
+		// eUp.Org appears to be below eLo
+		if C.VertEq(eUp.Org, eLo.Org) == 0 {
+			// Splice eUp.Org into eLo
+			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+			C.tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
+			regUp.dirty = 1 /* true */
+			regLo.dirty = 1 /* true */
+
+		} else if eUp.Org != eLo.Org {
+			// merge the two vertices, discarding eUp.Org
+			pqDelete(tess.pq, eUp.Org.pqHandle)
+			C.SpliceMergeVertices(tess, oPrev(eLo), eUp)
+		}
+	} else {
+		if C.tesedgeSign(dst(eUp), eLo.Org, eUp.Org) < 0 {
+			return false
+		}
+
+		// eLo.Org appears to be above eUp, so splice eLo.Org into eUp
+		regionAbove(regUp).dirty = 1 /* true */
+		regUp.dirty = 1              /* true */
+		C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+		C.tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
+	}
+	return true
 }
 
 // checkForLeftSplice checks the upper and lower edge of "regUp", to make sure that the
@@ -251,7 +312,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 
 	if C.VertEq(&isect, orgUp) != 0 || C.VertEq(&isect, orgLo) != 0 {
 		// Easy case -- intersection at one of the right endpoints
-		C.CheckForRightSplice(tess, regUp)
+		CheckForRightSplice(tess, regUp)
 		return false
 	}
 
@@ -388,7 +449,7 @@ func WalkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 			} else {
 				// Even though we can't use CheckForIntersect(), the Org vertices
 				// may violate the dictionary edge ordering.  Check and correct this.
-				C.CheckForRightSplice(tess, regUp)
+				CheckForRightSplice(tess, regUp)
 			}
 		}
 		if eUp.Org == eLo.Org && dst(eUp) == dst(eLo) {
