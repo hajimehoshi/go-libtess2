@@ -47,7 +47,6 @@ package libtess2
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
-// int CheckForLeftSplice( TESStesselator *tess, ActiveRegion *regUp );
 // int CheckForRightSplice( TESStesselator *tess, ActiveRegion *regUp );
 // void GetIntersectData( TESStesselator *tess, TESSvertex *isect, TESSvertex *orgUp, TESSvertex *dstUp, TESSvertex *orgLo, TESSvertex *dstLo );
 import "C"
@@ -86,6 +85,10 @@ func maxf(a, b C.TESSreal) C.TESSreal {
 	return a
 }
 
+func rFace(e *C.TESShalfEdge) *C.TESSface {
+	return e.Sym.Lface
+}
+
 func dst(e *C.TESShalfEdge) *C.TESSvertex {
 	return e.Sym.Org
 }
@@ -119,6 +122,54 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+// checkForLeftSplice checks the upper and lower edge of "regUp", to make sure that the
+// eUp.Dst is above eLo, or eLo.Dst is below eUp (depending on which
+// destination is rightmost).
+//
+// Theoretically, this should always be true.  However, splitting an edge
+// into two pieces can change the results of previous tests.  For example,
+// suppose at one point we checked eUp and eLo, and decided that eUp.Dst
+// is barely above eLo.  Then later, we split eLo into two edges (eg. from
+// a splice operation like this one).  This can change the result of
+// the test so that now eUp.Dst is incident to eLo, or barely below it.
+// We must correct this condition to maintain the dictionary invariants
+// (otherwise new edges might get inserted in the wrong place in the
+// dictionary, and bad stuff will happen).
+//
+// We fix the problem by just splicing the offending vertex into the
+// other edge.
+func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
+	regLo := regionBelow(regUp)
+	eUp := regUp.eUp
+	eLo := regLo.eUp
+
+	assert(C.VertEq(dst(eUp), dst(eLo)) == 0)
+
+	if C.VertLeq(dst(eUp), dst(eLo)) != 0 {
+		if C.tesedgeSign(dst(eUp), dst(eLo), eUp.Org) < 0 {
+			return false
+		}
+
+		// eLo.Dst is above eUp, so splice eLo.Dst into eUp
+		regionAbove(regUp).dirty = 1 /* true */
+		regUp.dirty = 1              /* true */
+		e := C.tessMeshSplitEdge(tess.mesh, eUp)
+		C.tessMeshSplice(tess.mesh, eLo.Sym, e)
+		e.Lface.inside = C.char(regUp.inside)
+	} else {
+		if C.tesedgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
+			return false
+		}
+		// eUp.Dst is below eLo, so splice eUp.Dst into eLo
+		regUp.dirty = 1 /* true */
+		regLo.dirty = 1 /* true */
+		e := C.tessMeshSplitEdge(tess.mesh, eLo)
+		C.tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
+		rFace(e).inside = C.char(regUp.inside)
+	}
+	return true
 }
 
 // Check the upper and lower edges of the given region to see if
@@ -303,7 +354,7 @@ func WalkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 
 		if dst(eUp) != dst(eLo) {
 			// Check that the edge ordering is obeyed at the Dst vertices.
-			if C.CheckForLeftSplice(tess, regUp) != 0 {
+			if checkForLeftSplice(tess, regUp) {
 
 				// If the upper or lower edge was marked fixUpperEdge, then
 				// we no longer need it (since these edges are needed only for
@@ -718,7 +769,7 @@ func donePriorityQ(tess *C.TESStesselator) {
 // produced by splice operations on already-processed edges.
 // The two places this can happen are in FinishLeftRegions(), when
 // we splice in a "temporary" edge produced by ConnectRightVertex(),
-// and in CheckForLeftSplice(), where we splice already-processed
+// and in checkForLeftSplice(), where we splice already-processed
 // edges to ensure that our dictionary invariants are not violated
 // by numerical errors.
 //
