@@ -865,6 +865,14 @@ void tessAddContour( TESStesselator *tess, int size, const void* vertices,
 	}
 }
 
+/* tessComputeInterior( tess ) computes the planar arrangement specified
+* by the given contours, and further subdivides this arrangement
+* into regions.  Each region is marked "inside" if it belongs
+* to the polygon, according to the rule given by tess->windingRule.
+* Each interior region is guaranteed be monotone.
+*/
+int tessComputeInterior( struct TESStesselator *tess );
+
 int tessTesselate( TESStesselator *tess, int windingRule, int elementType,
 				  int polySize, int vertexSize, const TESSreal* normal )
 {

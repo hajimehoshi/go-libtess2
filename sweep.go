@@ -862,7 +862,7 @@ func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
 // into regions.  Each region is marked "inside" if it belongs
 // to the polygon, according to the rule given by tess.windingRule.
 // Each interior region is guaranteed be monotone.
-func tessComputeInterior(tess *C.TESStesselator) C.int {
+func tessComputeInterior(tess *C.TESStesselator) bool {
 	//TESSvertex *v, *vNext;
 
 	// Each vertex defines an event for our sweep line.  Start by inserting
@@ -910,9 +910,9 @@ func tessComputeInterior(tess *C.TESStesselator) C.int {
 	donePriorityQ(tess)
 
 	if !removeDegenerateFaces(tess, tess.mesh) {
-		return 0
+		return false
 	}
 	C.tessMeshCheckMesh(tess.mesh)
 
-	return 1
+	return true
 }
