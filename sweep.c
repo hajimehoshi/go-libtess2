@@ -247,7 +247,7 @@ void ComputeWinding( TESStesselator *tess, ActiveRegion *reg )
 }
 
 
-static void FinishRegion( TESStesselator *tess, ActiveRegion *reg )
+void FinishRegion( TESStesselator *tess, ActiveRegion *reg )
 /*
 * Delete a region from the sweep line.  This happens when the upper
 * and lower chains of a region meet (at a vertex on the sweep line).
@@ -262,59 +262,4 @@ static void FinishRegion( TESStesselator *tess, ActiveRegion *reg )
 	f->inside = reg->inside;
 	f->anEdge = e;   /* optimization for tessMeshTessellateMonoRegion() */
 	DeleteRegion( tess, reg );
-}
-
-
-TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast )
-/*
-* We are given a vertex with one or more left-going edges.  All affected
-* edges should be in the edge dictionary.  Starting at regFirst->eUp,
-* we walk down deleting all regions where both edges have the same
-* origin vOrg.  At the same time we copy the "inside" flag from the
-* active region to the face, since at this point each face will belong
-* to at most one region (this was not necessarily true until this point
-* in the sweep).  The walk stops at the region above regLast; if regLast
-* is NULL we walk as far as possible.  At the same time we relink the
-* mesh if necessary, so that the ordering of edges around vOrg is the
-* same as in the dictionary.
-*/
-{
-	ActiveRegion *reg, *regPrev;
-	TESShalfEdge *e, *ePrev;
-
-	regPrev = regFirst;
-	ePrev = regFirst->eUp;
-	while( regPrev != regLast ) {
-		regPrev->fixUpperEdge = FALSE;	/* placement was OK */
-		reg = RegionBelow( regPrev );
-		e = reg->eUp;
-		if( e->Org != ePrev->Org ) {
-			if( ! reg->fixUpperEdge ) {
-				/* Remove the last left-going edge.  Even though there are no further
-				* edges in the dictionary with this origin, there may be further
-				* such edges in the mesh (if we are adding left edges to a vertex
-				* that has already been processed).  Thus it is important to call
-				* FinishRegion rather than just DeleteRegion.
-				*/
-				FinishRegion( tess, regPrev );
-				break;
-			}
-			/* If the edge below was a temporary edge introduced by
-			* ConnectRightVertex, now is the time to fix it.
-			*/
-			e = tessMeshConnect( tess->mesh, ePrev->Lprev, e->Sym );
-			if (e == NULL) longjmp(tess->env,1);
-			if ( !FixUpperEdge( tess, reg, e ) ) longjmp(tess->env,1);
-		}
-
-		/* Relink edges so that ePrev->Onext == e */
-		if( ePrev->Onext != e ) {
-			if ( !tessMeshSplice( tess->mesh, e->Oprev, e ) ) longjmp(tess->env,1);
-			if ( !tessMeshSplice( tess->mesh, ePrev, e ) ) longjmp(tess->env,1);
-		}
-		FinishRegion( tess, regPrev );	/* may change reg->eUp */
-		ePrev = reg->eUp;
-		regPrev = reg;
-	}
-	return ePrev;
 }
