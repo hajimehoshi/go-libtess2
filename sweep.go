@@ -47,8 +47,12 @@ package libtess2
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
-// void GetIntersectData( TESStesselator *tess, TESSvertex *isect, TESSvertex *orgUp, TESSvertex *dstUp, TESSvertex *orgLo, TESSvertex *dstLo );
+// void VertexWeights( TESSvertex *isect, TESSvertex *org, TESSvertex *dst, TESSreal *weights );
 import "C"
+
+const (
+	undef = ^0
+)
 
 func assert(cond bool) {
 	if !cond {
@@ -123,25 +127,41 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// getIntersectData:
+// We've computed a new intersection point, now we need a "data" pointer
+// from the user so that we can refer to this new vertex in the
+// rendering callbacks.
+func getIntersectData(tess *C.TESStesselator, isect *C.TESSvertex,
+	orgUp *C.TESSvertex, dstUp *C.TESSvertex,
+	orgLo *C.TESSvertex, dstLo *C.TESSvertex) {
+	weights := make([]C.TESSreal, 4)
+	isect.coords[0] = 0
+	isect.coords[1] = 0
+	isect.coords[2] = 0
+	isect.idx = undef
+	C.VertexWeights(isect, orgUp, dstUp, &weights[0])
+	C.VertexWeights(isect, orgLo, dstLo, &weights[2])
+}
+
 //export CheckForRightSplice
 //
 // checkForRightSplice checks the upper and lower edge of "regUp", to make sure that the
-// eUp->Org is above eLo, or eLo->Org is below eUp (depending on which
+// eUp.Org is above eLo, or eLo.Org is below eUp (depending on which
 // origin is leftmost).
 //
 // The main purpose is to splice right-going edges with the same
 // dest vertex and nearly identical slopes (ie. we can't distinguish
 // the slopes numerically).  However the splicing can also help us
 // to recover from numerical errors.  For example, suppose at one
-// point we checked eUp and eLo, and decided that eUp->Org is barely
+// point we checked eUp and eLo, and decided that eUp.Org is barely
 // above eLo.  Then later, we split eLo into two edges (eg. from
 // a splice operation like this one).  This can change the result of
-// our test so that now eUp->Org is incident to eLo, or barely below it.
+// our test so that now eUp.Org is incident to eLo, or barely below it.
 // We must correct this condition to maintain the dictionary invariants.
 //
 // One possibility is to check these edges for intersection again
 // (ie. CheckForIntersect).  This is what we do if possible.  However
-// CheckForIntersect requires that tess->event lies between eUp and eLo,
+// CheckForIntersect requires that tess.event lies between eUp and eLo,
 // so that it has something to fall back on when the intersection
 // calculation gives us an unusable answer.  So, for those cases where
 // we can't check for intersection, this routine fixes the problem
@@ -376,7 +396,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	eUp.Org.s = isect.s
 	eUp.Org.t = isect.t
 	eUp.Org.pqHandle = pqInsert(tess.pq, eUp.Org)
-	C.GetIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
+	getIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
 	regionAbove(regUp).dirty = 1 /* true */
 	regUp.dirty = 1              /* true */
 	regLo.dirty = 1              /* true */

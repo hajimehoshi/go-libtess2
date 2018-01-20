@@ -402,8 +402,7 @@ void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *
 	if ( !tessMeshSplice( tess->mesh, e1, e2 ) ) longjmp(tess->env,1); 
 }
 
-static void VertexWeights( TESSvertex *isect, TESSvertex *org, TESSvertex *dst,
-						  TESSreal *weights )
+void VertexWeights( TESSvertex *isect, TESSvertex *org, TESSvertex *dst, TESSreal *weights )
 /*
 * Find some weights which describe how the intersection vertex is
 * a linear combination of "org" and "dest".  Each of the two edges
@@ -420,23 +419,4 @@ static void VertexWeights( TESSvertex *isect, TESSvertex *org, TESSvertex *dst,
 	isect->coords[0] += weights[0]*org->coords[0] + weights[1]*dst->coords[0];
 	isect->coords[1] += weights[0]*org->coords[1] + weights[1]*dst->coords[1];
 	isect->coords[2] += weights[0]*org->coords[2] + weights[1]*dst->coords[2];
-}
-
-
-void GetIntersectData( TESStesselator *tess, TESSvertex *isect,
-							 TESSvertex *orgUp, TESSvertex *dstUp,
-							 TESSvertex *orgLo, TESSvertex *dstLo )
- /*
- * We've computed a new intersection point, now we need a "data" pointer
- * from the user so that we can refer to this new vertex in the
- * rendering callbacks.
- */
-{
-	TESSreal weights[4];
-	TESS_NOTUSED( tess );
-
-	isect->coords[0] = isect->coords[1] = isect->coords[2] = 0;
-	isect->idx = TESS_UNDEF;
-	VertexWeights( isect, orgUp, dstUp, &weights[0] );
-	VertexWeights( isect, orgLo, dstLo, &weights[2] );
 }
