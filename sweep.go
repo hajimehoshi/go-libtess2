@@ -131,15 +131,15 @@ func adjust(x C.TESSreal) C.TESSreal {
 // which generated "isect" is allocated 50% of the weight; each edge
 // splits the weight between its org and dst according to the
 // relative distance to "isect".
-func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex, weights []C.TESSreal) {
+func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex) {
 	t1 := C.VertL1dist(org, isect)
 	t2 := C.VertL1dist(dst, isect)
 
-	weights[0] = 0.5 * t2 / (t1 + t2)
-	weights[1] = 0.5 * t1 / (t1 + t2)
-	isect.coords[0] += weights[0]*org.coords[0] + weights[1]*dst.coords[0]
-	isect.coords[1] += weights[0]*org.coords[1] + weights[1]*dst.coords[1]
-	isect.coords[2] += weights[0]*org.coords[2] + weights[1]*dst.coords[2]
+	w0 := 0.5 * t2 / (t1 + t2)
+	w1 := 0.5 * t1 / (t1 + t2)
+	isect.coords[0] += w0*org.coords[0] + w1*dst.coords[0]
+	isect.coords[1] += w0*org.coords[1] + w1*dst.coords[1]
+	isect.coords[2] += w0*org.coords[2] + w1*dst.coords[2]
 }
 
 // getIntersectData:
@@ -149,13 +149,12 @@ func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex, we
 func getIntersectData(tess *C.TESStesselator, isect *C.TESSvertex,
 	orgUp *C.TESSvertex, dstUp *C.TESSvertex,
 	orgLo *C.TESSvertex, dstLo *C.TESSvertex) {
-	weights := make([]C.TESSreal, 4)
 	isect.coords[0] = 0
 	isect.coords[1] = 0
 	isect.coords[2] = 0
 	isect.idx = undef
-	vertexWeights(isect, orgUp, dstUp, weights[0:])
-	vertexWeights(isect, orgLo, dstLo, weights[2:])
+	vertexWeights(isect, orgUp, dstUp)
+	vertexWeights(isect, orgLo, dstLo)
 }
 
 //export CheckForRightSplice
