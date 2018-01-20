@@ -36,8 +36,6 @@ package libtess2
 // static ActiveRegion* allocActiveRegion(TESStesselator* tess) {
 //   return (ActiveRegion*)bucketAlloc(tess->regionPool);
 // }
-//
-// void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 import "C"
 
 const (
@@ -126,6 +124,14 @@ func deleteRegion(tess *C.TESStesselator, reg *C.ActiveRegion) {
 	}
 	reg.eUp.activeRegion = nil
 	C.dictDelete(reg.nodeUp)
+}
+
+// addWinding:
+// When we merge two edges into one, we need to compute the combined
+// winding of the new edge.
+func addWinding(eDst *C.TESShalfEdge, eSrc *C.TESShalfEdge) {
+	eDst.winding += eSrc.winding
+	eDst.Sym.winding += eSrc.Sym.winding
 }
 
 // fixUpperEdge replace an upper edge which needs fixing (see ConnectRightVertex).
@@ -326,7 +332,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 		// before any intersection tests (see example in tessComputeInterior).
 		regPrev.dirty = 1 /* true */
 		if !firstTime && checkForRightSplice(tess, regPrev) {
-			C.AddWinding(e, ePrev)
+			addWinding(e, ePrev)
 			deleteRegion(tess, regPrev)
 			C.tessMeshDelete(tess.mesh, ePrev)
 		}
@@ -708,7 +714,7 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 		}
 		if eUp.Org == eLo.Org && dst(eUp) == dst(eLo) {
 			// A degenerate loop consisting of only two edges -- delete it.
-			C.AddWinding(eLo, eUp)
+			addWinding(eLo, eUp)
 			deleteRegion(tess, regUp)
 			C.tessMeshDelete(tess.mesh, eUp)
 			regUp = regionAbove(regLo)
@@ -1100,7 +1106,7 @@ func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
 
 		if e.Lnext.Lnext == e {
 			// A face with only two edges
-			C.AddWinding(e.Onext, e)
+			addWinding(e.Onext, e)
 			if C.tessMeshDelete(tess.mesh, e) == 0 {
 				return false
 			}

@@ -83,14 +83,6 @@ extern void DebugEvent( TESStesselator *tess );
 #define MAX(x,y)	((x) >= (y) ? (x) : (y))
 #define MIN(x,y)	((x) <= (y) ? (x) : (y))
 
-/* When we merge two edges into one, we need to compute the combined
-* winding of the new edge.
-*/
-void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc) {
-  eDst->winding += eSrc->winding;
-  eDst->Sym->winding += eSrc->Sym->winding;
-}
-
 int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
 /*
 * Both edges must be directed from right to left (this is the canonical
