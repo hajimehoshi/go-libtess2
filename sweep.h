@@ -63,6 +63,4 @@ struct ActiveRegion {
 #define RegionBelow(r) ((ActiveRegion *) dictKey(dictPred((r)->nodeUp)))
 #define RegionAbove(r) ((ActiveRegion *) dictKey(dictSucc((r)->nodeUp)))
 
-int EdgeLeq( struct TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 );
-
 #endif

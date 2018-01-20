@@ -83,7 +83,7 @@ func dictInsertBefore(dictID unsafe.Pointer, nodeID unsafe.Pointer, key *C.struc
 	n := idToNode[uintptr(nodeID)]
 	for {
 		n = n.prev
-		if n.key == nil || C.EdgeLeq(d.frame, n.key, key) != 0 {
+		if n.key == nil || edgeLeq(d.frame, n.key, key) {
 			break
 		}
 	}
@@ -116,7 +116,7 @@ func dictSearch(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointe
 	n := &d.head
 	for {
 		n = n.next
-		if n.key == nil || C.EdgeLeq(d.frame, key, n.key) != 0 {
+		if n.key == nil || edgeLeq(d.frame, key, n.key) {
 			break
 		}
 	}

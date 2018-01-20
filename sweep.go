@@ -154,6 +154,42 @@ func deleteRegion(tess *C.TESStesselator, reg *C.ActiveRegion) {
 	C.dictDelete(reg.nodeUp)
 }
 
+// edgeLeq:
+// Both edges must be directed from right to left (this is the canonical
+// direction for the upper edge of each region).
+//
+// The strategy is to evaluate a "t" value for each edge at the
+// current sweep line position, given by tess.event.  The calculations
+// are designed to be very stable, but of course they are not perfect.
+//
+// Special case: if both edge destinations are at the sweep event,
+// we sort the edges by slope (they would otherwise compare equally).
+func edgeLeq(tess *C.TESStesselator, reg1 *C.ActiveRegion, reg2 *C.ActiveRegion) bool {
+	event := tess.event
+	e1 := reg1.eUp
+	e2 := reg2.eUp
+
+	if dst(e1) == event {
+		if dst(e2) == event {
+			// Two edges right of the sweep line which meet at the sweep event.
+			// Sort them by slope.
+			if C.VertLeq(e1.Org, e2.Org) != 0 {
+				return C.tesedgeSign(dst(e2), e1.Org, e2.Org) <= 0
+			}
+			return C.tesedgeSign(dst(e1), e2.Org, e1.Org) >= 0
+		}
+		return C.tesedgeSign(dst(e2), event, e2.Org) <= 0
+	}
+	if dst(e2) == event {
+		return C.tesedgeSign(dst(e1), event, e1.Org) >= 0
+	}
+
+	// General case - compute signed distance *from* e1, e2 to event
+	t1 := C.tesedgeEval(dst(e1), event, e1.Org)
+	t2 := C.tesedgeEval(dst(e2), event, e2.Org)
+	return (t1 >= t2)
+}
+
 // addWinding:
 // When we merge two edges into one, we need to compute the combined
 // winding of the new edge.
