@@ -82,8 +82,6 @@ package libtess2
 // void tessProjectPolygon( TESStesselator *tess );
 // int tessMeshSetWindingNumber( TESSmesh *mesh, int value, int keepOnlyBoundary );
 // int tessMeshTessellateInterior( TESSmesh *mesh );
-// TESSindex GetNeighbourFace(TESShalfEdge* edge);
-// void OutputPolymesh( TESStesselator *tess, TESSmesh *mesh, int elementType, int polySize, int vertexSize );
 import "C"
 
 import (
@@ -153,6 +151,16 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+func neighbourFace(edge *C.TESShalfEdge) C.TESSindex {
+	if rFace(edge) == nil {
+		return undef
+	}
+	if rFace(edge).inside == 0 {
+		return undef
+	}
+	return rFace(edge).n
 }
 
 func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, polySize int, vertexSize int) {
@@ -254,7 +262,7 @@ func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, p
 		if elementType == C.TESS_CONNECTED_POLYGONS {
 			edge = f.anEdge
 			for {
-				*elements = C.GetNeighbourFace(edge)
+				*elements = neighbourFace(edge)
 				elements = C.golibtess2_incElement(elements)
 				edge = edge.Lnext
 				if edge == f.anEdge {

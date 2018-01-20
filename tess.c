@@ -566,13 +566,3 @@ void tessDeleteTess( TESStesselator *tess )
 
 	alloc.memfree( alloc.userData, tess );
 }
-
-
-TESSindex GetNeighbourFace(TESShalfEdge* edge)
-{
-	if (!edge->Rface)
-		return TESS_UNDEF;
-	if (!edge->Rface->inside)
-		return TESS_UNDEF;
-	return edge->Rface->n;
-}
