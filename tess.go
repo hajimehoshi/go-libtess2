@@ -80,7 +80,9 @@ package libtess2
 //   return vertices + 1;
 // }
 //
-// void tessProjectPolygon( TESStesselator *tess );
+// void CheckOrientation( TESStesselator *tess );
+// void ComputeNormal( TESStesselator *tess, TESSreal norm[3] );
+// int LongAxis( TESSreal v[3] );
 import "C"
 
 import (
@@ -150,6 +152,85 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+func dot(u, v []C.TESSreal) C.TESSreal {
+	return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
+}
+
+// Determine the polygon normal and project vertices onto the plane
+// of the polygon.
+func tessProjectPolygon(tess *C.TESStesselator) {
+	const (
+		S_UNIT_X = 1.0
+		S_UNIT_Y = 0.0
+	)
+
+	vHead := &tess.mesh.vHead
+	norm := make([]C.TESSreal, 3)
+	computedNormal := false
+
+	norm[0] = tess.normal[0]
+	norm[1] = tess.normal[1]
+	norm[2] = tess.normal[2]
+	if norm[0] == 0 && norm[1] == 0 && norm[2] == 0 {
+		C.ComputeNormal(tess, &norm[0])
+		computedNormal = true
+	}
+	sUnit := tess.sUnit[:]
+	tUnit := tess.tUnit[:]
+	i := C.LongAxis(&norm[0])
+
+	// Project perpendicular to a coordinate axis -- better numerically
+	sUnit[i] = 0
+	sUnit[(i+1)%3] = S_UNIT_X
+	sUnit[(i+2)%3] = S_UNIT_Y
+
+	tUnit[i] = 0
+	if norm[i] > 0 {
+		tUnit[(i+1)%3] = -S_UNIT_Y
+	} else {
+		tUnit[(i+1)%3] = S_UNIT_Y
+	}
+	if norm[i] > 0 {
+		tUnit[(i+2)%3] = S_UNIT_X
+	} else {
+		tUnit[(i+2)%3] = -S_UNIT_X
+	}
+
+	// Project the vertices onto the sweep plane
+	for v := vHead.next; v != vHead; v = v.next {
+		v.s = dot(v.coords[:], sUnit)
+		v.t = dot(v.coords[:], tUnit)
+	}
+	if computedNormal {
+		C.CheckOrientation(tess)
+	}
+
+	// Compute ST bounds.
+	first := true
+	for v := vHead.next; v != vHead; v = v.next {
+		if first {
+			tess.bmin[0] = v.s
+			tess.bmax[0] = v.s
+			tess.bmin[1] = v.t
+			tess.bmax[1] = v.t
+			first = false
+		} else {
+			if v.s < tess.bmin[0] {
+				tess.bmin[0] = v.s
+			}
+			if v.s > tess.bmax[0] {
+				tess.bmax[0] = v.s
+			}
+			if v.t < tess.bmin[1] {
+				tess.bmin[1] = v.t
+			}
+			if v.t > tess.bmax[1] {
+				tess.bmax[1] = v.t
+			}
+		}
+	}
 }
 
 // tessMeshTessellateMonoRegion tessellates a monotone region
@@ -640,7 +721,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 
 	// Determine the polygon normal and project vertices onto the plane
 	// of the polygon.
-	C.tessProjectPolygon(tess)
+	tessProjectPolygon(tess)
 
 	// tessComputeInterior( tess ) computes the planar arrangement specified
 	// by the given contours, and further subdivides this arrangement
