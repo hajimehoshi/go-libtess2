@@ -394,23 +394,3 @@ int tessMeshTessellateInterior( TESSmesh *mesh )
 
 	return 1;
 }
-
-
-/* tessMeshDiscardExterior( mesh ) zaps (ie. sets to NULL) all faces
-* which are not marked "inside" the polygon.  Since further mesh operations
-* on NULL faces are not allowed, the main purpose is to clean up the
-* mesh so that exterior loops are not represented in the data structure.
-*/
-void tessMeshDiscardExterior( TESSmesh *mesh )
-{
-	TESSface *f, *next;
-
-	/*LINTED*/
-	for( f = mesh->fHead.next; f != &mesh->fHead; f = next ) {
-		/* Since f will be destroyed, save its next pointer. */
-		next = f->next;
-		if( ! f->inside ) {
-			tessMeshZapFace( mesh, f );
-		}
-	}
-}
