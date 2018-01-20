@@ -184,14 +184,3 @@ ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg )
 	}
 	return reg;
 }
-
-ActiveRegion *TopRightRegion( ActiveRegion *reg )
-{
-	TESSvertex *dst = reg->eUp->Dst;
-
-	/* Find the region above the uppermost edge with the same destination */
-	do {
-		reg = RegionAbove( reg );
-	} while( reg->eUp->Dst == dst );
-	return reg;
-}

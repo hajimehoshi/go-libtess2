@@ -122,6 +122,18 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+func topRightRegion(reg *C.ActiveRegion) *C.ActiveRegion {
+	d := dst(reg.eUp)
+	// Find the region above the uppermost edge with the same destination
+	for {
+		reg = regionAbove(reg)
+		if dst(reg.eUp) != d {
+			break
+		}
+	}
+	return reg
+}
+
 // addRegionBelow adds a new active region to the sweep line, *somewhere* below "regAbove"
 // (according to where the new edge belongs in the sweep-line dictionary).
 // The upper edge of the new region will be "eNewUp".
@@ -131,8 +143,8 @@ func addRegionBelow(tess *C.TESStesselator, regAbove *C.ActiveRegion, eNewUp *C.
 	regNew.eUp = eNewUp
 	regNew.nodeUp = dictInsertBefore(tess.dict, regAbove.nodeUp, regNew)
 	regNew.fixUpperEdge = 0 /* false */
-	regNew.sentinel = 0 /* false */
-	regNew.dirty = 0 /* false */
+	regNew.sentinel = 0     /* false */
+	regNew.dirty = 0        /* false */
 	eNewUp.activeRegion = regNew
 	return regNew
 }
@@ -543,7 +555,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			C.tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
 			regLo = regUp
-			regUp = C.TopRightRegion(regUp)
+			regUp = topRightRegion(regUp)
 			e := rPrev(regionBelow(regUp).eUp)
 			regLo.eUp = oPrev(eLo)
 			eLo = finishLeftRegions(tess, regLo, nil)
@@ -785,7 +797,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 	// vEvent coincides with e.Dst, which has already been processed.
 	// Splice in the additional right-going edges.
 	assert(TOLERANCE_NONZERO)
-	regUp = C.TopRightRegion(regUp)
+	regUp = topRightRegion(regUp)
 	reg := regionBelow(regUp)
 	eTopRight := reg.eUp.Sym
 	eTopLeft := eTopRight.Onext
