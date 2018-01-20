@@ -38,7 +38,6 @@ package libtess2
 // }
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
-// void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
 const (
@@ -116,6 +115,17 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+func deleteRegion(tess *C.TESStesselator, reg *C.ActiveRegion) {
+	if reg.fixUpperEdge != 0 {
+		// It was created with zero winding number, so it better be
+		// deleted with zero winding number (ie. it better not get merged
+		// with a real edge).
+		assert(reg.eUp.winding == 0)
+	}
+	reg.eUp.activeRegion = nil
+	C.dictDelete(reg.nodeUp)
 }
 
 // fixUpperEdge replace an upper edge which needs fixing (see ConnectRightVertex).
@@ -211,7 +221,7 @@ func finishRegion(tess *C.TESStesselator, reg *C.ActiveRegion) {
 
 	f.inside = C.char(reg.inside)
 	f.anEdge = e // optimization for tessMeshTessellateMonoRegion()
-	C.DeleteRegion(tess, reg)
+	deleteRegion(tess, reg)
 }
 
 // finishLeftRegions:
@@ -238,7 +248,7 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *C.ActiveRegion, regLast
 				// edges in the dictionary with this origin, there may be further
 				// such edges in the mesh (if we are adding left edges to a vertex
 				// that has already been processed).  Thus it is important to call
-				// FinishRegion rather than just DeleteRegion.
+				// FinishRegion rather than just deleteRegion.
 				finishRegion(tess, regPrev)
 				break
 			}
@@ -317,7 +327,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 		regPrev.dirty = 1 /* true */
 		if !firstTime && checkForRightSplice(tess, regPrev) {
 			C.AddWinding(e, ePrev)
-			C.DeleteRegion(tess, regPrev)
+			deleteRegion(tess, regPrev)
 			C.tessMeshDelete(tess.mesh, ePrev)
 		}
 		firstTime = false
@@ -665,12 +675,12 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 				// we no longer need it (since these edges are needed only for
 				// vertices which otherwise have no right-going edges).
 				if regLo.fixUpperEdge != 0 {
-					C.DeleteRegion(tess, regLo)
+					deleteRegion(tess, regLo)
 					C.tessMeshDelete(tess.mesh, eLo)
 					regLo = regionBelow(regUp)
 					eLo = regLo.eUp
 				} else if regUp.fixUpperEdge != 0 {
-					C.DeleteRegion(tess, regUp)
+					deleteRegion(tess, regUp)
 					C.tessMeshDelete(tess.mesh, eUp)
 					regUp = regionAbove(regLo)
 					eUp = regUp.eUp
@@ -699,7 +709,7 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 		if eUp.Org == eLo.Org && dst(eUp) == dst(eLo) {
 			// A degenerate loop consisting of only two edges -- delete it.
 			C.AddWinding(eLo, eUp)
-			C.DeleteRegion(tess, regUp)
+			deleteRegion(tess, regUp)
 			C.tessMeshDelete(tess.mesh, eUp)
 			regUp = regionAbove(regLo)
 		}
@@ -832,7 +842,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		// Here e.Dst has only a single fixable edge going right.
 		// We can delete it since now we have some real right-going edges.
 		assert(eTopLeft != eTopRight) // there are some left edges too
-		C.DeleteRegion(tess, reg)
+		deleteRegion(tess, reg)
 		C.tessMeshDelete(tess.mesh, eTopRight)
 		eTopRight = oPrev(eTopLeft)
 	}
@@ -1008,7 +1018,7 @@ func doneEdgeDict(tess *C.TESStesselator) {
 			assert(fixedEdges == 1)
 		}
 		assert(reg.windingNumber == 0)
-		C.DeleteRegion(tess, reg)
+		deleteRegion(tess, reg)
 		// tessMeshDelete( reg.eUp );
 	}
 	C.dictDeleteDict(tess.dict)

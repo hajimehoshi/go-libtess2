@@ -132,18 +132,3 @@ int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
 	t2 = EdgeEval( e2->Dst, event, e2->Org );
 	return (t1 >= t2);
 }
-
-
-void DeleteRegion( TESStesselator *tess, ActiveRegion *reg )
-{
-	if( reg->fixUpperEdge ) {
-		/* It was created with zero winding number, so it better be
-		* deleted with zero winding number (ie. it better not get merged
-		* with a real edge).
-		*/
-		assert( reg->eUp->winding == 0 );
-	}
-	reg->eUp->activeRegion = NULL;
-	dictDelete( reg->nodeUp );
-	bucketFree( tess->regionPool, reg );
-}
