@@ -38,7 +38,6 @@ package libtess2
 // }
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
-// void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 // void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp );
 // TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast );
@@ -126,6 +125,13 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// spliceMergeVertices:
+// Two vertices with idential coordinates are combined into one.
+// e1.Org is kept, while e2.Org is discarded.
+func spliceMergeVertices(tess *C.TESStesselator, e1 *C.TESShalfEdge, e2 *C.TESShalfEdge) {
+	C.tessMeshSplice(tess.mesh, e1, e2)
+}
+
 // vertexWeights finds some weights which describe how the intersection vertex is
 // a linear combination of "org" and "dest".  Each of the two edges
 // which generated "isect" is allocated 50% of the weight; each edge
@@ -203,7 +209,7 @@ func CheckForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		} else if eUp.Org != eLo.Org {
 			// merge the two vertices, discarding eUp.Org
 			pqDelete(tess.pq, eUp.Org.pqHandle)
-			C.SpliceMergeVertices(tess, oPrev(eLo), eUp)
+			spliceMergeVertices(tess, oPrev(eLo), eUp)
 		}
 	} else {
 		if C.tesedgeSign(dst(eUp), eLo.Org, eUp.Org) < 0 {
@@ -592,7 +598,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		* for e.Org to be pulled from the queue
 		 */
 		assert(TOLERANCE_NONZERO)
-		C.SpliceMergeVertices(tess, e, vEvent.anEdge)
+		spliceMergeVertices(tess, e, vEvent.anEdge)
 		return
 	}
 
@@ -814,7 +820,7 @@ func removeDegenerateEdges(tess *C.TESStesselator) {
 
 		if C.VertEq(e.Org, dst(e)) != 0 && e.Lnext.Lnext != e {
 			// Zero-length edge, contour has at least 3 edges
-			C.SpliceMergeVertices(tess, eLnext, e) /* deletes e.Org */
+			spliceMergeVertices(tess, eLnext, e) /* deletes e.Org */
 			C.tessMeshDelete(tess.mesh, e)
 			e = eLnext
 			eLnext = e.Lnext
@@ -933,7 +939,7 @@ func tessComputeInterior(tess *C.TESStesselator) bool {
 			// gap between them.  This kind of error is especially obvious
 			// when using boundary extraction (TESS_BOUNDARY_ONLY).
 			vNext = (*C.TESSvertex)(C.pqExtractMin(tess.pq))
-			C.SpliceMergeVertices(tess, v.anEdge, vNext.anEdge)
+			spliceMergeVertices(tess, v.anEdge, vNext.anEdge)
 		}
 		sweepEvent(tess, v)
 	}

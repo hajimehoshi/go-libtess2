@@ -391,13 +391,3 @@ void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFi
 		WalkDirtyRegions( tess, regPrev );
 	}
 }
-
-
-void SpliceMergeVertices( TESStesselator *tess, TESShalfEdge *e1, TESShalfEdge *e2 )
-/*
-* Two vertices with idential coordinates are combined into one.
-* e1->Org is kept, while e2->Org is discarded.
-*/
-{
-	if ( !tessMeshSplice( tess->mesh, e1, e2 ) ) longjmp(tess->env,1); 
-}
