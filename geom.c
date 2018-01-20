@@ -71,26 +71,6 @@ TESSreal tesedgeEval( TESSvertex *u, TESSvertex *v, TESSvertex *w )
 	return 0;
 }
 
-TESSreal tesedgeSign( TESSvertex *u, TESSvertex *v, TESSvertex *w )
-{
-	/* Returns a number whose sign matches EdgeEval(u,v,w) but which
-	* is cheaper to evaluate.  Returns > 0, == 0 , or < 0
-	* as v is above, on, or below the edge uw.
-	*/
-	TESSreal gapL, gapR;
-
-	assert( VertLeq( u, v ) && VertLeq( v, w ));
-
-	gapL = v->s - u->s;
-	gapR = w->s - v->s;
-
-	if( gapL + gapR > 0 ) {
-		return (v->t - w->t) * gapL + (v->t - u->t) * gapR;
-	}
-	/* vertical line */
-	return 0;
-}
-
 int VertEq(TESSvertex* u, TESSvertex* v) {
   return (u)->s == (v)->s && (u)->t == (v)->t;
 }
@@ -98,6 +78,7 @@ int VertEq(TESSvertex* u, TESSvertex* v) {
 int VertLeq(TESSvertex* u, TESSvertex* v) {
   return ((u)->s < (v)->s) || ((u)->s == (v)->s && (u)->t <= (v)->t);
 }
+
 
 TESSreal VertL1dist(TESSvertex* u, TESSvertex* v) {
   return ABS(u->s - v->s) + ABS(u->t - v->t);
