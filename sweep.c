@@ -91,8 +91,6 @@ void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc) {
   eDst->Sym->winding += eSrc->Sym->winding;
 }
 
-void WalkDirtyRegions( TESStesselator *tess, ActiveRegion *regUp );
-
 int EdgeLeq( TESStesselator *tess, ActiveRegion *reg1, ActiveRegion *reg2 )
 /*
 * Both edges must be directed from right to left (this is the canonical

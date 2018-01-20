@@ -190,7 +190,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 
 	if cleanUp {
 		// Check for intersections between newly adjacent edges.
-		WalkDirtyRegions(tess, regPrev)
+		walkDirtyRegions(tess, regPrev)
 	}
 }
 
@@ -490,8 +490,6 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	return false
 }
 
-//export WalkDirtyRegions
-//
 // walkDirtyRegions:
 // When the upper or lower edge of any region changes, the region is
 // marked "dirty".  This routine walks through all the dirty regions
@@ -499,7 +497,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 // (see the comments at the beginning of this file).  Of course
 // new dirty regions can be created as we make changes to restore
 // the invariants.
-func WalkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
+func walkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 	regLo := regionBelow(regUp)
 
 	for {
@@ -643,7 +641,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	// had a chance to mark it as a temporary edge.
 	addRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, false)
 	eNew.Sym.activeRegion.fixUpperEdge = 1 /* true */
-	WalkDirtyRegions(tess, regUp)
+	walkDirtyRegions(tess, regUp)
 }
 
 // connectLeftDegenerate:
@@ -932,7 +930,7 @@ func donePriorityQ(tess *C.TESStesselator) {
 	pqDeletePriorityQ(tess.pq)
 }
 
-// removeDegenerateFaces deletes any degenerate faces with only two edges.  WalkDirtyRegions()
+// removeDegenerateFaces deletes any degenerate faces with only two edges.  walkDirtyRegions()
 // will catch almost all of these, but it won't catch degenerate faces
 // produced by splice operations on already-processed edges.
 // The two places this can happen are in FinishLeftRegions(), when
