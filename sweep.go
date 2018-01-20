@@ -38,6 +38,34 @@ package libtess2
 // }
 import "C"
 
+// Invariants for the Edge Dictionary.
+// - each pair of adjacent edges e2=Succ(e1) satisfies EdgeLeq(e1,e2)
+//   at any valid location of the sweep event
+// - if EdgeLeq(e2,e1) as well (at any valid sweep event), then e1 and e2
+//   share a common endpoint
+// - for each e, e->Dst has been processed, but not e->Org
+// - each edge e satisfies VertLeq(e->Dst,event) && VertLeq(event,e->Org)
+//   where "event" is the current sweep line event.
+// - no edge e has zero length
+//
+// Invariants for the Mesh (the processed portion).
+// - the portion of the mesh left of the sweep line is a planar graph,
+//   ie. there is //some// way to embed it in the plane
+// - no processed edge has zero length
+// - no two processed vertices have identical coordinates
+// - each "inside" region is monotone, ie. can be broken into two chains
+//   of monotonically increasing vertices according to VertLeq(v1,v2)
+//   - a non-invariant: these chains may intersect (very slightly)
+//
+// Invariants for the Sweep.
+// - if none of the edges incident to the event vertex have an activeRegion
+//   (ie. none of these edges are in the edge dictionary), then the vertex
+//   has only right-going edges.
+// - if an edge is marked "fixUpperEdge" (it is a temporary edge introduced
+//   by ConnectRightVertex), then it is the only right-going edge from
+//   its associated vertex.  (This says that these edges exist only
+//   when it is necessary.)
+
 const (
 	undef = ^0
 )
