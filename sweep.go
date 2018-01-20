@@ -43,7 +43,6 @@ package libtess2
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
-// int IsWindingInside( TESStesselator *tess, int n );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
@@ -124,9 +123,29 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+func isWindingInside(tess *C.TESStesselator, n int) bool {
+	switch tess.windingRule {
+	case C.TESS_WINDING_ODD:
+		return (n & 1) != 0
+	case C.TESS_WINDING_NONZERO:
+		return (n != 0)
+	case C.TESS_WINDING_POSITIVE:
+		return (n > 0)
+	case C.TESS_WINDING_NEGATIVE:
+		return (n < 0)
+	case C.TESS_WINDING_ABS_GEQ_TWO:
+		return (n >= 2) || (n <= -2)
+	}
+	panic("not reached")
+}
+
 func computeWinding(tess *C.TESStesselator, reg *C.ActiveRegion) {
 	reg.windingNumber = regionAbove(reg).windingNumber + reg.eUp.winding
-	reg.inside = C.IsWindingInside(tess, reg.windingNumber)
+	if isWindingInside(tess, int(reg.windingNumber)) {
+		reg.inside = 1
+	} else {
+		reg.inside = 0
+	}
 }
 
 // finishRegion deletes a region from the sweep line.  This happens when the upper
@@ -235,7 +254,11 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 		}
 		// Compute the winding number and "inside" flag for the new regions
 		reg.windingNumber = regPrev.windingNumber - e.winding
-		reg.inside = C.IsWindingInside(tess, reg.windingNumber)
+		if isWindingInside(tess, int(reg.windingNumber)) {
+			reg.inside = 1
+		} else {
+			reg.inside = 0
+		}
 
 		// Check for two outgoing edges with same slope -- process these
 		// before any intersection tests (see example in tessComputeInterior).

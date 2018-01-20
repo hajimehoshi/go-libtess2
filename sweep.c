@@ -217,24 +217,3 @@ ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESS
 	eNewUp->activeRegion = regNew;
 	return regNew;
 }
-
-int IsWindingInside( TESStesselator *tess, int n )
-{
-	switch( tess->windingRule ) {
-		case TESS_WINDING_ODD:
-			return (n & 1);
-		case TESS_WINDING_NONZERO:
-			return (n != 0);
-		case TESS_WINDING_POSITIVE:
-			return (n > 0);
-		case TESS_WINDING_NEGATIVE:
-			return (n < 0);
-		case TESS_WINDING_ABS_GEQ_TWO:
-			return (n >= 2) || (n <= -2);
-	}
-	/*LINTED*/
-	assert( FALSE );
-	/*NOTREACHED*/
-
-	return( FALSE );
-}
