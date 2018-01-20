@@ -80,8 +80,7 @@ package libtess2
 // }
 //
 // void tessProjectPolygon( TESStesselator *tess );
-// int tessMeshSetWindingNumber( TESSmesh *mesh, int value, int keepOnlyBoundary );
-// int tessMeshTessellateInterior( TESSmesh *mesh );
+// int tessMeshTessellateMonoRegion( TESSmesh *mesh, TESSface *face );
 import "C"
 
 import (
@@ -151,6 +150,20 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+// tessMeshTessellateInterior tessellates each region of
+// the mesh which is marked "inside" the polygon.  Each such region
+// must be monotone.
+func tessMeshTessellateInterior(mesh *C.TESSmesh) {
+	var next *C.TESSface
+	for f := mesh.fHead.next; f != &mesh.fHead; f = next {
+		// Make sure we don't try to tessellate the new triangles.
+		next = f.next
+		if f.inside != 0 {
+			C.tessMeshTessellateMonoRegion(mesh, f)
+		}
+	}
 }
 
 // tessMeshSetWindingNumber resets the
@@ -573,7 +586,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 	if elementType == C.TESS_BOUNDARY_CONTOURS {
 		tessMeshSetWindingNumber(mesh, 1, true)
 	} else {
-		C.tessMeshTessellateInterior(mesh)
+		tessMeshTessellateInterior(mesh)
 	}
 
 	C.tessMeshCheckMesh(mesh)

@@ -373,24 +373,3 @@ int tessMeshTessellateMonoRegion( TESSmesh *mesh, TESSface *face )
 
 	return 1;
 }
-
-
-/* tessMeshTessellateInterior( mesh ) tessellates each region of
-* the mesh which is marked "inside" the polygon.  Each such region
-* must be monotone.
-*/
-int tessMeshTessellateInterior( TESSmesh *mesh )
-{
-	TESSface *f, *next;
-
-	/*LINTED*/
-	for( f = mesh->fHead.next; f != &mesh->fHead; f = next ) {
-		/* Make sure we don''t try to tessellate the new triangles. */
-		next = f->next;
-		if( f->inside ) {
-			if ( !tessMeshTessellateMonoRegion( mesh, f ) ) return 0;
-		}
-	}
-
-	return 1;
-}
