@@ -174,16 +174,6 @@ struct TESStesselator* tessNewTess( TESSalloc* alloc );
 //   tess - pointer to tesselator object to be deleted.
 void tessDeleteTess( struct TESStesselator *tess );
 
-// tessAddContour() - Adds a contour to be tesselated.
-// The type of the vertex coordinates is assumed to be TESSreal.
-// Parameters:
-//   tess - pointer to tesselator object.
-//   size - number of coordinates per vertex. Must be 2 or 3.
-//   pointer - pointer to the first coordinate of the first vertex in the array.
-//   stride - defines offset in bytes between consecutive vertices.
-//   count - number of vertices in contour.
-void tessAddContour( struct TESStesselator *tess, int size, const void* pointer, int stride, int count );
-
 // tessGetVertexCount() - Returns number of vertices in the tesselated output.
 int tessGetVertexCount( struct TESStesselator *tess );
 

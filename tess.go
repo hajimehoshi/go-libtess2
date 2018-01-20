@@ -98,11 +98,7 @@ func (t *Tesselator) AddContour(contour []Vertex) {
 		fs[2*i] = v.X
 		fs[2*i+1] = v.Y
 	}
-	C.tessAddContour((*C.struct_TESStesselator)(t.p),
-		2,
-		unsafe.Pointer(&fs[0]),
-		2*C.sizeOfFloat,
-		C.int(len(contour)))
+	tessAddContour((*C.struct_TESStesselator)(t.p), 2, fs)
 }
 
 func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
@@ -143,6 +139,73 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+// tessAddContour: - Adds a contour to be tesselated.
+// The type of the vertex coordinates is assumed to be TESSreal.
+// Parameters:
+//   tess - pointer to tesselator object.
+//   size - number of coordinates per vertex. Must be 2 or 3.
+//   vertices - vertices array
+func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
+	if tess.mesh == nil {
+		tess.mesh = C.tessMeshNewMesh(&tess.alloc)
+	}
+
+	if size < 2 {
+		size = 2
+	}
+	if size > 3 {
+		size = 3
+	}
+
+	var e *C.TESShalfEdge
+	numVertices := len(vertices) / size
+	src := vertices
+	for i := 0; i < numVertices; i++ {
+		coords := src
+		src = src[size:]
+
+		if e == nil {
+			// Make a self-loop (one vertex, one edge).
+			e = C.tessMeshMakeEdge(tess.mesh)
+			if e == nil {
+				tess.outOfMemory = 1
+				return
+			}
+			if C.tessMeshSplice(tess.mesh, e, e.Sym) == 0 {
+				tess.outOfMemory = 1
+				return
+			}
+		} else {
+			// Create a new vertex and edge which immediately follow e
+			// in the ordering around the left face.
+			if C.tessMeshSplitEdge(tess.mesh, e) == nil {
+				tess.outOfMemory = 1
+				return
+			}
+			e = e.Lnext
+		}
+
+		// The new vertex is now e.Org.
+		e.Org.coords[0] = C.TESSreal(coords[0])
+		e.Org.coords[1] = C.TESSreal(coords[1])
+		if size > 2 {
+			e.Org.coords[2] = C.TESSreal(coords[2])
+		} else {
+			e.Org.coords[2] = 0
+		}
+		// Store the insertion number so that the vertex can be later recognized.
+		e.Org.idx = tess.vertexIndexCounter
+		tess.vertexIndexCounter++
+
+		// The winding of an edge says how the winding number changes as we
+		// cross from the edge''s right face to its left face.  We add the
+		// vertices in such an order that a CCW contour will add +1 to
+		// the winding number of the region inside the contour.
+		e.winding = 1
+		e.Sym.winding = -1
+	}
 }
 
 // tessTesselate: - tesselate contours.

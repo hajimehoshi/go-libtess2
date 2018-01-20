@@ -1179,7 +1179,7 @@ func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
 	return true
 }
 
-// tessComputeInterior( tess ) computes the planar arrangement specified
+// tessComputeInterior computes the planar arrangement specified
 // by the given contours, and further subdivides this arrangement
 // into regions.  Each region is marked "inside" if it belongs
 // to the polygon, according to the rule given by tess.windingRule.
