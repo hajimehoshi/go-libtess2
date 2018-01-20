@@ -56,23 +56,3 @@ static void Normalize( TESSreal v[3] )
 	v[2] /= len;
 }
 #endif
-
-#define ABS(x)	((x) < 0 ? -(x) : (x))
-
-int LongAxis( TESSreal* v )
-{
-	int i = 0;
-
-	if( ABS(v[1]) > ABS(v[0]) ) { i = 1; }
-	if( ABS(v[2]) > ABS(v[i]) ) { i = 2; }
-	return i;
-}
-
-int ShortAxis( TESSreal* v )
-{
-	int i = 0;
-
-	if( ABS(v[1]) < ABS(v[0]) ) { i = 1; }
-	if( ABS(v[2]) < ABS(v[i]) ) { i = 2; }
-	return i;
-}

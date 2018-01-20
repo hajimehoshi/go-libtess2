@@ -79,9 +79,6 @@ package libtess2
 // static TESSreal* golibtess2_incVertex(TESSreal* vertices) {
 //   return vertices + 1;
 // }
-//
-// int LongAxis( TESSreal v[3] );
-// int ShortAxis( TESSreal v[3] );
 import "C"
 
 import (
@@ -151,6 +148,35 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+func abs(x C.TESSreal) C.TESSreal {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func longAxis(v []C.TESSreal) int {
+	i := 0
+	if abs(v[1]) > abs(v[0]) {
+		i = 1
+	}
+	if abs(v[2]) > abs(v[i]) {
+		i = 2
+	}
+	return i
+}
+
+func shortAxis(v []C.TESSreal) int {
+	i := 0
+	if abs(v[1]) < abs(v[0]) {
+		i = 1
+	}
+	if abs(v[2]) < abs(v[i]) {
+		i = 2
+	}
+	return i
 }
 
 func computeNormal(tess *C.TESStesselator, norm []C.TESSreal) {
@@ -232,7 +258,7 @@ func computeNormal(tess *C.TESStesselator, norm []C.TESSreal) {
 		norm[0] = 0
 		norm[1] = 0
 		norm[2] = 0
-		norm[C.ShortAxis(&d1[0])] = 1
+		norm[shortAxis(d1)] = 1
 	}
 }
 
@@ -292,7 +318,7 @@ func tessProjectPolygon(tess *C.TESStesselator) {
 	}
 	sUnit := tess.sUnit[:]
 	tUnit := tess.tUnit[:]
-	i := C.LongAxis(&norm[0])
+	i := longAxis(norm)
 
 	// Project perpendicular to a coordinate axis -- better numerically
 	sUnit[i] = 0
