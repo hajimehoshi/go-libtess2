@@ -238,10 +238,3 @@ int IsWindingInside( TESStesselator *tess, int n )
 
 	return( FALSE );
 }
-
-
-void ComputeWinding( TESStesselator *tess, ActiveRegion *reg )
-{
-	reg->windingNumber = RegionAbove(reg)->windingNumber + reg->eUp->winding;
-	reg->inside = IsWindingInside( tess, reg->windingNumber );
-}

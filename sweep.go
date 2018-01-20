@@ -40,7 +40,6 @@ package libtess2
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 // ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
-// void ComputeWinding( TESStesselator *tess, ActiveRegion *reg );
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
@@ -123,6 +122,11 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+func computeWinding(tess *C.TESStesselator, reg *C.ActiveRegion) {
+	reg.windingNumber = regionAbove(reg).windingNumber + reg.eUp.winding
+	reg.inside = C.IsWindingInside(tess, reg.windingNumber)
 }
 
 // finishRegion deletes a region from the sweep line.  This happens when the upper
@@ -821,7 +825,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		if reg.fixUpperEdge != 0 {
 			C.FixUpperEdge(tess, reg, eNew)
 		} else {
-			C.ComputeWinding(tess, C.AddRegionBelow(tess, regUp, eNew))
+			computeWinding(tess, C.AddRegionBelow(tess, regUp, eNew))
 		}
 		sweepEvent(tess, vEvent)
 	} else {
