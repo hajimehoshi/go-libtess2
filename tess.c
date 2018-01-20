@@ -963,28 +963,3 @@ int tessTesselate( TESStesselator *tess, int windingRule, int elementType,
 		return 0;
 	return 1;
 }
-
-int tessGetVertexCount( TESStesselator *tess )
-{
-	return tess->vertexCount;
-}
-
-const TESSreal* tessGetVertices( TESStesselator *tess )
-{
-	return tess->vertices;
-}
-
-const TESSindex* tessGetVertexIndices( TESStesselator *tess )
-{
-	return tess->vertexIndices;
-}
-
-int tessGetElementCount( TESStesselator *tess )
-{
-	return tess->elementCount;
-}
-
-const int* tessGetElements( TESStesselator *tess )
-{
-	return tess->elements;
-}

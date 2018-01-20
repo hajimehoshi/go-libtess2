@@ -118,8 +118,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	elements := []int{}
 	vertices := []Vertex{}
 
-	vc := int(C.tessGetVertexCount((*C.struct_TESStesselator)(t.p)))
-	vs := C.tessGetVertices((*C.struct_TESStesselator)(t.p))
+	vc := int((*C.struct_TESStesselator)(t.p).vertexCount)
+	vs := (*C.struct_TESStesselator)(t.p).vertices
 	for i := 0; i < vc; i++ {
 		v := Vertex{
 			X: float32(C.golibtess2_vertexAt(vs, C.TESSindex(i)*2)),
@@ -128,8 +128,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		vertices = append(vertices, v)
 	}
 
-	ec := int(C.tessGetElementCount((*C.struct_TESStesselator)(t.p)))
-	es := C.tessGetElements((*C.struct_TESStesselator)(t.p))
+	ec := int((*C.struct_TESStesselator)(t.p).elementCount)
+	es := (*C.struct_TESStesselator)(t.p).elements
 	for i := 0; i < ec; i++ {
 		for j := 0; j < polySize; j++ {
 			e := int(C.golibtess2_elementAt(es, C.int(i)*polySize+C.int(j)))
