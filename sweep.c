@@ -195,25 +195,3 @@ ActiveRegion *TopRightRegion( ActiveRegion *reg )
 	} while( reg->eUp->Dst == dst );
 	return reg;
 }
-
-ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp )
-/*
-* Add a new active region to the sweep line, *somewhere* below "regAbove"
-* (according to where the new edge belongs in the sweep-line dictionary).
-* The upper edge of the new region will be "eNewUp".
-* Winding number and "inside" flag are not updated.
-*/
-{
-	ActiveRegion *regNew = (ActiveRegion *)bucketAlloc( tess->regionPool );
-	if (regNew == NULL) longjmp(tess->env,1);
-
-	regNew->eUp = eNewUp;
-	regNew->nodeUp = dictInsertBefore( tess->dict, regAbove->nodeUp, regNew );
-	if (regNew->nodeUp == NULL) longjmp(tess->env,1);
-	regNew->fixUpperEdge = FALSE;
-	regNew->sentinel = FALSE;
-	regNew->dirty = FALSE;
-
-	eNewUp->activeRegion = regNew;
-	return regNew;
-}

@@ -41,7 +41,6 @@ package libtess2
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 // ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
-// ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
@@ -121,6 +120,21 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+// addRegionBelow adds a new active region to the sweep line, *somewhere* below "regAbove"
+// (according to where the new edge belongs in the sweep-line dictionary).
+// The upper edge of the new region will be "eNewUp".
+// Winding number and "inside" flag are not updated.
+func addRegionBelow(tess *C.TESStesselator, regAbove *C.ActiveRegion, eNewUp *C.TESShalfEdge) *C.ActiveRegion {
+	regNew := C.allocActiveRegion(tess)
+	regNew.eUp = eNewUp
+	regNew.nodeUp = dictInsertBefore(tess.dict, regAbove.nodeUp, regNew)
+	regNew.fixUpperEdge = 0 /* false */
+	regNew.sentinel = 0 /* false */
+	regNew.dirty = 0 /* false */
+	eNewUp.activeRegion = regNew
+	return regNew
 }
 
 func isWindingInside(tess *C.TESStesselator, n int) bool {
@@ -224,7 +238,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 	e := eFirst
 	for {
 		assert(C.VertLeq(e.Org, dst(e)) != 0)
-		C.AddRegionBelow(tess, regUp, e.Sym)
+		addRegionBelow(tess, regUp, e.Sym)
 		e = e.Onext
 		if e == eLast {
 			break
@@ -848,7 +862,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		if reg.fixUpperEdge != 0 {
 			C.FixUpperEdge(tess, reg, eNew)
 		} else {
-			computeWinding(tess, C.AddRegionBelow(tess, regUp, eNew))
+			computeWinding(tess, addRegionBelow(tess, regUp, eNew))
 		}
 		sweepEvent(tess, vEvent)
 	} else {
