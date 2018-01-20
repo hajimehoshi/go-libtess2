@@ -64,6 +64,12 @@ package libtess2
 // }
 //
 // static const int sizeOfFloat = sizeof(float);
+//
+// void tessProjectPolygon( TESStesselator *tess );
+// int tessMeshSetWindingNumber( TESSmesh *mesh, int value, int keepOnlyBoundary );
+// int tessMeshTessellateInterior( TESSmesh *mesh );
+// void OutputContours( TESStesselator *tess, TESSmesh *mesh, int vertexSize );
+// void OutputPolymesh( TESStesselator *tess, TESSmesh *mesh, int elementType, int polySize, int vertexSize );
 import "C"
 
 import (
@@ -105,13 +111,13 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		vertexSize = 2
 	)
 
-	r := C.tessTesselate((*C.struct_TESStesselator)(t.p),
+	r := tessTesselate((*C.struct_TESStesselator)(t.p),
 		C.TESS_WINDING_ODD,
 		C.TESS_POLYGONS,
 		polySize,
 		vertexSize,
 		nil)
-	if r == 0 {
+	if !r {
 		return nil, nil, fmt.Errorf("libtess2: tessTesselate failed: error code: %d", r)
 	}
 
@@ -137,4 +143,87 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+// tessTesselate: - tesselate contours.
+// Parameters:
+//   tess - pointer to tesselator object.
+//   windingRule - winding rules used for tesselation, must be one of TessWindingRule.
+//   elementType - defines the tesselation result element type, must be one of TessElementType.
+//   polySize - defines maximum vertices per polygons if output is polygons.
+//   vertexSize - defines the number of coordinates in tesselation result vertex, must be 2 or 3.
+//   normal - defines the normal of the input contours, of null the normal is calculated automatically.
+// Returns:
+//   true if succeed, false if failed.
+func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []C.TESSreal) bool {
+	/*if tess.vertices != nil {
+		tess.alloc.memfree(tess.alloc.userData, tess.vertices)
+		tess.vertices = 0
+	}
+	if tess.elements != nil {
+		tess.alloc.memfree(tess.alloc.userData, tess.elements)
+		tess.elements = 0
+	}
+	if tess.vertexIndices != nil {
+		tess.alloc.memfree(tess.alloc.userData, tess.vertexIndices)
+		tess.vertexIndices = 0
+	}*/
+
+	tess.vertexIndexCounter = 0
+
+	if normal != nil {
+		tess.normal[0] = normal[0]
+		tess.normal[1] = normal[1]
+		tess.normal[2] = normal[2]
+	}
+
+	tess.windingRule = C.int(windingRule)
+
+	if vertexSize < 2 {
+		vertexSize = 2
+	}
+	if vertexSize > 3 {
+		vertexSize = 3
+	}
+
+	if tess.mesh == nil {
+		return false
+	}
+
+	// Determine the polygon normal and project vertices onto the plane
+	// of the polygon.
+	C.tessProjectPolygon(tess)
+
+	// tessComputeInterior( tess ) computes the planar arrangement specified
+	// by the given contours, and further subdivides this arrangement
+	// into regions.  Each region is marked "inside" if it belongs
+	// to the polygon, according to the rule given by tess.windingRule.
+	// Each interior region is guaranteed be monotone.
+	tessComputeInterior(tess)
+
+	mesh := tess.mesh
+
+	// If the user wants only the boundary contours, we throw away all edges
+	// except those which separate the interior from the exterior.
+	// Otherwise we tessellate all the regions marked "inside".
+	if elementType == C.TESS_BOUNDARY_CONTOURS {
+		C.tessMeshSetWindingNumber(mesh, 1, 1 /* true */)
+	} else {
+		C.tessMeshTessellateInterior(mesh)
+	}
+
+	C.tessMeshCheckMesh(mesh)
+
+	if elementType == C.TESS_BOUNDARY_CONTOURS {
+		// output contours
+		C.OutputContours(tess, mesh, C.int(vertexSize))
+	} else {
+		// output polygons
+		C.OutputPolymesh(tess, mesh, C.int(elementType), C.int(polySize), C.int(vertexSize))
+	}
+
+	C.tessMeshDeleteMesh(&tess.alloc, mesh)
+	tess.mesh = nil
+
+	return true
 }

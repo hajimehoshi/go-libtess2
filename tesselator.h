@@ -184,18 +184,6 @@ void tessDeleteTess( struct TESStesselator *tess );
 //   count - number of vertices in contour.
 void tessAddContour( struct TESStesselator *tess, int size, const void* pointer, int stride, int count );
 
-// tessTesselate() - tesselate contours.
-// Parameters:
-//   tess - pointer to tesselator object.
-//   windingRule - winding rules used for tesselation, must be one of TessWindingRule.
-//   elementType - defines the tesselation result element type, must be one of TessElementType.
-//   polySize - defines maximum vertices per polygons if output is polygons.
-//   vertexSize - defines the number of coordinates in tesselation result vertex, must be 2 or 3.
-//   normal - defines the normal of the input contours, of null the normal is calculated automatically.
-// Returns:
-//   1 if succeed, 0 if failed.
-int tessTesselate( struct TESStesselator *tess, int windingRule, int elementType, int polySize, int vertexSize, const TESSreal* normal );
-
 // tessGetVertexCount() - Returns number of vertices in the tesselated output.
 int tessGetVertexCount( struct TESStesselator *tess );
 
