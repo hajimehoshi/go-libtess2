@@ -45,7 +45,7 @@ package libtess2
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
 // int IsWindingInside( TESStesselator *tess, int n );
-// void FinishRegion( TESStesselator *tess, ActiveRegion *reg );
+// void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
 const (
@@ -125,9 +125,23 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// finishRegion deletes a region from the sweep line.  This happens when the upper
+// and lower chains of a region meet (at a vertex on the sweep line).
+// The "inside" flag is copied to the appropriate mesh face (we could
+// not do this before -- since the structure of the mesh is always
+// changing, this face may not have even existed until now).
+func finishRegion(tess *C.TESStesselator, reg *C.ActiveRegion) {
+	e := reg.eUp
+	f := e.Lface
+
+	f.inside = C.char(reg.inside)
+	f.anEdge = e // optimization for tessMeshTessellateMonoRegion()
+	C.DeleteRegion(tess, reg)
+}
+
 // finishLeftRegions:
 // We are given a vertex with one or more left-going edges.  All affected
-// edges should be in the edge dictionary.  Starting at regFirst->eUp,
+// edges should be in the edge dictionary.  Starting at regFirst.eUp,
 // we walk down deleting all regions where both edges have the same
 // origin vOrg.  At the same time we copy the "inside" flag from the
 // active region to the face, since at this point each face will belong
@@ -150,7 +164,7 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *C.ActiveRegion, regLast
 				// such edges in the mesh (if we are adding left edges to a vertex
 				// that has already been processed).  Thus it is important to call
 				// FinishRegion rather than just DeleteRegion.
-				C.FinishRegion(tess, regPrev)
+				finishRegion(tess, regPrev)
 				break
 			}
 			// If the edge below was a temporary edge introduced by
@@ -164,7 +178,7 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *C.ActiveRegion, regLast
 			C.tessMeshSplice(tess.mesh, oPrev(e), e)
 			C.tessMeshSplice(tess.mesh, ePrev, e)
 		}
-		C.FinishRegion(tess, regPrev) // may change reg.eUp
+		finishRegion(tess, regPrev) // may change reg.eUp
 		ePrev = reg.eUp
 		regPrev = reg
 	}

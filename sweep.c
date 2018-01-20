@@ -245,21 +245,3 @@ void ComputeWinding( TESStesselator *tess, ActiveRegion *reg )
 	reg->windingNumber = RegionAbove(reg)->windingNumber + reg->eUp->winding;
 	reg->inside = IsWindingInside( tess, reg->windingNumber );
 }
-
-
-void FinishRegion( TESStesselator *tess, ActiveRegion *reg )
-/*
-* Delete a region from the sweep line.  This happens when the upper
-* and lower chains of a region meet (at a vertex on the sweep line).
-* The "inside" flag is copied to the appropriate mesh face (we could
-* not do this before -- since the structure of the mesh is always
-* changing, this face may not have even existed until now).
-*/
-{
-	TESShalfEdge *e = reg->eUp;
-	TESSface *f = e->Lface;
-
-	f->inside = reg->inside;
-	f->anEdge = e;   /* optimization for tessMeshTessellateMonoRegion() */
-	DeleteRegion( tess, reg );
-}
