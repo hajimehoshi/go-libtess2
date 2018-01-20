@@ -60,7 +60,4 @@ struct ActiveRegion {
 						* any edges leaving to the right) */
 };
 
-#define RegionBelow(r) ((ActiveRegion *) dictKey(dictPred((r)->nodeUp)))
-#define RegionAbove(r) ((ActiveRegion *) dictKey(dictSucc((r)->nodeUp)))
-
 #endif
