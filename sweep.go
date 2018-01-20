@@ -39,13 +39,13 @@ package libtess2
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
-// void AddRightEdges( TESStesselator *tess, ActiveRegion *regUp, TESShalfEdge *eFirst, TESShalfEdge *eLast, TESShalfEdge *eTopLeft, int cleanUp );
 // TESShalfEdge *FinishLeftRegions( TESStesselator *tess, ActiveRegion *regFirst, ActiveRegion *regLast );
 // ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
 // void ComputeWinding( TESStesselator *tess, ActiveRegion *reg );
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
+// int IsWindingInside( TESStesselator *tess, int n );
 import "C"
 
 const (
@@ -125,6 +125,75 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// addRightEdges:
+// Purpose: insert right-going edges into the edge dictionary, and update
+// winding numbers and mesh connectivity appropriately.  All right-going
+// edges share a common origin vOrg.  Edges are inserted CCW starting at
+// eFirst; the last edge inserted is eLast->Oprev.  If vOrg has any
+// left-going edges already processed, then eTopLeft must be the edge
+// such that an imaginary upward vertical segment from vOrg would be
+// contained between eTopLeft->Oprev and eTopLeft; otherwise eTopLeft
+// should be nil.
+func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESShalfEdge, eLast *C.TESShalfEdge, eTopLeft *C.TESShalfEdge, cleanUp bool) {
+	firstTime := true
+
+	// Insert the new right-going edges in the dictionary
+	e := eFirst
+	for {
+		assert(C.VertLeq(e.Org, dst(e)) != 0)
+		C.AddRegionBelow(tess, regUp, e.Sym)
+		e = e.Onext
+		if e == eLast {
+			break
+		}
+	}
+
+	// Walk *all* right-going edges from e.Org, in the dictionary order,
+	// updating the winding numbers of each region, and re-linking the mesh
+	// edges to match the dictionary ordering (if necessary).
+	if eTopLeft == nil {
+		eTopLeft = rPrev(regionBelow(regUp).eUp)
+	}
+	regPrev := regUp
+	ePrev := eTopLeft
+	var reg *C.ActiveRegion
+	for {
+		reg = regionBelow(regPrev)
+		e = reg.eUp.Sym
+		if e.Org != ePrev.Org {
+			break
+		}
+
+		if e.Onext != ePrev {
+			// Unlink e from its current position, and relink below ePrev
+			C.tessMeshSplice(tess.mesh, oPrev(e), e)
+			C.tessMeshSplice(tess.mesh, oPrev(ePrev), e)
+		}
+		// Compute the winding number and "inside" flag for the new regions
+		reg.windingNumber = regPrev.windingNumber - e.winding
+		reg.inside = C.IsWindingInside(tess, reg.windingNumber)
+
+		// Check for two outgoing edges with same slope -- process these
+		// before any intersection tests (see example in tessComputeInterior).
+		regPrev.dirty = 1 /* true */
+		if !firstTime && checkForRightSplice(tess, regPrev) {
+			C.AddWinding(e, ePrev)
+			C.DeleteRegion(tess, regPrev)
+			C.tessMeshDelete(tess.mesh, ePrev)
+		}
+		firstTime = false
+		regPrev = reg
+		ePrev = e
+	}
+	regPrev.dirty = 1 /* true */
+	assert(regPrev.windingNumber-e.winding == reg.windingNumber)
+
+	if cleanUp {
+		// Check for intersections between newly adjacent edges.
+		WalkDirtyRegions(tess, regPrev)
+	}
+}
+
 // spliceMergeVertices:
 // Two vertices with idential coordinates are combined into one.
 // e1.Org is kept, while e2.Org is discarded.
@@ -163,8 +232,6 @@ func getIntersectData(tess *C.TESStesselator, isect *C.TESSvertex,
 	vertexWeights(isect, orgLo, dstLo)
 }
 
-//export CheckForRightSplice
-//
 // checkForRightSplice checks the upper and lower edge of "regUp", to make sure that the
 // eUp.Org is above eLo, or eLo.Org is below eUp (depending on which
 // origin is leftmost).
@@ -188,7 +255,7 @@ func getIntersectData(tess *C.TESStesselator, isect *C.TESSvertex,
 // by just splicing the offending vertex into the other edge.
 // This is a guaranteed solution, no matter how degenerate things get.
 // Basically this is a combinatorial solution to a numerical problem.
-func CheckForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
+func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	regLo := regionBelow(regUp)
 	eUp := regUp.eUp
 	eLo := regLo.eUp
@@ -352,7 +419,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 
 	if C.VertEq(&isect, orgUp) != 0 || C.VertEq(&isect, orgLo) != 0 {
 		// Easy case -- intersection at one of the right endpoints
-		CheckForRightSplice(tess, regUp)
+		checkForRightSplice(tess, regUp)
 		return false
 	}
 
@@ -367,7 +434,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 			regUp = C.TopLeftRegion(tess, regUp)
 			eUp = regionBelow(regUp).eUp
 			C.FinishLeftRegions(tess, regionBelow(regUp), regLo)
-			C.AddRightEdges(tess, regUp, oPrev(eUp), eUp, eUp, 1 /* true */)
+			addRightEdges(tess, regUp, oPrev(eUp), eUp, eUp, true)
 			return true
 		}
 		if dstUp == tess.event {
@@ -379,7 +446,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 			e := rPrev(regionBelow(regUp).eUp)
 			regLo.eUp = oPrev(eLo)
 			eLo = C.FinishLeftRegions(tess, regLo, nil)
-			C.AddRightEdges(tess, regUp, eLo.Onext, rPrev(eUp), e, 1 /* true */)
+			addRightEdges(tess, regUp, eLo.Onext, rPrev(eUp), e, true)
 			return true
 		}
 		// Special case: called from ConnectRightVertex.  If either
@@ -489,7 +556,7 @@ func WalkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 			} else {
 				// Even though we can't use CheckForIntersect(), the Org vertices
 				// may violate the dictionary edge ordering.  Check and correct this.
-				CheckForRightSplice(tess, regUp)
+				checkForRightSplice(tess, regUp)
 			}
 		}
 		if eUp.Org == eLo.Org && dst(eUp) == dst(eLo) {
@@ -558,7 +625,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 		degenerate = true
 	}
 	if degenerate {
-		C.AddRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, 1 /* true */)
+		addRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, true)
 		return
 	}
 
@@ -574,7 +641,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 
 	// Prevent cleanup, otherwise eNew might disappear before we've even
 	// had a chance to mark it as a temporary edge.
-	C.AddRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, 0 /* false */)
+	addRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, false)
 	eNew.Sym.activeRegion.fixUpperEdge = 1 /* true */
 	WalkDirtyRegions(tess, regUp)
 }
@@ -637,7 +704,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		// e.Dst had no left-going edges -- indicate this to AddRightEdges()
 		eTopLeft = nil
 	}
-	C.AddRightEdges(tess, regUp, eTopRight.Onext, eLast, eTopLeft, 1 /* true */)
+	addRightEdges(tess, regUp, eTopRight.Onext, eLast, eTopLeft, true)
 }
 
 // connectLeftVertex:
@@ -702,7 +769,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	} else {
 		// The new vertex is in a region which does not belong to the polygon.
 		// We don''t need to connect this vertex to the rest of the mesh.
-		C.AddRightEdges(tess, regUp, vEvent.anEdge, vEvent.anEdge, nil, 1)
+		addRightEdges(tess, regUp, vEvent.anEdge, vEvent.anEdge, nil, true)
 	}
 }
 
@@ -743,7 +810,7 @@ func sweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		// No right-going edges -- add a temporary "fixable" edge
 		connectRightVertex(tess, regUp, eBottomLeft)
 	} else {
-		C.AddRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, 1)
+		addRightEdges(tess, regUp, eBottomLeft.Onext, eTopLeft, eTopLeft, true)
 	}
 }
 
