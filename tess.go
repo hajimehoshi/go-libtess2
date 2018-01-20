@@ -80,7 +80,6 @@ package libtess2
 //   return vertices + 1;
 // }
 //
-// void CheckOrientation( TESStesselator *tess );
 // void ComputeNormal( TESStesselator *tess, TESSreal norm[3] );
 // int LongAxis( TESSreal v[3] );
 import "C"
@@ -154,6 +153,37 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	return elements, vertices, nil
 }
 
+func checkOrientation(tess *C.TESStesselator) {
+	fHead := &tess.mesh.fHead
+	vHead := &tess.mesh.vHead
+
+	// When we compute the normal automatically, we choose the orientation
+	// so that the the sum of the signed areas of all contours is non-negative.
+	area := C.TESSreal(0)
+	for f := fHead.next; f != fHead; f = f.next {
+		e := f.anEdge
+		if e.winding <= 0 {
+			continue
+		}
+		for {
+			area += (e.Org.s - dst(e).s) * (e.Org.t + dst(e).t)
+			e = e.Lnext
+			if e == f.anEdge {
+				break
+			}
+		}
+	}
+	if area < 0 {
+		/* Reverse the orientation by flipping all the t-coordinates */
+		for v := vHead.next; v != vHead; v = v.next {
+			v.t = -v.t
+		}
+		tess.tUnit[0] = -tess.tUnit[0]
+		tess.tUnit[1] = -tess.tUnit[1]
+		tess.tUnit[2] = -tess.tUnit[2]
+	}
+}
+
 func dot(u, v []C.TESSreal) C.TESSreal {
 	return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
 }
@@ -204,7 +234,7 @@ func tessProjectPolygon(tess *C.TESStesselator) {
 		v.t = dot(v.coords[:], tUnit)
 	}
 	if computedNormal {
-		C.CheckOrientation(tess)
+		checkOrientation(tess)
 	}
 
 	// Compute ST bounds.

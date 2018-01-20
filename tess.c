@@ -146,34 +146,3 @@ void ComputeNormal( TESStesselator *tess, TESSreal norm[3] )
 		norm[ShortAxis(d1)] = 1;
 	}
 }
-
-
-void CheckOrientation( TESStesselator *tess )
-{
-	TESSreal area;
-	TESSface *f, *fHead = &tess->mesh->fHead;
-	TESSvertex *v, *vHead = &tess->mesh->vHead;
-	TESShalfEdge *e;
-
-	/* When we compute the normal automatically, we choose the orientation
-	* so that the the sum of the signed areas of all contours is non-negative.
-	*/
-	area = 0;
-	for( f = fHead->next; f != fHead; f = f->next ) {
-		e = f->anEdge;
-		if( e->winding <= 0 ) continue;
-		do {
-			area += (e->Org->s - e->Dst->s) * (e->Org->t + e->Dst->t);
-			e = e->Lnext;
-		} while( e != f->anEdge );
-	}
-	if( area < 0 ) {
-		/* Reverse the orientation by flipping all the t-coordinates */
-		for( v = vHead->next; v != vHead; v = v->next ) {
-			v->t = - v->t;
-		}
-		tess->tUnit[0] = - tess->tUnit[0];
-		tess->tUnit[1] = - tess->tUnit[1];
-		tess->tUnit[2] = - tess->tUnit[2];
-	}
-}
