@@ -51,7 +51,8 @@ int EdgeGoesLeft(TESShalfEdge* e);
 int EdgeGoesRight(TESShalfEdge* e);
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
-#define VertL1dist(u,v) (ABS(u->s - v->s) + ABS(u->t - v->t))
+
+TESSreal VertL1dist(TESSvertex* u, TESSvertex* v);
 
 #define VertCCW(u,v,w) tesvertCCW(u,v,w)
 

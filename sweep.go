@@ -47,7 +47,6 @@ package libtess2
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
 // ActiveRegion *AddRegionBelow( TESStesselator *tess, ActiveRegion *regAbove, TESShalfEdge *eNewUp );
 // ActiveRegion *TopRightRegion( ActiveRegion *reg );
-// void VertexWeights( TESSvertex *isect, TESSvertex *org, TESSvertex *dst, TESSreal *weights );
 import "C"
 
 const (
@@ -127,6 +126,22 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// vertexWeights finds some weights which describe how the intersection vertex is
+// a linear combination of "org" and "dest".  Each of the two edges
+// which generated "isect" is allocated 50% of the weight; each edge
+// splits the weight between its org and dst according to the
+// relative distance to "isect".
+func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex, weights []C.TESSreal) {
+	t1 := C.VertL1dist(org, isect)
+	t2 := C.VertL1dist(dst, isect)
+
+	weights[0] = 0.5 * t2 / (t1 + t2)
+	weights[1] = 0.5 * t1 / (t1 + t2)
+	isect.coords[0] += weights[0]*org.coords[0] + weights[1]*dst.coords[0]
+	isect.coords[1] += weights[0]*org.coords[1] + weights[1]*dst.coords[1]
+	isect.coords[2] += weights[0]*org.coords[2] + weights[1]*dst.coords[2]
+}
+
 // getIntersectData:
 // We've computed a new intersection point, now we need a "data" pointer
 // from the user so that we can refer to this new vertex in the
@@ -139,8 +154,8 @@ func getIntersectData(tess *C.TESStesselator, isect *C.TESSvertex,
 	isect.coords[1] = 0
 	isect.coords[2] = 0
 	isect.idx = undef
-	C.VertexWeights(isect, orgUp, dstUp, &weights[0])
-	C.VertexWeights(isect, orgLo, dstLo, &weights[2])
+	vertexWeights(isect, orgUp, dstUp, weights[0:])
+	vertexWeights(isect, orgLo, dstLo, weights[2:])
 }
 
 //export CheckForRightSplice

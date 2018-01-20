@@ -268,6 +268,10 @@ int VertLeq(TESSvertex* u, TESSvertex* v) {
   return ((u)->s < (v)->s) || ((u)->s == (v)->s && (u)->t <= (v)->t);
 }
 
+TESSreal VertL1dist(TESSvertex* u, TESSvertex* v) {
+  return ABS(u->s - v->s) + ABS(u->t - v->t);
+}
+
 int EdgeGoesLeft(TESShalfEdge* e) {
   return VertLeq((e)->Dst, (e)->Org);
 }
