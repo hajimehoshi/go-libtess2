@@ -67,7 +67,7 @@ import "C"
 //   when it is necessary.)
 
 const (
-	undef = ^0
+	undef = C.TESSindex(^0)
 )
 
 func assert(cond bool) {

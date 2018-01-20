@@ -67,6 +67,10 @@ package libtess2
 //   return vertices[i];
 // }
 //
+// static TESSreal golibtess2_setVertexAt(TESSreal* vertices, int i, TESSreal v) {
+//   return vertices[i] = v;
+// }
+//
 // static TESSindex* golibtess2_incElement(TESSindex* elements) {
 //   return elements + 1;
 // }
@@ -75,11 +79,10 @@ package libtess2
 //   return vertices + 1;
 // }
 //
-// static const int sizeOfFloat = sizeof(float);
-//
 // void tessProjectPolygon( TESStesselator *tess );
 // int tessMeshSetWindingNumber( TESSmesh *mesh, int value, int keepOnlyBoundary );
 // int tessMeshTessellateInterior( TESSmesh *mesh );
+// TESSindex GetNeighbourFace(TESShalfEdge* edge);
 // void OutputPolymesh( TESStesselator *tess, TESSmesh *mesh, int elementType, int polySize, int vertexSize );
 import "C"
 
@@ -150,6 +153,121 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, polySize int, vertexSize int) {
+	// Assume that the input data is triangles now.
+	// Try to merge as many polygons as possible
+	if polySize > 3 {
+		C.tessMeshMergeConvexFaces(mesh, C.int(polySize))
+	}
+
+	// Mark unused
+	for v := mesh.vHead.next; v != &mesh.vHead; v = v.next {
+		v.n = undef
+	}
+
+	maxFaceCount := 0
+	maxVertexCount := 0
+
+	// Create unique IDs for all vertices and faces.
+	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
+		f.n = undef
+		if f.inside == 0 {
+			continue
+		}
+
+		edge := f.anEdge
+		faceVerts := 0
+		for {
+			v := edge.Org
+			if v.n == undef {
+				v.n = C.TESSindex(maxVertexCount)
+				maxVertexCount++
+			}
+			faceVerts++
+			edge = edge.Lnext
+			if edge == f.anEdge {
+				break
+			}
+		}
+		assert(faceVerts <= polySize)
+		f.n = C.TESSindex(maxFaceCount)
+		maxFaceCount++
+	}
+
+	tess.elementCount = C.int(maxFaceCount)
+	if elementType == C.TESS_CONNECTED_POLYGONS {
+		maxFaceCount *= 2
+	}
+	tess.elements = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
+		C.uint(C.sizeof_TESSindex*maxFaceCount*polySize)))
+
+	tess.vertexCount = C.int(maxVertexCount)
+	tess.vertices = (*C.TESSreal)(C.golibtess2_stdAlloc(tess.alloc.userData,
+		C.sizeof_TESSreal*C.uint(tess.vertexCount)*C.uint(vertexSize)))
+
+	tess.vertexIndices = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
+		C.uint(C.sizeof_TESSindex*tess.vertexCount)))
+
+	// Output vertices.
+	for v := mesh.vHead.next; v != &mesh.vHead; v = v.next {
+		if v.n != undef {
+			// Store coordinate
+			C.golibtess2_setVertexAt(tess.vertices, C.int(v.n)*C.int(vertexSize), v.coords[0])
+			C.golibtess2_setVertexAt(tess.vertices, C.int(v.n)*C.int(vertexSize)+1, v.coords[1])
+			if vertexSize > 2 {
+				C.golibtess2_setVertexAt(tess.vertices, C.int(v.n)*C.int(vertexSize)+2, v.coords[2])
+			}
+			// Store vertex index.
+			C.golibtess2_setElementAt(tess.vertexIndices, C.int(v.n), v.idx)
+		}
+	}
+
+	// Output indices.
+	elements := tess.elements
+	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
+		if f.inside == 0 {
+			continue
+		}
+
+		// Store polygon
+		edge := f.anEdge
+		faceVerts := 0
+		for {
+			v := edge.Org
+			*elements = v.n
+			elements = C.golibtess2_incElement(elements)
+			faceVerts++
+			edge = edge.Lnext
+			if edge == f.anEdge {
+				break
+			}
+		}
+		// Fill unused.
+		for i := faceVerts; i < polySize; i++ {
+			*elements = undef
+			elements = C.golibtess2_incElement(elements)
+		}
+
+		// Store polygon connectivity
+		if elementType == C.TESS_CONNECTED_POLYGONS {
+			edge = f.anEdge
+			for {
+				*elements = C.GetNeighbourFace(edge)
+				elements = C.golibtess2_incElement(elements)
+				edge = edge.Lnext
+				if edge == f.anEdge {
+					break
+				}
+			}
+			// Fill unused.
+			for i := faceVerts; i < polySize; i++ {
+				*elements = undef
+				elements = C.golibtess2_incElement(elements)
+			}
+		}
+	}
 }
 
 func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
@@ -364,7 +482,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 		outputContours(tess, mesh, vertexSize)
 	} else {
 		// output polygons
-		C.OutputPolymesh(tess, mesh, C.int(elementType), C.int(polySize), C.int(vertexSize))
+		outputPolymesh(tess, mesh, elementType, polySize, vertexSize)
 	}
 
 	C.tessMeshDeleteMesh(&tess.alloc, mesh)
