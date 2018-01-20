@@ -147,18 +147,3 @@ void DeleteRegion( TESStesselator *tess, ActiveRegion *reg )
 	dictDelete( reg->nodeUp );
 	bucketFree( tess->regionPool, reg );
 }
-
-
-int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge )
-/*
-* Replace an upper edge which needs fixing (see ConnectRightVertex).
-*/
-{
-	assert( reg->fixUpperEdge );
-	if ( !tessMeshDelete( tess->mesh, reg->eUp ) ) return 0;
-	reg->fixUpperEdge = FALSE;
-	reg->eUp = newEdge;
-	newEdge->activeRegion = reg;
-
-	return 1; 
-}

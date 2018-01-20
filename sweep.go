@@ -39,8 +39,6 @@ package libtess2
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
-// int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
-// void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
 const (
@@ -120,6 +118,15 @@ func adjust(x C.TESSreal) C.TESSreal {
 	return 0.01
 }
 
+// fixUpperEdge replace an upper edge which needs fixing (see ConnectRightVertex).
+func fixUpperEdge(tess *C.TESStesselator, reg *C.ActiveRegion, newEdge *C.TESShalfEdge) {
+	assert(reg.fixUpperEdge != 0)
+	C.tessMeshDelete(tess.mesh, reg.eUp)
+	reg.fixUpperEdge = 0 /* false */
+	reg.eUp = newEdge
+	newEdge.activeRegion = reg
+}
+
 func topLeftRegion(tess *C.TESStesselator, reg *C.ActiveRegion) *C.ActiveRegion {
 	org := reg.eUp.Org
 
@@ -135,9 +142,7 @@ func topLeftRegion(tess *C.TESStesselator, reg *C.ActiveRegion) *C.ActiveRegion 
 	// now is the time to fix it.
 	if reg.fixUpperEdge != 0 {
 		e := C.tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
-		if C.FixUpperEdge(tess, reg, e) == 0 {
-			return nil
-		}
+		fixUpperEdge(tess, reg, e)
 		reg = regionAbove(reg)
 	}
 	return reg
@@ -240,7 +245,7 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *C.ActiveRegion, regLast
 			// If the edge below was a temporary edge introduced by
 			// ConnectRightVertex, now is the time to fix it.
 			e = C.tessMeshConnect(tess.mesh, lPrev(ePrev), e.Sym)
-			C.FixUpperEdge(tess, reg, e)
+			fixUpperEdge(tess, reg, e)
 		}
 
 		// Relink edges so that ePrev.Onext == e
@@ -893,7 +898,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 			eNew = tempHalfEdge.Sym
 		}
 		if reg.fixUpperEdge != 0 {
-			C.FixUpperEdge(tess, reg, eNew)
+			fixUpperEdge(tess, reg, eNew)
 		} else {
 			computeWinding(tess, addRegionBelow(tess, regUp, eNew))
 		}
