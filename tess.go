@@ -59,8 +59,20 @@ package libtess2
 //   return elements[i];
 // }
 //
+// static TESSindex golibtess2_setElementAt(TESSindex* elements, int i, TESSindex v) {
+//   return elements[i] = v;
+// }
+//
 // static TESSreal golibtess2_vertexAt(TESSreal* vertices, TESSindex i) {
 //   return vertices[i];
+// }
+//
+// static TESSindex* golibtess2_incElement(TESSindex* elements) {
+//   return elements + 1;
+// }
+//
+// static TESSreal* golibtess2_incVertex(TESSreal* vertices) {
+//   return vertices + 1;
 // }
 //
 // static const int sizeOfFloat = sizeof(float);
@@ -68,7 +80,6 @@ package libtess2
 // void tessProjectPolygon( TESStesselator *tess );
 // int tessMeshSetWindingNumber( TESSmesh *mesh, int value, int keepOnlyBoundary );
 // int tessMeshTessellateInterior( TESSmesh *mesh );
-// void OutputContours( TESStesselator *tess, TESSmesh *mesh, int vertexSize );
 // void OutputPolymesh( TESStesselator *tess, TESSmesh *mesh, int elementType, int polySize, int vertexSize );
 import "C"
 
@@ -139,6 +150,77 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		}
 	}
 	return elements, vertices, nil
+}
+
+func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
+	tess.vertexCount = 0
+	tess.elementCount = 0
+
+	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
+		if f.inside == 0 {
+			continue
+		}
+
+		start := f.anEdge
+		edge := f.anEdge
+		for {
+			tess.vertexCount++
+			edge = edge.Lnext
+			if edge == start {
+				break
+			}
+		}
+		tess.elementCount++
+	}
+
+	tess.elements = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
+		C.uint(C.sizeof_TESSindex*tess.elementCount*2)))
+
+	tess.vertices = (*C.TESSreal)(C.golibtess2_stdAlloc(tess.alloc.userData,
+		C.sizeof_TESSreal*C.uint(tess.vertexCount)*C.uint(vertexSize)))
+
+	tess.vertexIndices = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
+		C.uint(C.sizeof_TESSindex*tess.vertexCount)))
+
+	verts := tess.vertices
+	elements := tess.elements
+	vertInds := tess.vertexIndices
+
+	startVert := 0
+
+	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
+		if f.inside == 0 {
+			continue
+		}
+
+		vertCount := 0
+		start := f.anEdge
+		edge := f.anEdge
+		for {
+			*verts = edge.Org.coords[0]
+			verts = C.golibtess2_incVertex(verts)
+			*verts = edge.Org.coords[1]
+			verts = C.golibtess2_incVertex(verts)
+			if vertexSize > 2 {
+				*verts = edge.Org.coords[2]
+				verts = C.golibtess2_incVertex(verts)
+			}
+			*vertInds = edge.Org.idx
+			vertInds = C.golibtess2_incElement(vertInds)
+			vertCount++
+			edge = edge.Lnext
+			if edge == start {
+				break
+			}
+		}
+
+		C.golibtess2_setElementAt(elements, 0, C.TESSindex(startVert))
+		C.golibtess2_setElementAt(elements, 1, C.TESSindex(vertCount))
+		elements = C.golibtess2_incElement(elements)
+		elements = C.golibtess2_incElement(elements)
+
+		startVert += vertCount
+	}
 }
 
 // tessAddContour: - Adds a contour to be tesselated.
@@ -279,7 +361,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 
 	if elementType == C.TESS_BOUNDARY_CONTOURS {
 		// output contours
-		C.OutputContours(tess, mesh, C.int(vertexSize))
+		outputContours(tess, mesh, vertexSize)
 	} else {
 		// output polygons
 		C.OutputPolymesh(tess, mesh, C.int(elementType), C.int(polySize), C.int(vertexSize))
