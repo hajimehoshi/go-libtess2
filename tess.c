@@ -414,35 +414,3 @@ void tessMeshDiscardExterior( TESSmesh *mesh )
 		}
 	}
 }
-
-/* tessMeshSetWindingNumber( mesh, value, keepOnlyBoundary ) resets the
-* winding numbers on all edges so that regions marked "inside" the
-* polygon have a winding number of "value", and regions outside
-* have a winding number of 0.
-*
-* If keepOnlyBoundary is TRUE, it also deletes all edges which do not
-* separate an interior region from an exterior one.
-*/
-int tessMeshSetWindingNumber( TESSmesh *mesh, int value,
-							 int keepOnlyBoundary )
-{
-	TESShalfEdge *e, *eNext;
-
-	for( e = mesh->eHead.next; e != &mesh->eHead; e = eNext ) {
-		eNext = e->next;
-		if( e->Rface->inside != e->Lface->inside ) {
-
-			/* This is a boundary edge (one side is interior, one is exterior). */
-			e->winding = (e->Lface->inside) ? value : -value;
-		} else {
-
-			/* Both regions are interior, or both are exterior. */
-			if( ! keepOnlyBoundary ) {
-				e->winding = 0;
-			} else {
-				if ( !tessMeshDelete( mesh, e ) ) return 0;
-			}
-		}
-	}
-	return 1;
-}

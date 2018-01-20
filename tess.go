@@ -153,6 +153,39 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	return elements, vertices, nil
 }
 
+// tessMeshSetWindingNumber resets the
+// winding numbers on all edges so that regions marked "inside" the
+// polygon have a winding number of "value", and regions outside
+// have a winding number of 0.
+//
+// If keepOnlyBoundary is TRUE, it also deletes all edges which do not
+// separate an interior region from an exterior one.
+func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool) {
+	var eNext *C.TESShalfEdge
+	for e := mesh.eHead.next; e != &mesh.eHead; e = eNext {
+		eNext = e.next
+		if rFace(e).inside != e.Lface.inside {
+			// This is a boundary edge (one side is interior, one is exterior).
+			e.winding = 0
+			if e.Lface.inside != 0 {
+				e.winding = C.int(value)
+			} else {
+				e.winding = -C.int(value)
+			}
+		} else {
+
+			// Both regions are interior, or both are exterior.
+			if !keepOnlyBoundary {
+				e.winding = 0
+			} else {
+				if C.tessMeshDelete(mesh, e) == 0 {
+					return
+				}
+			}
+		}
+	}
+}
+
 //export tessNewTess
 func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
 	assert(alloc != nil)
@@ -538,7 +571,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 	// except those which separate the interior from the exterior.
 	// Otherwise we tessellate all the regions marked "inside".
 	if elementType == C.TESS_BOUNDARY_CONTOURS {
-		C.tessMeshSetWindingNumber(mesh, 1, 1 /* true */)
+		tessMeshSetWindingNumber(mesh, 1, true)
 	} else {
 		C.tessMeshTessellateInterior(mesh)
 	}
