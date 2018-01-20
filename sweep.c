@@ -162,25 +162,3 @@ int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge
 
 	return 1; 
 }
-
-ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg )
-{
-	TESSvertex *org = reg->eUp->Org;
-	TESShalfEdge *e;
-
-	/* Find the region above the uppermost edge with the same origin */
-	do {
-		reg = RegionAbove( reg );
-	} while( reg->eUp->Org == org );
-
-	/* If the edge above was a temporary edge introduced by ConnectRightVertex,
-	* now is the time to fix it.
-	*/
-	if( reg->fixUpperEdge ) {
-		e = tessMeshConnect( tess->mesh, RegionBelow(reg)->eUp->Sym, reg->eUp->Lnext );
-		if (e == NULL) return NULL;
-		if ( !FixUpperEdge( tess, reg, e ) ) return NULL;
-		reg = RegionAbove( reg );
-	}
-	return reg;
-}

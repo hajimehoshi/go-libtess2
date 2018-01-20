@@ -39,9 +39,7 @@ package libtess2
 //
 // void AddWinding(TESShalfEdge* eDst, TESShalfEdge* eSrc);
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
-// ActiveRegion *TopLeftRegion( TESStesselator *tess, ActiveRegion *reg );
 // int FixUpperEdge( TESStesselator *tess, ActiveRegion *reg, TESShalfEdge *newEdge );
-// ActiveRegion *TopRightRegion( ActiveRegion *reg );
 // void DeleteRegion( TESStesselator *tess, ActiveRegion *reg );
 import "C"
 
@@ -120,6 +118,29 @@ func adjust(x C.TESSreal) C.TESSreal {
 		return x
 	}
 	return 0.01
+}
+
+func topLeftRegion(tess *C.TESStesselator, reg *C.ActiveRegion) *C.ActiveRegion {
+	org := reg.eUp.Org
+
+	// Find the region above the uppermost edge with the same origin
+	for {
+		reg = regionAbove(reg)
+		if reg.eUp.Org != org {
+			break
+		}
+	}
+
+	// If the edge above was a temporary edge introduced by ConnectRightVertex,
+	// now is the time to fix it.
+	if reg.fixUpperEdge != 0 {
+		e := C.tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
+		if C.FixUpperEdge(tess, reg, e) == 0 {
+			return nil
+		}
+		reg = regionAbove(reg)
+	}
+	return reg
 }
 
 func topRightRegion(reg *C.ActiveRegion) *C.ActiveRegion {
@@ -544,7 +565,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 			// Splice dstLo into eUp, and process the new region(s)
 			C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			C.tessMeshSplice(tess.mesh, eLo.Sym, eUp)
-			regUp = C.TopLeftRegion(tess, regUp)
+			regUp = topLeftRegion(tess, regUp)
 			eUp = regionBelow(regUp).eUp
 			finishLeftRegions(tess, regionBelow(regUp), regLo)
 			addRightEdges(tess, regUp, oPrev(eUp), eUp, eUp, true)
@@ -725,7 +746,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	// through vEvent, or may coincide with new intersection vertex
 	if C.VertEq(eUp.Org, tess.event) != 0 {
 		C.tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
-		regUp = C.TopLeftRegion(tess, regUp)
+		regUp = topLeftRegion(tess, regUp)
 		eTopLeft = regionBelow(regUp).eUp
 		finishLeftRegions(tess, regionBelow(regUp), regLo)
 		degenerate = true
@@ -908,7 +929,7 @@ func sweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	// We mark these faces "inside" or "outside" the polygon according
 	// to their winding number, and delete the edges from the dictionary.
 	// This takes care of all the left-going edges from vEvent.
-	regUp := C.TopLeftRegion(tess, e.activeRegion)
+	regUp := topLeftRegion(tess, e.activeRegion)
 	reg := regionBelow(regUp)
 	eTopLeft := reg.eUp
 	eBottomLeft := finishLeftRegions(tess, reg, nil)
