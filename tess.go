@@ -153,6 +153,66 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	return elements, vertices, nil
 }
 
+//export tessNewTess
+func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
+	assert(alloc != nil)
+
+	// Only initialize fields which can be changed by the api.  Other fields
+	// are initialized where they are used.
+
+	tess := (*C.TESStesselator)(C.golibtess2_stdAlloc(alloc.userData, C.sizeof_TESStesselator))
+	tess.alloc = *alloc
+	// Check and set defaults.
+	if tess.alloc.meshEdgeBucketSize == 0 {
+		tess.alloc.meshEdgeBucketSize = 512
+	}
+	if tess.alloc.meshVertexBucketSize == 0 {
+		tess.alloc.meshVertexBucketSize = 512
+	}
+	if tess.alloc.meshFaceBucketSize == 0 {
+		tess.alloc.meshFaceBucketSize = 256
+	}
+	if tess.alloc.dictNodeBucketSize == 0 {
+		tess.alloc.dictNodeBucketSize = 512
+	}
+	if tess.alloc.regionBucketSize == 0 {
+		tess.alloc.regionBucketSize = 256
+	}
+
+	tess.normal[0] = 0
+	tess.normal[1] = 0
+	tess.normal[2] = 0
+
+	tess.bmin[0] = 0
+	tess.bmin[1] = 0
+	tess.bmax[0] = 0
+	tess.bmax[1] = 0
+
+	tess.windingRule = C.TESS_WINDING_ODD
+
+	if tess.alloc.regionBucketSize < 16 {
+		tess.alloc.regionBucketSize = 16
+	}
+	if tess.alloc.regionBucketSize > 4096 {
+		tess.alloc.regionBucketSize = 4096
+	}
+	tess.regionPool = C.createBucketAlloc(&tess.alloc, C.CString("Regions"), C.sizeof_ActiveRegion, C.uint(tess.alloc.regionBucketSize))
+
+	// Initialize to begin polygon.
+	tess.mesh = nil
+
+	tess.outOfMemory = 0
+	tess.vertexIndexCounter = 0
+
+	tess.vertices = nil
+	tess.vertexIndices = nil
+	tess.vertexCount = 0
+	tess.elements = nil
+	tess.elementCount = 0
+
+	return tess
+}
+
 func neighbourFace(edge *C.TESShalfEdge) C.TESSindex {
 	if rFace(edge) == nil {
 		return undef
