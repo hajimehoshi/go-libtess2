@@ -91,41 +91,6 @@ TESSreal tesedgeSign( TESSvertex *u, TESSvertex *v, TESSvertex *w )
 	return 0;
 }
 
-
-/***********************************************************************
-* Define versions of EdgeSign, EdgeEval with s and t transposed.
-*/
-
-TESSreal testransEval( TESSvertex *u, TESSvertex *v, TESSvertex *w )
-{
-	/* Given three vertices u,v,w such that TransLeq(u,v) && TransLeq(v,w),
-	* evaluates the t-coord of the edge uw at the s-coord of the vertex v.
-	* Returns v->s - (uw)(v->t), ie. the signed distance from uw to v.
-	* If uw is vertical (and thus passes thru v), the result is zero.
-	*
-	* The calculation is extremely accurate and stable, even when v
-	* is very close to u or w.  In particular if we set v->s = 0 and
-	* let r be the negated result (this evaluates (uw)(v->t)), then
-	* r is guaranteed to satisfy MIN(u->s,w->s) <= r <= MAX(u->s,w->s).
-	*/
-	TESSreal gapL, gapR;
-
-	assert( TransLeq( u, v ) && TransLeq( v, w ));
-
-	gapL = v->t - u->t;
-	gapR = w->t - v->t;
-
-	if( gapL + gapR > 0 ) {
-		if( gapL < gapR ) {
-			return (v->s - u->s) + (u->s - w->s) * (gapL / (gapL + gapR));
-		} else {
-			return (v->s - w->s) + (w->s - u->s) * (gapR / (gapL + gapR));
-		}
-	}
-	/* vertical line */
-	return 0;
-}
-
 int VertEq(TESSvertex* u, TESSvertex* v) {
   return (u)->s == (v)->s && (u)->t == (v)->t;
 }
