@@ -29,6 +29,33 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+// tesedgeEval:
+// Given three vertices u,v,w such that VertLeq(u,v) && VertLeq(v,w),
+// evaluates the t-coord of the edge uw at the s-coord of the vertex v.
+// Returns v->t - (uw)(v->s), ie. the signed distance from uw to v.
+// If uw is vertical (and thus passes thru v), the result is zero.
+//
+// The calculation is extremely accurate and stable, even when v
+// is very close to u or w.  In particular if we set v->t = 0 and
+// let r be the negated result (this evaluates (uw)(v->s)), then
+// r is guaranteed to satisfy MIN(u->t,w->t) <= r <= MAX(u->t,w->t).
+func tesedgeEval(u, v, w *C.TESSvertex) C.TESSreal {
+	assert(C.VertLeq(u, v) != 0 && C.VertLeq(v, w) != 0)
+
+	gapL := v.s - u.s
+	gapR := w.s - v.s
+
+	if gapL+gapR > 0 {
+		if gapL < gapR {
+			return (v.t - u.t) + (u.t-w.t)*(gapL/(gapL+gapR))
+		} else {
+			return (v.t - w.t) + (w.t-u.t)*(gapR/(gapL+gapR))
+		}
+	}
+	// vertical line
+	return 0
+}
+
 // tesedgeSign returns a number whose sign matches EdgeEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
@@ -152,8 +179,8 @@ func tesedgeIntersect(o1 *C.TESSvertex, d1 *C.TESSvertex, o2 *C.TESSvertex, d2 *
 		v.s = (o2.s + d1.s) / 2
 	} else if C.VertLeq(d1, d2) != 0 {
 		// Interpolate between o2 and d1
-		z1 := C.tesedgeEval(o1, o2, d1)
-		z2 := C.tesedgeEval(o2, d1, d2)
+		z1 := tesedgeEval(o1, o2, d1)
+		z2 := tesedgeEval(o2, d1, d2)
 		if z1+z2 < 0 {
 			z1 = -z1
 			z2 = -z2

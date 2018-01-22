@@ -41,36 +41,6 @@ int tesvertLeq( TESSvertex *u, TESSvertex *v )
 	return VertLeq( u, v );
 }
 
-TESSreal tesedgeEval( TESSvertex *u, TESSvertex *v, TESSvertex *w )
-{
-	/* Given three vertices u,v,w such that VertLeq(u,v) && VertLeq(v,w),
-	* evaluates the t-coord of the edge uw at the s-coord of the vertex v.
-	* Returns v->t - (uw)(v->s), ie. the signed distance from uw to v.
-	* If uw is vertical (and thus passes thru v), the result is zero.
-	*
-	* The calculation is extremely accurate and stable, even when v
-	* is very close to u or w.  In particular if we set v->t = 0 and
-	* let r be the negated result (this evaluates (uw)(v->s)), then
-	* r is guaranteed to satisfy MIN(u->t,w->t) <= r <= MAX(u->t,w->t).
-	*/
-	TESSreal gapL, gapR;
-
-	assert( VertLeq( u, v ) && VertLeq( v, w ));
-
-	gapL = v->s - u->s;
-	gapR = w->s - v->s;
-
-	if( gapL + gapR > 0 ) {
-		if( gapL < gapR ) {
-			return (v->t - u->t) + (u->t - w->t) * (gapL / (gapL + gapR));
-		} else {
-			return (v->t - w->t) + (w->t - u->t) * (gapR / (gapL + gapR));
-		}
-	}
-	/* vertical line */
-	return 0;
-}
-
 int VertEq(TESSvertex* u, TESSvertex* v) {
   return (u)->s == (v)->s && (u)->t == (v)->t;
 }

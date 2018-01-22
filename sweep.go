@@ -185,8 +185,8 @@ func edgeLeq(tess *C.TESStesselator, reg1 *C.ActiveRegion, reg2 *C.ActiveRegion)
 	}
 
 	// General case - compute signed distance *from* e1, e2 to event
-	t1 := C.tesedgeEval(dst(e1), event, e1.Org)
-	t2 := C.tesedgeEval(dst(e2), event, e2.Org)
+	t1 := tesedgeEval(dst(e1), event, e1.Org)
+	t2 := tesedgeEval(dst(e2), event, e2.Org)
 	return (t1 >= t2)
 }
 
