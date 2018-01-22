@@ -426,7 +426,7 @@ func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
 			lo = lPrev(lo)
 		} else {
 			// lo.Org is on the left.  We can make CCW triangles from up.Dst.
-			for lo.Lnext != up && (C.EdgeGoesRight(lPrev(up)) != 0 || tesedgeSign(dst(up), up.Org, lPrev(up).Org) >= 0) {
+			for lo.Lnext != up && (edgeGoesRight(lPrev(up)) || tesedgeSign(dst(up), up.Org, lPrev(up).Org) >= 0) {
 				tempHalfEdge := C.tessMeshConnect(mesh, up, lPrev(up))
 				up = tempHalfEdge.Sym
 			}

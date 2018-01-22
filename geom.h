@@ -41,7 +41,6 @@ int VertLeq(TESSvertex* u, TESSvertex* v);
 /* Versions of VertLeq, EdgeSign, EdgeEval with s and t transposed. */
 
 int EdgeGoesLeft(TESShalfEdge* e);
-int EdgeGoesRight(TESShalfEdge* e);
 
 int TransLeq(TESSvertex* u, TESSvertex* v);
 
