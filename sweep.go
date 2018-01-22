@@ -604,7 +604,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	}
 
 	var isect C.TESSvertex
-	C.tesedgeIntersect(dstUp, orgUp, dstLo, orgLo, &isect)
+	tesedgeIntersect(dstUp, orgUp, dstLo, orgLo, &isect)
 	// The following properties are guaranteed:
 	assert(minf(orgUp.t, dstUp.t) <= isect.t)
 	assert(isect.t <= maxf(orgLo.t, dstLo.t))

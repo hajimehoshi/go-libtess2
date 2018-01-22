@@ -43,12 +43,13 @@ int VertLeq(TESSvertex* u, TESSvertex* v);
 
 /* Versions of VertLeq, EdgeSign, EdgeEval with s and t transposed. */
 
-#define TransLeq(u,v) (((u)->t < (v)->t) || ((u)->t == (v)->t && (u)->s <= (v)->s))
 #define TransEval(u,v,w) testransEval(u,v,w)
 #define TransSign(u,v,w) testransSign(u,v,w)
 
 int EdgeGoesLeft(TESShalfEdge* e);
 int EdgeGoesRight(TESShalfEdge* e);
+
+int TransLeq(TESSvertex* u, TESSvertex* v);
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
@@ -62,6 +63,5 @@ TESSreal	tesedgeSign( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 TESSreal	testransEval( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 TESSreal	testransSign( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 int tesvertCCW( TESSvertex *u, TESSvertex *v, TESSvertex *w );
-void tesedgeIntersect( TESSvertex *o1, TESSvertex *d1, TESSvertex *o2, TESSvertex *d2, TESSvertex *v );
 
 #endif
