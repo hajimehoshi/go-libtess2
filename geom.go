@@ -29,6 +29,18 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+//export tesvertCCW
+//
+// tesvertCCW:
+// For almost-degenerate situations, the results are not reliable.
+// Unless the floating-point arithmetic can be performed without
+// rounding errors, *any* implementation will give incorrect results
+// on some degenerate inputs, so the client must have some way to
+// handle this situation.
+func tesvertCCW(u, v, w *C.TESSvertex) bool {
+	return (u.s*(v.t-w.t) + v.s*(w.t-u.t) + w.s*(u.t-v.t)) >= 0
+}
+
 // interpolate:
 // Given parameters a,x,b,y returns the value (b*x+a*y)/(a+b),
 // or (x+y)/2 if a==b==0.  It requires that a,b >= 0, and enforces

@@ -695,6 +695,10 @@ static int CountFaceVerts( TESSface *f )
 	return n;
 }
 
+int tesvertCCW( TESSvertex *u, TESSvertex *v, TESSvertex *w );
+
+#define VertCCW(u,v,w) tesvertCCW(u,v,w)
+
 int tessMeshMergeConvexFaces( TESSmesh *mesh, int maxVertsPerFace )
 {
 	TESSface *f;

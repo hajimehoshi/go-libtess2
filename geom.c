@@ -146,18 +146,6 @@ TESSreal testransSign( TESSvertex *u, TESSvertex *v, TESSvertex *w )
 	return 0;
 }
 
-
-int tesvertCCW( TESSvertex *u, TESSvertex *v, TESSvertex *w )
-{
-	/* For almost-degenerate situations, the results are not reliable.
-	* Unless the floating-point arithmetic can be performed without
-	* rounding errors, *any* implementation will give incorrect results
-	* on some degenerate inputs, so the client must have some way to
-	* handle this situation.
-	*/
-	return (u->s*(v->t - w->t) + v->s*(w->t - u->t) + w->s*(u->t - v->t)) >= 0;
-}
-
 int VertEq(TESSvertex* u, TESSvertex* v) {
   return (u)->s == (v)->s && (u)->t == (v)->t;
 }

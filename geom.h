@@ -55,13 +55,10 @@ int TransLeq(TESSvertex* u, TESSvertex* v);
 
 TESSreal VertL1dist(TESSvertex* u, TESSvertex* v);
 
-#define VertCCW(u,v,w) tesvertCCW(u,v,w)
-
 int tesvertLeq( TESSvertex *u, TESSvertex *v );
 TESSreal	tesedgeEval( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 TESSreal	tesedgeSign( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 TESSreal	testransEval( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 TESSreal	testransSign( TESSvertex *u, TESSvertex *v, TESSvertex *w );
-int tesvertCCW( TESSvertex *u, TESSvertex *v, TESSvertex *w );
 
 #endif
