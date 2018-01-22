@@ -29,6 +29,10 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+func edgeGoesLeft(e *C.TESShalfEdge) bool {
+	return C.VertLeq(dst(e), e.Org) != 0
+}
+
 func edgeGoesRight(e *C.TESShalfEdge) bool {
 	return C.VertLeq(e.Org, dst(e)) != 0
 }

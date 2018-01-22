@@ -50,7 +50,3 @@ TESSreal VertL1dist(TESSvertex* u, TESSvertex* v) {
 int TransLeq(TESSvertex* u, TESSvertex* v) {
   return ((u)->t < (v)->t) || ((u)->t == (v)->t && (u)->s <= (v)->s);
 }
-
-int EdgeGoesLeft(TESShalfEdge* e) {
-  return VertLeq((e)->Dst, (e)->Org);
-}

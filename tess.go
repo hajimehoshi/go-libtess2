@@ -417,9 +417,9 @@ func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
 	for up.Lnext != lo {
 		if C.VertLeq(dst(up), lo.Org) != 0 {
 			// up.Dst is on the left.  It is safe to form triangles from lo.Org.
-			// The EdgeGoesLeft test guarantees progress even when some triangles
+			// The edgeGoesLeft test guarantees progress even when some triangles
 			// are CW, given that the upper and lower chains are truly monotone.
-			for lo.Lnext != up && (C.EdgeGoesLeft(lo.Lnext) != 0 || tesedgeSign(lo.Org, dst(lo), dst(lo.Lnext)) <= 0) {
+			for lo.Lnext != up && (edgeGoesLeft(lo.Lnext) || tesedgeSign(lo.Org, dst(lo), dst(lo.Lnext)) <= 0) {
 				tempHalfEdge := C.tessMeshConnect(mesh, lo.Lnext, lo)
 				lo = tempHalfEdge.Sym
 			}

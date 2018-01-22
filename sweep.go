@@ -917,7 +917,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		eTopRight = oPrev(eTopLeft)
 	}
 	C.tessMeshSplice(tess.mesh, vEvent.anEdge, eTopRight)
-	if C.EdgeGoesLeft(eTopLeft) == 0 {
+	if !edgeGoesLeft(eTopLeft) {
 		// e.Dst had no left-going edges -- indicate this to AddRightEdges()
 		eTopLeft = nil
 	}
