@@ -126,26 +126,6 @@ TESSreal testransEval( TESSvertex *u, TESSvertex *v, TESSvertex *w )
 	return 0;
 }
 
-TESSreal testransSign( TESSvertex *u, TESSvertex *v, TESSvertex *w )
-{
-	/* Returns a number whose sign matches TransEval(u,v,w) but which
-	* is cheaper to evaluate.  Returns > 0, == 0 , or < 0
-	* as v is above, on, or below the edge uw.
-	*/
-	TESSreal gapL, gapR;
-
-	assert( TransLeq( u, v ) && TransLeq( v, w ));
-
-	gapL = v->t - u->t;
-	gapR = w->t - v->t;
-
-	if( gapL + gapR > 0 ) {
-		return (v->s - w->s) * gapL + (v->s - u->s) * gapR;
-	}
-	/* vertical line */
-	return 0;
-}
-
 int VertEq(TESSvertex* u, TESSvertex* v) {
   return (u)->s == (v)->s && (u)->t == (v)->t;
 }

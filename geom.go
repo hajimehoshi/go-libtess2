@@ -29,6 +29,22 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+// testransSign returns a number whose sign matches TransEval(u,v,w) but which
+// is cheaper to evaluate.  Returns > 0, == 0 , or < 0
+// as v is above, on, or below the edge uw.
+func testransSign(u, v, w *C.TESSvertex) C.TESSreal {
+	assert(C.TransLeq(u, v) != 0 && C.TransLeq(v, w) != 0)
+
+	gapL := v.t - u.t
+	gapR := w.t - v.t
+
+	if gapL+gapR > 0 {
+		return (v.s-w.s)*gapL + (v.s-u.s)*gapR
+	}
+	// vertical line
+	return 0
+}
+
 //export tesvertCCW
 //
 // tesvertCCW:
@@ -138,8 +154,8 @@ func tesedgeIntersect(o1 *C.TESSvertex, d1 *C.TESSvertex, o2 *C.TESSvertex, d2 *
 		v.t = interpolate(z1, o2.t, z2, d1.t)
 	} else {
 		// Interpolate between o2 and d2
-		z1 := C.testransSign(o1, o2, d1)
-		z2 := -C.testransSign(o1, d2, d1)
+		z1 := testransSign(o1, o2, d1)
+		z2 := -testransSign(o1, d2, d1)
 		if z1+z2 < 0 {
 			z1 = -z1
 			z2 = -z2
