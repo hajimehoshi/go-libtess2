@@ -43,7 +43,7 @@ func (p pq) Len() int {
 }
 
 func (p pq) Less(i, j int) bool {
-	return C.tesvertLeq(p[i], p[j]) != 0
+	return tesvertLeq(p[i], p[j])
 }
 
 func (p pq) Swap(i, j int) {

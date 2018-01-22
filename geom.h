@@ -49,6 +49,4 @@ int TransLeq(TESSvertex* u, TESSvertex* v);
 
 TESSreal VertL1dist(TESSvertex* u, TESSvertex* v);
 
-int tesvertLeq( TESSvertex *u, TESSvertex *v );
-
 #endif

@@ -29,6 +29,11 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+// tesvertLeq returns true if u is lexicographically <= v.
+func tesvertLeq(u, v *C.TESSvertex) bool {
+	return C.VertLeq(u, v) != 0
+}
+
 // tesedgeEval:
 // Given three vertices u,v,w such that VertLeq(u,v) && VertLeq(v,w),
 // evaluates the t-coord of the edge uw at the s-coord of the vertex v.

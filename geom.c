@@ -34,13 +34,6 @@
 #include "mesh.h"
 #include "geom.h"
 
-int tesvertLeq( TESSvertex *u, TESSvertex *v )
-{
-	/* Returns TRUE if u is lexicographically <= v. */
-
-	return VertLeq( u, v );
-}
-
 int VertEq(TESSvertex* u, TESSvertex* v) {
   return (u)->s == (v)->s && (u)->t == (v)->t;
 }
