@@ -879,7 +879,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 		tessMeshTessellateInterior(mesh)
 	}
 
-	C.tessMeshCheckMesh(mesh)
+	tessMeshCheckMesh(mesh)
 
 	if elementType == C.TESS_BOUNDARY_CONTOURS {
 		// output contours

@@ -1232,7 +1232,7 @@ func tessComputeInterior(tess *C.TESStesselator) bool {
 	if !removeDegenerateFaces(tess, tess.mesh) {
 		return false
 	}
-	C.tessMeshCheckMesh(tess.mesh)
+	tessMeshCheckMesh(tess.mesh)
 
 	return true
 }

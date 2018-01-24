@@ -260,10 +260,4 @@ int tessMeshMergeConvexFaces( TESSmesh *mesh, int maxVertsPerFace );
 void tessMeshDeleteMesh( TESSalloc* alloc, TESSmesh *mesh );
 void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap );
 
-#ifdef NDEBUG
-#define tessMeshCheckMesh( mesh )
-#else
-void tessMeshCheckMesh( TESSmesh *mesh );
-#endif
-
 #endif
