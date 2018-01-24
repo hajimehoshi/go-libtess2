@@ -29,6 +29,10 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+func transLeq(u, v *C.TESSvertex) bool {
+	return (u.t < v.t) || (u.t == v.t && u.s <= v.s)
+}
+
 func edgeGoesLeft(e *C.TESShalfEdge) bool {
 	return C.VertLeq(dst(e), e.Org) != 0
 }
@@ -86,7 +90,7 @@ func tesedgeSign(u, v, w *C.TESSvertex) C.TESSreal {
 }
 
 // testransEval:
-// Given three vertices u,v,w such that TransLeq(u,v) && TransLeq(v,w),
+// Given three vertices u,v,w such that transLeq(u,v) && transLeq(v,w),
 // evaluates the t-coord of the edge uw at the s-coord of the vertex v.
 // Returns v.s - (uw)(v.t), ie. the signed distance from uw to v.
 // If uw is vertical (and thus passes thru v), the result is zero.
@@ -96,7 +100,7 @@ func tesedgeSign(u, v, w *C.TESSvertex) C.TESSreal {
 // let r be the negated result (this evaluates (uw)(v.t)), then
 // r is guaranteed to satisfy MIN(u.s,w.s) <= r <= MAX(u.s,w.s).
 func testransEval(u, v, w *C.TESSvertex) C.TESSreal {
-	assert(C.TransLeq(u, v) != 0 && C.TransLeq(v, w) != 0)
+	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
 	gapR := w.t - v.t
@@ -116,7 +120,7 @@ func testransEval(u, v, w *C.TESSvertex) C.TESSreal {
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
 func testransSign(u, v, w *C.TESSvertex) C.TESSreal {
-	assert(C.TransLeq(u, v) != 0 && C.TransLeq(v, w) != 0)
+	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
 	gapR := w.t - v.t
@@ -174,7 +178,7 @@ func tesedgeIntersect(o1 *C.TESSvertex, d1 *C.TESSvertex, o2 *C.TESSvertex, d2 *
 	//
 	// Strategy: find the two middle vertices in the VertLeq ordering,
 	// and interpolate the intersection s-value from these.  Then repeat
-	// using the TransLeq ordering to find the intersection t-value.
+	// using the transLeq ordering to find the intersection t-value.
 
 	if C.VertLeq(o1, d1) == 0 {
 		o1, d1 = d1, o1
@@ -212,21 +216,21 @@ func tesedgeIntersect(o1 *C.TESSvertex, d1 *C.TESSvertex, o2 *C.TESSvertex, d2 *
 
 	// Now repeat the process for t
 
-	if C.TransLeq(o1, d1) == 0 {
+	if !transLeq(o1, d1) {
 		o1, d1 = d1, o1
 	}
-	if C.TransLeq(o2, d2) == 0 {
+	if !transLeq(o2, d2) {
 		o2, d2 = d2, o2
 	}
-	if C.TransLeq(o1, o2) == 0 {
+	if !transLeq(o1, o2) {
 		o1, o2 = o2, o1
 		d1, d2 = d2, d1
 	}
 
-	if C.TransLeq(o2, d1) == 0 {
+	if !transLeq(o2, d1) {
 		// Technically, no intersection -- do our best
 		v.t = (o2.t + d1.t) / 2
-	} else if C.TransLeq(d1, d2) != 0 {
+	} else if transLeq(d1, d2) {
 		// Interpolate between o2 and d1
 		z1 := testransEval(o1, o2, d1)
 		z2 := testransEval(o2, d1, d2)
