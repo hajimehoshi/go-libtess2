@@ -26,8 +26,12 @@
 
 package libtess2
 
-// #include "geom.h"
+// #include "mesh.h"
 import "C"
+
+func vertEq(u, v *C.TESSvertex) bool {
+	return u.s == v.s && u.t == v.t
+}
 
 func vertLeq(u, v *C.TESSvertex) bool {
 	return (u.s < v.s) || (u.s == v.s && u.t <= v.t)

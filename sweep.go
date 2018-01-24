@@ -485,7 +485,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		}
 
 		// eUp.Org appears to be below eLo
-		if C.VertEq(eUp.Org, eLo.Org) == 0 {
+		if !vertEq(eUp.Org, eLo.Org) {
 			// Splice eUp.Org into eLo
 			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			C.tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
@@ -532,7 +532,7 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 
-	assert(C.VertEq(dst(eUp), dst(eLo)) == 0)
+	assert(!vertEq(dst(eUp), dst(eLo)))
 
 	if vertLeq(dst(eUp), dst(eLo)) {
 		if tesedgeSign(dst(eUp), dst(eLo), eUp.Org) < 0 {
@@ -575,7 +575,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	dstUp := dst(eUp)
 	dstLo := dst(eLo)
 
-	assert(C.VertEq(dstLo, dstUp) == 0 /* false */)
+	assert(!vertEq(dstLo, dstUp))
 	assert(tesedgeSign(dstUp, tess.event, orgUp) <= 0)
 	assert(tesedgeSign(dstLo, tess.event, orgLo) >= 0)
 	assert(orgUp != tess.event && orgLo != tess.event)
@@ -636,13 +636,13 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		isect.t = orgMin.t
 	}
 
-	if C.VertEq(&isect, orgUp) != 0 || C.VertEq(&isect, orgLo) != 0 {
+	if vertEq(&isect, orgUp) || vertEq(&isect, orgLo) {
 		// Easy case -- intersection at one of the right endpoints
 		checkForRightSplice(tess, regUp)
 		return false
 	}
 
-	if (C.VertEq(dstUp, tess.event) == 0 && tesedgeSign(dstUp, tess.event, &isect) >= 0) || (C.VertEq(dstLo, tess.event) == 0 && tesedgeSign(dstLo, tess.event, &isect) <= 0) {
+	if (!vertEq(dstUp, tess.event) && tesedgeSign(dstUp, tess.event, &isect) >= 0) || (!vertEq(dstLo, tess.event) && tesedgeSign(dstLo, tess.event, &isect) <= 0) {
 		// Very unusual -- the new upper or lower edge would pass on the
 		// wrong side of the sweep event, or through it.  This can happen
 		// due to very small numerical errors in the intersection calculation.
@@ -829,14 +829,14 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 
 	// Possible new degeneracies: upper or lower edge of regUp may pass
 	// through vEvent, or may coincide with new intersection vertex
-	if C.VertEq(eUp.Org, tess.event) != 0 {
+	if vertEq(eUp.Org, tess.event) {
 		C.tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
 		regUp = topLeftRegion(tess, regUp)
 		eTopLeft = regionBelow(regUp).eUp
 		finishLeftRegions(tess, regionBelow(regUp), regLo)
 		degenerate = true
 	}
-	if C.VertEq(eLo.Org, tess.event) != 0 {
+	if vertEq(eLo.Org, tess.event) {
 		C.tessMeshSplice(tess.mesh, eBottomLeft, oPrev(eLo))
 		eBottomLeft = finishLeftRegions(tess, regLo, nil)
 		degenerate = true
@@ -877,20 +877,19 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 	const TOLERANCE_NONZERO = false
 
 	e := regUp.eUp
-	if C.VertEq(e.Org, vEvent) != 0 {
-		/* e.Org is an unprocessed vertex - just combine them, and wait
-		* for e.Org to be pulled from the queue
-		 */
+	if vertEq(e.Org, vEvent) {
+		// e.Org is an unprocessed vertex - just combine them, and wait
+		// for e.Org to be pulled from the queue
 		assert(TOLERANCE_NONZERO)
 		spliceMergeVertices(tess, e, vEvent.anEdge)
 		return
 	}
 
-	if C.VertEq(dst(e), vEvent) == 0 {
-		/* General case -- splice vEvent into edge e which passes through it */
+	if vertEq(dst(e), vEvent) {
+		// General case -- splice vEvent into edge e which passes through it
 		C.tessMeshSplitEdge(tess.mesh, e.Sym)
 		if regUp.fixUpperEdge != 0 {
-			/* This edge was fixable -- delete unused portion of original edge */
+			// This edge was fixable -- delete unused portion of original edge
 			C.tessMeshDelete(tess.mesh, e.Onext)
 			regUp.fixUpperEdge = 0 // false
 		}
@@ -1102,7 +1101,7 @@ func removeDegenerateEdges(tess *C.TESStesselator) {
 		eNext = e.next
 		eLnext := e.Lnext
 
-		if C.VertEq(e.Org, dst(e)) != 0 && e.Lnext.Lnext != e {
+		if vertEq(e.Org, dst(e)) && e.Lnext.Lnext != e {
 			// Zero-length edge, contour has at least 3 edges
 			spliceMergeVertices(tess, eLnext, e) /* deletes e.Org */
 			C.tessMeshDelete(tess.mesh, e)
@@ -1203,7 +1202,7 @@ func tessComputeInterior(tess *C.TESStesselator) bool {
 		}
 		for {
 			vNext := (*C.TESSvertex)(C.pqMinimum(tess.pq))
-			if vNext == nil || C.VertEq(vNext, v) == 0 {
+			if vNext == nil || !vertEq(vNext, v) {
 				break
 			}
 

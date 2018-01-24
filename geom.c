@@ -28,12 +28,3 @@
 /*
 ** Author: Eric Veach, July 1994.
 */
-
-//#include "tesos.h"
-#include <assert.h>
-#include "mesh.h"
-#include "geom.h"
-
-int VertEq(TESSvertex* u, TESSvertex* v) {
-  return (u)->s == (v)->s && (u)->t == (v)->t;
-}

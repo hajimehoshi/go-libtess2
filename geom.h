@@ -35,6 +35,4 @@
 #include <stdbool.h>
 #include "mesh.h"
 
-int VertEq(TESSvertex* u, TESSvertex* v);
-
 #endif
