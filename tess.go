@@ -27,7 +27,6 @@
 package libtess2
 
 // #include "tess.h"
-// #include "geom.h"
 //
 // #include <stdlib.h>
 // #include <string.h>

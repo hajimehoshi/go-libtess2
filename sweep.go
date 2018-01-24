@@ -26,7 +26,6 @@
 
 package libtess2
 
-// #include "geom.h"
 // #include "mesh.h"
 // #include "priorityq.h"
 // #include "sweep.h"

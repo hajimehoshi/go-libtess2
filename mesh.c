@@ -33,7 +33,6 @@
 #include <stddef.h>
 #include <assert.h>
 #include "mesh.h"
-#include "geom.h"
 #include "bucketalloc.h"
 
 #define TRUE 1

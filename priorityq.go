@@ -27,8 +27,6 @@
 package libtess2
 
 // #include "priorityq.h"
-//
-// #include "geom.h"
 import "C"
 
 import (
