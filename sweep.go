@@ -426,8 +426,8 @@ func spliceMergeVertices(tess *C.TESStesselator, e1 *C.TESShalfEdge, e2 *C.TESSh
 // splits the weight between its org and dst according to the
 // relative distance to "isect".
 func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex) {
-	t1 := C.VertL1dist(org, isect)
-	t2 := C.VertL1dist(dst, isect)
+	t1 := vertL1dist(org, isect)
+	t2 := vertL1dist(dst, isect)
 
 	w0 := 0.5 * t2 / (t1 + t2)
 	w1 := 0.5 * t1 / (t1 + t2)

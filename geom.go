@@ -29,6 +29,10 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+func vertL1dist(u, v *C.TESSvertex) C.TESSreal {
+	return abs(u.s-v.s) + abs(u.t-v.t)
+}
+
 func transLeq(u, v *C.TESSvertex) bool {
 	return (u.t < v.t) || (u.t == v.t && u.s <= v.s)
 }

@@ -38,10 +38,4 @@
 int VertEq(TESSvertex* u, TESSvertex* v);
 int VertLeq(TESSvertex* u, TESSvertex* v);
 
-/* Versions of VertLeq, EdgeSign, EdgeEval with s and t transposed. */
-
-#define ABS(x) ((x) < 0 ? -(x) : (x))
-
-TESSreal VertL1dist(TESSvertex* u, TESSvertex* v);
-
 #endif
