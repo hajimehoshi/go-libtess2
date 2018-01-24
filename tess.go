@@ -889,7 +889,6 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 		outputPolymesh(tess, mesh, elementType, polySize, vertexSize)
 	}
 
-	C.tessMeshDeleteMesh(&tess.alloc, mesh)
 	tess.mesh = nil
 
 	return true

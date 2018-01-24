@@ -750,35 +750,3 @@ int tessMeshMergeConvexFaces( TESSmesh *mesh, int maxVertsPerFace )
 	
 	return 1;
 }
-
-
-#ifdef DELETE_BY_ZAPPING
-
-/* tessMeshDeleteMesh( mesh ) will free all storage for any valid mesh.
-*/
-void tessMeshDeleteMesh( TESSalloc* alloc, TESSmesh *mesh )
-{
-	TESSface *fHead = &mesh->fHead;
-
-	while( fHead->next != fHead ) {
-		tessMeshZapFace( fHead->next );
-	}
-	assert( mesh->vHead.next == &mesh->vHead );
-
-	alloc->memfree( alloc->userData, mesh );
-}
-
-#else
-
-/* tessMeshDeleteMesh( mesh ) will free all storage for any valid mesh.
-*/
-void tessMeshDeleteMesh( TESSalloc* alloc, TESSmesh *mesh )
-{
-	deleteBucketAlloc(mesh->edgeBucket);
-	deleteBucketAlloc(mesh->vertexBucket);
-	deleteBucketAlloc(mesh->faceBucket);
-
-	alloc->memfree( alloc->userData, mesh );
-}
-
-#endif
