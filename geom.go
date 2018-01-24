@@ -29,6 +29,10 @@ package libtess2
 // #include "geom.h"
 import "C"
 
+func vertLeq(u, v *C.TESSvertex) bool {
+	return (u.s < v.s) || (u.s == v.s && u.t <= v.t)
+}
+
 func vertL1dist(u, v *C.TESSvertex) C.TESSreal {
 	return abs(u.s-v.s) + abs(u.t-v.t)
 }
@@ -38,20 +42,20 @@ func transLeq(u, v *C.TESSvertex) bool {
 }
 
 func edgeGoesLeft(e *C.TESShalfEdge) bool {
-	return C.VertLeq(dst(e), e.Org) != 0
+	return vertLeq(dst(e), e.Org)
 }
 
 func edgeGoesRight(e *C.TESShalfEdge) bool {
-	return C.VertLeq(e.Org, dst(e)) != 0
+	return vertLeq(e.Org, dst(e))
 }
 
 // tesvertLeq returns true if u is lexicographically <= v.
 func tesvertLeq(u, v *C.TESSvertex) bool {
-	return C.VertLeq(u, v) != 0
+	return vertLeq(u, v)
 }
 
 // tesedgeEval:
-// Given three vertices u,v,w such that VertLeq(u,v) && VertLeq(v,w),
+// Given three vertices u,v,w such that vertLeq(u,v) && vertLeq(v,w),
 // evaluates the t-coord of the edge uw at the s-coord of the vertex v.
 // Returns v.t - (uw)(v.s), ie. the signed distance from uw to v.
 // If uw is vertical (and thus passes thru v), the result is zero.
@@ -61,7 +65,7 @@ func tesvertLeq(u, v *C.TESSvertex) bool {
 // let r be the negated result (this evaluates (uw)(v.s)), then
 // r is guaranteed to satisfy MIN(u.t,w.t) <= r <= MAX(u.t,w.t).
 func tesedgeEval(u, v, w *C.TESSvertex) C.TESSreal {
-	assert(C.VertLeq(u, v) != 0 && C.VertLeq(v, w) != 0)
+	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
 	gapR := w.s - v.s
@@ -81,7 +85,7 @@ func tesedgeEval(u, v, w *C.TESSvertex) C.TESSreal {
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
 func tesedgeSign(u, v, w *C.TESSvertex) C.TESSreal {
-	assert(C.VertLeq(u, v) != 0 && C.VertLeq(v, w) != 0)
+	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
 	gapR := w.s - v.s
@@ -180,25 +184,25 @@ func tesedgeIntersect(o1 *C.TESSvertex, d1 *C.TESSvertex, o2 *C.TESSvertex, d2 *
 	// This is certainly not the most efficient way to find the intersection
 	// of two line segments, but it is very numerically stable.
 	//
-	// Strategy: find the two middle vertices in the VertLeq ordering,
+	// Strategy: find the two middle vertices in the vertLeq ordering,
 	// and interpolate the intersection s-value from these.  Then repeat
 	// using the transLeq ordering to find the intersection t-value.
 
-	if C.VertLeq(o1, d1) == 0 {
+	if !vertLeq(o1, d1) {
 		o1, d1 = d1, o1
 	}
-	if C.VertLeq(o2, d2) == 0 {
+	if !vertLeq(o2, d2) {
 		o2, d2 = d2, o2
 	}
-	if C.VertLeq(o1, o2) == 0 {
+	if !vertLeq(o1, o2) {
 		o1, o2 = o2, o1
 		d1, d2 = d2, d1
 	}
 
-	if C.VertLeq(o2, d1) == 0 {
+	if !vertLeq(o2, d1) {
 		// Technically, no intersection -- do our best
 		v.s = (o2.s + d1.s) / 2
-	} else if C.VertLeq(d1, d2) != 0 {
+	} else if vertLeq(d1, d2) {
 		// Interpolate between o2 and d1
 		z1 := tesedgeEval(o1, o2, d1)
 		z2 := tesedgeEval(o2, d1, d2)

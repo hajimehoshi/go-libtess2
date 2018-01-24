@@ -36,6 +36,5 @@
 #include "mesh.h"
 
 int VertEq(TESSvertex* u, TESSvertex* v);
-int VertLeq(TESSvertex* u, TESSvertex* v);
 
 #endif

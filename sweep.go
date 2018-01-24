@@ -44,7 +44,7 @@ import "C"
 // - if EdgeLeq(e2,e1) as well (at any valid sweep event), then e1 and e2
 //   share a common endpoint
 // - for each e, e->Dst has been processed, but not e->Org
-// - each edge e satisfies VertLeq(e->Dst,event) && VertLeq(event,e->Org)
+// - each edge e satisfies vertLeq(e.Dst,event) && vertLeq(event,e.Org)
 //   where "event" is the current sweep line event.
 // - no edge e has zero length
 //
@@ -173,7 +173,7 @@ func edgeLeq(tess *C.TESStesselator, reg1 *C.ActiveRegion, reg2 *C.ActiveRegion)
 		if dst(e2) == event {
 			// Two edges right of the sweep line which meet at the sweep event.
 			// Sort them by slope.
-			if C.VertLeq(e1.Org, e2.Org) != 0 {
+			if vertLeq(e1.Org, e2.Org) {
 				return tesedgeSign(dst(e2), e1.Org, e2.Org) <= 0
 			}
 			return tesedgeSign(dst(e1), e2.Org, e1.Org) >= 0
@@ -355,7 +355,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 	// Insert the new right-going edges in the dictionary
 	e := eFirst
 	for {
-		assert(C.VertLeq(e.Org, dst(e)) != 0)
+		assert(vertLeq(e.Org, dst(e)))
 		addRegionBelow(tess, regUp, e.Sym)
 		e = e.Onext
 		if e == eLast {
@@ -479,7 +479,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 
-	if C.VertLeq(eUp.Org, eLo.Org) != 0 {
+	if vertLeq(eUp.Org, eLo.Org) {
 		if tesedgeSign(dst(eLo), eUp.Org, eLo.Org) > 0 {
 			return false
 		}
@@ -534,7 +534,7 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 
 	assert(C.VertEq(dst(eUp), dst(eLo)) == 0)
 
-	if C.VertLeq(dst(eUp), dst(eLo)) != 0 {
+	if vertLeq(dst(eUp), dst(eLo)) {
 		if tesedgeSign(dst(eUp), dst(eLo), eUp.Org) < 0 {
 			return false
 		}
@@ -593,7 +593,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		return false
 	}
 
-	if C.VertLeq(orgUp, orgLo) != 0 {
+	if vertLeq(orgUp, orgLo) {
 		if tesedgeSign(dstLo, orgUp, orgLo) > 0 {
 			return false
 		}
@@ -611,7 +611,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	assert(minf(dstLo.s, dstUp.s) <= isect.s)
 	assert(isect.s <= maxf(orgLo.s, orgUp.s))
 
-	if C.VertLeq(&isect, tess.event) != 0 {
+	if vertLeq(&isect, tess.event) {
 		// The intersection point lies slightly to the left of the sweep line,
 		// so move it until it''s slightly to the right of the sweep line.
 		// (If we had perfect numerical precision, this would never happen
@@ -626,12 +626,12 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	// (If you have the test program, try running test54.d with the
 	// "X zoom" option turned on).
 	var orgMin *C.TESSvertex
-	if C.VertLeq(orgUp, orgLo) != 0 {
+	if vertLeq(orgUp, orgLo) {
 		orgMin = orgUp
 	} else {
 		orgMin = orgLo
 	}
-	if C.VertLeq(orgMin, &isect) != 0 {
+	if vertLeq(orgMin, &isect) {
 		isect.s = orgMin.s
 		isect.t = orgMin.t
 	}
@@ -849,7 +849,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	// Non-degenerate situation -- need to add a temporary, fixable edge.
 	// Connect to the closer of eLo.Org, eUp.Org.
 	var eNew *C.TESShalfEdge
-	if C.VertLeq(eLo.Org, eUp.Org) != 0 {
+	if vertLeq(eLo.Org, eUp.Org) {
 		eNew = oPrev(eLo)
 	} else {
 		eNew = eUp
@@ -963,7 +963,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	// Connect vEvent to rightmost processed vertex of either chain.
 	// e.Dst is the vertex that we will connect to vEvent.
 	var reg *C.ActiveRegion
-	if C.VertLeq(dst(eLo), dst(eUp)) != 0 {
+	if vertLeq(dst(eLo), dst(eUp)) {
 		reg = regUp
 	} else {
 		reg = regLo

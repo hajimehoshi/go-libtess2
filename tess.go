@@ -406,16 +406,16 @@ func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
 	up := face.anEdge
 	assert(up.Lnext != up && up.Lnext.Lnext != up)
 
-	for C.VertLeq(dst(up), up.Org) != 0 {
+	for vertLeq(dst(up), up.Org) {
 		up = lPrev(up)
 	}
-	for C.VertLeq(up.Org, dst(up)) != 0 {
+	for vertLeq(up.Org, dst(up)) {
 		up = up.Lnext
 	}
 	lo := lPrev(up)
 
 	for up.Lnext != lo {
-		if C.VertLeq(dst(up), lo.Org) != 0 {
+		if vertLeq(dst(up), lo.Org) {
 			// up.Dst is on the left.  It is safe to form triangles from lo.Org.
 			// The edgeGoesLeft test guarantees progress even when some triangles
 			// are CW, given that the upper and lower chains are truly monotone.
