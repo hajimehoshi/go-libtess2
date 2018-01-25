@@ -109,8 +109,7 @@ void Splice( TESShalfEdge *a, TESShalfEdge *b )
 * the new vertex *before* vNext so that algorithms which walk the vertex
 * list will not see the newly created vertices.
 */
-static void MakeVertex( TESSvertex *newVertex, 
-					   TESShalfEdge *eOrig, TESSvertex *vNext )
+void MakeVertex( TESSvertex *newVertex, TESShalfEdge *eOrig, TESSvertex *vNext )
 {
 	TESShalfEdge *e;
 	TESSvertex *vPrev;
@@ -400,40 +399,4 @@ int tessMeshDelete( TESSmesh *mesh, TESShalfEdge *eDel )
 	KillEdge( mesh, eDel );
 
 	return 1;
-}
-
-
-/******************** Other Edge Operations **********************/
-
-/* All these routines can be implemented with the basic edge
-* operations above.  They are provided for convenience and efficiency.
-*/
-
-
-/* tessMeshAddEdgeVertex( eOrg ) creates a new edge eNew such that
-* eNew == eOrg->Lnext, and eNew->Dst is a newly created vertex.
-* eOrg and eNew will have the same left face.
-*/
-TESShalfEdge *tessMeshAddEdgeVertex( TESSmesh *mesh, TESShalfEdge *eOrg )
-{
-	TESShalfEdge *eNewSym;
-	TESShalfEdge *eNew = MakeEdge( mesh, eOrg );
-	if (eNew == NULL) return NULL;
-
-	eNewSym = eNew->Sym;
-
-	/* Connect the new edge appropriately */
-	Splice( eNew, eOrg->Lnext );
-
-	/* Set the vertex and face information */
-	eNew->Org = eOrg->Dst;
-	{
-		TESSvertex *newVertex= (TESSvertex*)bucketAlloc( mesh->vertexBucket );
-		if (newVertex == NULL) return NULL;
-
-		MakeVertex( newVertex, eNewSym, eNew->Org );
-	}
-	eNew->Lface = eNewSym->Lface = eOrg->Lface;
-
-	return eNew;
 }

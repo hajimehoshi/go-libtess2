@@ -43,11 +43,34 @@ import (
 	"unsafe"
 )
 
-// tessMeshSplitEdge( eOrg ) splits eOrg into two edges eOrg and eNew,
+// All these routines can be implemented with the basic edge
+// operations above.  They are provided for convenience and efficiency.
+
+// tessMeshAddEdgeVertex creates a new edge eNew such that
+// eNew == eOrg.Lnext, and eNew.Dst is a newly created vertex.
+// eOrg and eNew will have the same left face.
+func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
+	eNew := C.MakeEdge(mesh, eOrg)
+	eNewSym := eNew.Sym
+
+	// Connect the new edge appropriately
+	C.Splice(eNew, eOrg.Lnext)
+
+	// Set the vertex and face information
+	eNew.Org = dst(eOrg)
+	newVertex := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+	C.MakeVertex(newVertex, eNewSym, eNew.Org)
+	eNew.Lface = eOrg.Lface
+	eNewSym.Lface = eOrg.Lface
+
+	return eNew
+}
+
+// tessMeshSplitEdge splits eOrg into two edges eOrg and eNew,
 // such that eNew == eOrg.Lnext.  The new vertex is eOrg.Dst == eNew.Org.
 // eOrg and eNew will have the same left face.
 func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
-	tempHalfEdge := C.tessMeshAddEdgeVertex(mesh, eOrg)
+	tempHalfEdge := tessMeshAddEdgeVertex(mesh, eOrg)
 
 	eNew := tempHalfEdge.Sym
 
@@ -77,10 +100,6 @@ func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
 func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) *C.TESShalfEdge {
 	joiningLoops := false
 	eNew := C.MakeEdge(mesh, eOrg)
-	if eNew == nil {
-		return nil
-	}
-
 	eNewSym := eNew.Sym
 
 	if eDst.Lface != eOrg.Lface {
