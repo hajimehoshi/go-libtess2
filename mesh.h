@@ -260,6 +260,8 @@ TESShalfEdge *tessMeshAddEdgeVertex( TESSmesh *mesh, TESShalfEdge *eOrg );
 TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg );
 TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 
-void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap );
+void Splice( TESShalfEdge *a, TESShalfEdge *b );
+void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg );
+void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel );
 
 #endif

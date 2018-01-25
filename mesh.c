@@ -92,7 +92,7 @@ static TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext )
 * depending on whether a and b belong to different face or vertex rings.
 * For more explanation see tessMeshSplice() below.
 */
-static void Splice( TESShalfEdge *a, TESShalfEdge *b )
+void Splice( TESShalfEdge *a, TESShalfEdge *b )
 {
 	TESShalfEdge *aOnext = a->Onext;
 	TESShalfEdge *bOnext = b->Onext;
@@ -177,7 +177,7 @@ static void MakeFace( TESSface *newFace, TESShalfEdge *eOrig, TESSface *fNext )
 /* KillEdge( eDel ) destroys an edge (the half-edges eDel and eDel->Sym),
 * and removes from the global edge list.
 */
-static void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel )
+void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel )
 {
 	TESShalfEdge *ePrev, *eNext;
 
@@ -197,7 +197,7 @@ static void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel )
 /* KillVertex( vDel ) destroys a vertex and removes it from the global
 * vertex list.  It updates the vertex loop to point to a given new vertex.
 */
-static void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg )
+void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg )
 {
 	TESShalfEdge *e, *eStart = vDel->anEdge;
 	TESSvertex *vPrev, *vNext;
@@ -511,58 +511,4 @@ TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge 
 		MakeFace( newFace, eNew, eOrg->Lface );
 	}
 	return eNew;
-}
-
-
-/******************** Other Operations **********************/
-
-/* tessMeshZapFace( fZap ) destroys a face and removes it from the
-* global face list.  All edges of fZap will have a NULL pointer as their
-* left face.  Any edges which also have a NULL pointer as their right face
-* are deleted entirely (along with any isolated vertices this produces).
-* An entire mesh can be deleted by zapping its faces, one at a time,
-* in any order.  Zapped faces cannot be used in further mesh operations!
-*/
-void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap )
-{
-	TESShalfEdge *eStart = fZap->anEdge;
-	TESShalfEdge *e, *eNext, *eSym;
-	TESSface *fPrev, *fNext;
-
-	/* walk around face, deleting edges whose right face is also NULL */
-	eNext = eStart->Lnext;
-	do {
-		e = eNext;
-		eNext = e->Lnext;
-
-		e->Lface = NULL;
-		if( e->Rface == NULL ) {
-			/* delete the edge -- see TESSmeshDelete above */
-
-			if( e->Onext == e ) {
-				KillVertex( mesh, e->Org, NULL );
-			} else {
-				/* Make sure that e->Org points to a valid half-edge */
-				e->Org->anEdge = e->Onext;
-				Splice( e, e->Oprev );
-			}
-			eSym = e->Sym;
-			if( eSym->Onext == eSym ) {
-				KillVertex( mesh, eSym->Org, NULL );
-			} else {
-				/* Make sure that eSym->Org points to a valid half-edge */
-				eSym->Org->anEdge = eSym->Onext;
-				Splice( eSym, eSym->Oprev );
-			}
-			KillEdge( mesh, e );
-		}
-	} while( e != eStart );
-
-	/* delete from circular doubly-linked list */
-	fPrev = fZap->prev;
-	fNext = fZap->next;
-	fNext->prev = fPrev;
-	fPrev->next = fNext;
-
-	bucketFree( mesh->faceBucket, fZap );
 }

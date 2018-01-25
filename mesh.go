@@ -39,6 +39,60 @@ package libtess2
 // }
 import "C"
 
+import (
+	"unsafe"
+)
+
+// tessMeshZapFace destroys a face and removes it from the
+// global face list.  All edges of fZap will have a NULL pointer as their
+// left face.  Any edges which also have a NULL pointer as their right face
+// are deleted entirely (along with any isolated vertices this produces).
+// An entire mesh can be deleted by zapping its faces, one at a time,
+// in any order.  Zapped faces cannot be used in further mesh operations!
+func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
+	eStart := fZap.anEdge
+
+	// walk around face, deleting edges whose right face is also nil
+	eNext := eStart.Lnext
+	for {
+		e := eNext
+		eNext = e.Lnext
+
+		e.Lface = nil
+		if rFace(e) == nil {
+			// delete the edge -- see TESSmeshDelete above
+
+			if e.Onext == e {
+				C.KillVertex(mesh, e.Org, nil)
+			} else {
+				// Make sure that e.Org points to a valid half-edge
+				e.Org.anEdge = e.Onext
+				C.Splice(e, oPrev(e))
+			}
+			eSym := e.Sym
+			if eSym.Onext == eSym {
+				C.KillVertex(mesh, eSym.Org, nil)
+			} else {
+				// Make sure that eSym.Org points to a valid half-edge
+				eSym.Org.anEdge = eSym.Onext
+				C.Splice(eSym, oPrev(eSym))
+			}
+			C.KillEdge(mesh, e)
+		}
+		if e == eStart {
+			break
+		}
+	}
+
+	// delete from circular doubly-linked list
+	fPrev := fZap.prev
+	fNext := fZap.next
+	fNext.prev = fPrev
+	fPrev.next = fNext
+
+	C.bucketFree(mesh.faceBucket, unsafe.Pointer(fZap))
+}
+
 // tessMeshNewMesh creates a new mesh with no edges, no vertices,
 // and no loops (what we usually call a "face").
 func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
