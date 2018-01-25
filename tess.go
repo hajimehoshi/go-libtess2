@@ -563,7 +563,7 @@ func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, p
 	// Assume that the input data is triangles now.
 	// Try to merge as many polygons as possible
 	if polySize > 3 {
-		C.tessMeshMergeConvexFaces(mesh, C.int(polySize))
+		tessMeshMergeConvexFaces(mesh, polySize)
 	}
 
 	// Mark unused

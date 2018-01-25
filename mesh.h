@@ -256,8 +256,6 @@ TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge 
 
 TESSmesh *tessMeshNewMesh( TESSalloc* alloc );
 TESSmesh *tessMeshUnion( TESSalloc* alloc, TESSmesh *mesh1, TESSmesh *mesh2 );
-int tessMeshMergeConvexFaces( TESSmesh *mesh, int maxVertsPerFace );
-void tessMeshDeleteMesh( TESSalloc* alloc, TESSmesh *mesh );
 void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap );
 
 #endif

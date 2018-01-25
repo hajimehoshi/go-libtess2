@@ -29,6 +29,59 @@ package libtess2
 // #include "mesh.h"
 import "C"
 
+func countFaceVerts(f *C.TESSface) int {
+	eCur := f.anEdge
+	n := 0
+	for {
+		n++
+		eCur = eCur.Lnext
+		if eCur == f.anEdge {
+			break
+		}
+	}
+	return n
+}
+
+func tessMeshMergeConvexFaces(mesh *C.TESSmesh, maxVertsPerFace int) {
+	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
+		// Skip faces which are outside the result.
+		if f.inside == 0 /* false */ {
+			continue
+		}
+
+		eCur := f.anEdge
+		vStart := eCur.Org
+
+		for {
+			eNext := eCur.Lnext
+			eSym := eCur.Sym
+
+			// Try to merge if the neighbour face is valid.
+			if eSym != nil && eSym.Lface != nil && eSym.Lface.inside != 0 /* true */ {
+				// Try to merge the neighbour faces if the resulting polygons
+				// does not exceed maximum number of vertices.
+				curNv := countFaceVerts(f)
+				symNv := countFaceVerts(eSym.Lface)
+				if curNv + symNv - 2 <= maxVertsPerFace {
+					// Merge if the resulting poly is convex.
+					if tesvertCCW(lPrev(eCur).Org, eCur.Org, eSym.Lnext.Lnext.Org) && tesvertCCW(lPrev(eSym).Org, eSym.Org, eCur.Lnext.Lnext.Org) {
+						eNext = eSym.Lnext
+						C.tessMeshDelete(mesh, eSym)
+						eCur = nil
+					}
+				}
+			}
+
+			if eCur != nil && eCur.Lnext.Org == vStart {
+				break
+			}
+
+			// Continue to next edge.
+			eCur = eNext
+		}
+	}
+}
+
 // tessMeshCheckMesh checks a mesh for self-consistency.
 func tessMeshCheckMesh(mesh *C.TESSmesh) {
 	fHead := &mesh.fHead
