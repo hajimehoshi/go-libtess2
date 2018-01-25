@@ -27,7 +27,84 @@
 package libtess2
 
 // #include "mesh.h"
+// #include "bucketalloc.h"
+//
+// #include <stdlib.h>
+//
+// static void* golibtess2_stdAlloc(void* userData, unsigned int size) {
+//   int* allocated = ( int*)userData;
+//   TESS_NOTUSED(userData);
+//   *allocated += (int)size;
+//   return malloc(size);
+// }
 import "C"
+
+// tessMeshNewMesh creates a new mesh with no edges, no vertices,
+// and no loops (what we usually call a "face").
+func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
+	mesh := (*C.TESSmesh)(C.golibtess2_stdAlloc(alloc.userData, C.sizeof_struct_TESSmesh))
+
+	if alloc.meshEdgeBucketSize < 16 {
+		alloc.meshEdgeBucketSize = 16
+	}
+	if alloc.meshEdgeBucketSize > 4096 {
+		alloc.meshEdgeBucketSize = 4096
+	}
+
+	if alloc.meshVertexBucketSize < 16 {
+		alloc.meshVertexBucketSize = 16
+	}
+	if alloc.meshVertexBucketSize > 4096 {
+		alloc.meshVertexBucketSize = 4096
+	}
+
+	if alloc.meshFaceBucketSize < 16 {
+		alloc.meshFaceBucketSize = 16
+	}
+	if alloc.meshFaceBucketSize > 4096 {
+		alloc.meshFaceBucketSize = 4096
+	}
+
+	mesh.edgeBucket = C.createBucketAlloc(alloc, C.CString("Mesh Edges"), C.sizeof_EdgePair, C.uint(alloc.meshEdgeBucketSize))
+	mesh.vertexBucket = C.createBucketAlloc(alloc, C.CString("Mesh Vertices"), C.sizeof_struct_TESSvertex, C.uint(alloc.meshVertexBucketSize))
+	mesh.faceBucket = C.createBucketAlloc(alloc, C.CString("Mesh Faces"), C.sizeof_struct_TESSface, C.uint(alloc.meshFaceBucketSize))
+
+	v := &mesh.vHead
+	f := &mesh.fHead
+	e := &mesh.eHead
+	eSym := &mesh.eHeadSym
+
+	v.next = v
+	v.prev = v
+	v.anEdge = nil
+
+	f.next = f
+	f.prev = f
+	f.anEdge = nil
+	f.trail = nil
+	f.marked = 0 /* false */
+	f.inside = 0 /* false */
+
+	e.next = e
+	e.Sym = eSym
+	e.Onext = nil
+	e.Lnext = nil
+	e.Org = nil
+	e.Lface = nil
+	e.winding = 0
+	e.activeRegion = nil
+
+	eSym.next = eSym
+	eSym.Sym = e
+	eSym.Onext = nil
+	eSym.Lnext = nil
+	eSym.Org = nil
+	eSym.Lface = nil
+	eSym.winding = 0
+	eSym.activeRegion = nil
+
+	return mesh
+}
 
 // tessMeshUnion forms the union of all structures in
 // both meshes, and returns the new mesh (the old meshes are destroyed).

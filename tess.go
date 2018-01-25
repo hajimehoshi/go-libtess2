@@ -753,7 +753,7 @@ func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
 //   vertices - vertices array
 func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
 	if tess.mesh == nil {
-		tess.mesh = C.tessMeshNewMesh(&tess.alloc)
+		tess.mesh = tessMeshNewMesh(&tess.alloc)
 	}
 
 	if size < 2 {

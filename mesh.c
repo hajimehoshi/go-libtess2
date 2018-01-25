@@ -40,11 +40,6 @@
 
 /************************ Utility Routines ************************/
 
-/* Allocate and free half-edges in pairs for efficiency.
-* The *only* place that should use this fact is allocation/free.
-*/
-typedef struct { TESShalfEdge e, eSym; } EdgePair;
-
 /* MakeEdge creates a new pair of half-edges which form their own loop.
 * No vertex or face structures are allocated, but these must be assigned
 * before the current edge operation is completed.
@@ -570,73 +565,4 @@ void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap )
 	fPrev->next = fNext;
 
 	bucketFree( mesh->faceBucket, fZap );
-}
-
-
-/* tessMeshNewMesh() creates a new mesh with no edges, no vertices,
-* and no loops (what we usually call a "face").
-*/
-TESSmesh *tessMeshNewMesh( TESSalloc* alloc )
-{
-	TESSvertex *v;
-	TESSface *f;
-	TESShalfEdge *e;
-	TESShalfEdge *eSym;
-	TESSmesh *mesh = (TESSmesh *)alloc->memalloc( alloc->userData, sizeof( TESSmesh ));
-	if (mesh == NULL) {
-		return NULL;
-	}
-	
-	if (alloc->meshEdgeBucketSize < 16)
-		alloc->meshEdgeBucketSize = 16;
-	if (alloc->meshEdgeBucketSize > 4096)
-		alloc->meshEdgeBucketSize = 4096;
-	
-	if (alloc->meshVertexBucketSize < 16)
-		alloc->meshVertexBucketSize = 16;
-	if (alloc->meshVertexBucketSize > 4096)
-		alloc->meshVertexBucketSize = 4096;
-	
-	if (alloc->meshFaceBucketSize < 16)
-		alloc->meshFaceBucketSize = 16;
-	if (alloc->meshFaceBucketSize > 4096)
-		alloc->meshFaceBucketSize = 4096;
-
-	mesh->edgeBucket = createBucketAlloc( alloc, "Mesh Edges", sizeof(EdgePair), alloc->meshEdgeBucketSize );
-	mesh->vertexBucket = createBucketAlloc( alloc, "Mesh Vertices", sizeof(TESSvertex), alloc->meshVertexBucketSize );
-	mesh->faceBucket = createBucketAlloc( alloc, "Mesh Faces", sizeof(TESSface), alloc->meshFaceBucketSize );
-
-	v = &mesh->vHead;
-	f = &mesh->fHead;
-	e = &mesh->eHead;
-	eSym = &mesh->eHeadSym;
-
-	v->next = v->prev = v;
-	v->anEdge = NULL;
-
-	f->next = f->prev = f;
-	f->anEdge = NULL;
-	f->trail = NULL;
-	f->marked = FALSE;
-	f->inside = FALSE;
-
-	e->next = e;
-	e->Sym = eSym;
-	e->Onext = NULL;
-	e->Lnext = NULL;
-	e->Org = NULL;
-	e->Lface = NULL;
-	e->winding = 0;
-	e->activeRegion = NULL;
-
-	eSym->next = eSym;
-	eSym->Sym = e;
-	eSym->Onext = NULL;
-	eSym->Lnext = NULL;
-	eSym->Org = NULL;
-	eSym->Lface = NULL;
-	eSym->winding = 0;
-	eSym->activeRegion = NULL;
-
-	return mesh;
 }

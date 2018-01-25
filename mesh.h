@@ -246,6 +246,12 @@ struct TESSmesh {
 * tessMeshCheckMesh( mesh ) checks a mesh for self-consistency.
 */
 
+/* Allocate and free half-edges in pairs for efficiency.
+* The *only* place that should use this fact is allocation/free.
+*/
+
+typedef struct { TESShalfEdge e, eSym; } EdgePair;
+
 TESShalfEdge *tessMeshMakeEdge( TESSmesh *mesh );
 int tessMeshSplice( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 int tessMeshDelete( TESSmesh *mesh, TESShalfEdge *eDel );
@@ -254,7 +260,6 @@ TESShalfEdge *tessMeshAddEdgeVertex( TESSmesh *mesh, TESShalfEdge *eOrg );
 TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg );
 TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 
-TESSmesh *tessMeshNewMesh( TESSalloc* alloc );
 void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap );
 
 #endif
