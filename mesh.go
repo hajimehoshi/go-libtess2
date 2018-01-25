@@ -62,7 +62,7 @@ func tessMeshMergeConvexFaces(mesh *C.TESSmesh, maxVertsPerFace int) {
 				// does not exceed maximum number of vertices.
 				curNv := countFaceVerts(f)
 				symNv := countFaceVerts(eSym.Lface)
-				if curNv + symNv - 2 <= maxVertsPerFace {
+				if curNv+symNv-2 <= maxVertsPerFace {
 					// Merge if the resulting poly is convex.
 					if tesvertCCW(lPrev(eCur).Org, eCur.Org, eSym.Lnext.Lnext.Org) && tesvertCCW(lPrev(eSym).Org, eSym.Org, eCur.Lnext.Lnext.Org) {
 						eNext = eSym.Lnext
