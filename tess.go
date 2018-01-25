@@ -419,14 +419,14 @@ func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
 			// The edgeGoesLeft test guarantees progress even when some triangles
 			// are CW, given that the upper and lower chains are truly monotone.
 			for lo.Lnext != up && (edgeGoesLeft(lo.Lnext) || tesedgeSign(lo.Org, dst(lo), dst(lo.Lnext)) <= 0) {
-				tempHalfEdge := C.tessMeshConnect(mesh, lo.Lnext, lo)
+				tempHalfEdge := tessMeshConnect(mesh, lo.Lnext, lo)
 				lo = tempHalfEdge.Sym
 			}
 			lo = lPrev(lo)
 		} else {
 			// lo.Org is on the left.  We can make CCW triangles from up.Dst.
 			for lo.Lnext != up && (edgeGoesRight(lPrev(up)) || tesedgeSign(dst(up), up.Org, lPrev(up).Org) >= 0) {
-				tempHalfEdge := C.tessMeshConnect(mesh, up, lPrev(up))
+				tempHalfEdge := tessMeshConnect(mesh, up, lPrev(up))
 				up = tempHalfEdge.Sym
 			}
 			up = up.Lnext
@@ -437,7 +437,7 @@ func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
 	// can be tessellated in a fan from this leftmost vertex.
 	assert(lo.Lnext != up)
 	for lo.Lnext.Lnext != up {
-		tempHalfEdge := C.tessMeshConnect(mesh, lo.Lnext, lo)
+		tempHalfEdge := tessMeshConnect(mesh, lo.Lnext, lo)
 		lo = tempHalfEdge.Sym
 	}
 }

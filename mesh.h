@@ -258,10 +258,12 @@ int tessMeshDelete( TESSmesh *mesh, TESShalfEdge *eDel );
 
 TESShalfEdge *tessMeshAddEdgeVertex( TESSmesh *mesh, TESShalfEdge *eOrg );
 TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg );
-TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 
 void Splice( TESShalfEdge *a, TESShalfEdge *b );
 void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg );
 void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel );
+void KillFace( TESSmesh *mesh, TESSface *fDel, TESSface *newLface );
+void MakeFace( TESSface *newFace, TESShalfEdge *eOrig, TESSface *fNext );
+TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext );
 
 #endif

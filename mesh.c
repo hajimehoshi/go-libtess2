@@ -44,7 +44,7 @@
 * No vertex or face structures are allocated, but these must be assigned
 * before the current edge operation is completed.
 */
-static TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext )
+TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext )
 {
 	TESShalfEdge *e;
 	TESShalfEdge *eSym;
@@ -142,7 +142,7 @@ static void MakeVertex( TESSvertex *newVertex,
 * the new face *before* fNext so that algorithms which walk the face
 * list will not see the newly created faces.
 */
-static void MakeFace( TESSface *newFace, TESShalfEdge *eOrig, TESSface *fNext )
+void MakeFace( TESSface *newFace, TESShalfEdge *eOrig, TESSface *fNext )
 {
 	TESShalfEdge *e;
 	TESSface *fPrev;
@@ -221,7 +221,7 @@ void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg )
 /* KillFace( fDel ) destroys a face and removes it from the global face
 * list.  It updates the face loop to point to a given new face.
 */
-static void KillFace( TESSmesh *mesh, TESSface *fDel, TESSface *newLface )
+void KillFace( TESSmesh *mesh, TESSface *fDel, TESSface *newLface )
 {
 	TESShalfEdge *e, *eStart = fDel->anEdge;
 	TESSface *fPrev, *fNext;
@@ -462,53 +462,5 @@ TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg )
 	eNew->winding = eOrg->winding;	/* copy old winding information */
 	eNew->Sym->winding = eOrg->Sym->winding;
 
-	return eNew;
-}
-
-
-/* tessMeshConnect( eOrg, eDst ) creates a new edge from eOrg->Dst
-* to eDst->Org, and returns the corresponding half-edge eNew.
-* If eOrg->Lface == eDst->Lface, this splits one loop into two,
-* and the newly created loop is eNew->Lface.  Otherwise, two disjoint
-* loops are merged into one, and the loop eDst->Lface is destroyed.
-*
-* If (eOrg == eDst), the new face will have only two edges.
-* If (eOrg->Lnext == eDst), the old face is reduced to a single edge.
-* If (eOrg->Lnext->Lnext == eDst), the old face is reduced to two edges.
-*/
-TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst )
-{
-	TESShalfEdge *eNewSym;
-	int joiningLoops = FALSE;  
-	TESShalfEdge *eNew = MakeEdge( mesh, eOrg );
-	if (eNew == NULL) return NULL;
-
-	eNewSym = eNew->Sym;
-
-	if( eDst->Lface != eOrg->Lface ) {
-		/* We are connecting two disjoint loops -- destroy eDst->Lface */
-		joiningLoops = TRUE;
-		KillFace( mesh, eDst->Lface, eOrg->Lface );
-	}
-
-	/* Connect the new edge appropriately */
-	Splice( eNew, eOrg->Lnext );
-	Splice( eNewSym, eDst );
-
-	/* Set the vertex and face information */
-	eNew->Org = eOrg->Dst;
-	eNewSym->Org = eDst->Org;
-	eNew->Lface = eNewSym->Lface = eOrg->Lface;
-
-	/* Make sure the old face points to a valid half-edge */
-	eOrg->Lface->anEdge = eNewSym;
-
-	if( ! joiningLoops ) {
-		TESSface *newFace= (TESSface*)bucketAlloc( mesh->faceBucket );
-		if (newFace == NULL) return NULL;
-
-		/* We split one loop into two -- the new loop is eNew->Lface */
-		MakeFace( newFace, eNew, eOrg->Lface );
-	}
 	return eNew;
 }

@@ -220,7 +220,7 @@ func topLeftRegion(tess *C.TESStesselator, reg *C.ActiveRegion) *C.ActiveRegion 
 	// If the edge above was a temporary edge introduced by ConnectRightVertex,
 	// now is the time to fix it.
 	if reg.fixUpperEdge != 0 {
-		e := C.tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
+		e := tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
 		fixUpperEdge(tess, reg, e)
 		reg = regionAbove(reg)
 	}
@@ -323,7 +323,7 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *C.ActiveRegion, regLast
 			}
 			// If the edge below was a temporary edge introduced by
 			// ConnectRightVertex, now is the time to fix it.
-			e = C.tessMeshConnect(tess.mesh, lPrev(ePrev), e.Sym)
+			e = tessMeshConnect(tess.mesh, lPrev(ePrev), e.Sym)
 			fixUpperEdge(tess, reg, e)
 		}
 
@@ -853,7 +853,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	} else {
 		eNew = eUp
 	}
-	eNew = C.tessMeshConnect(tess.mesh, lPrev(eBottomLeft), eNew)
+	eNew = tessMeshConnect(tess.mesh, lPrev(eBottomLeft), eNew)
 
 	// Prevent cleanup, otherwise eNew might disappear before we've even
 	// had a chance to mark it as a temporary edge.
@@ -970,9 +970,9 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 	if regUp.inside != 0 || reg.fixUpperEdge != 0 {
 		var eNew *C.TESShalfEdge
 		if reg == regUp {
-			eNew = C.tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
+			eNew = tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
 		} else {
-			tempHalfEdge := C.tessMeshConnect(tess.mesh, dNext(eLo), vEvent.anEdge)
+			tempHalfEdge := tessMeshConnect(tess.mesh, dNext(eLo), vEvent.anEdge)
 			eNew = tempHalfEdge.Sym
 		}
 		if reg.fixUpperEdge != 0 {

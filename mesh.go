@@ -43,9 +43,55 @@ import (
 	"unsafe"
 )
 
+// tessMeshConnect creates a new edge from eOrg->Dst
+// to eDst->Org, and returns the corresponding half-edge eNew.
+// If eOrg->Lface == eDst->Lface, this splits one loop into two,
+// and the newly created loop is eNew->Lface.  Otherwise, two disjoint
+// loops are merged into one, and the loop eDst->Lface is destroyed.
+//
+// If (eOrg == eDst), the new face will have only two edges.
+// If (eOrg->Lnext == eDst), the old face is reduced to a single edge.
+// If (eOrg->Lnext->Lnext == eDst), the old face is reduced to two edges.
+func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) *C.TESShalfEdge {
+	joiningLoops := false
+	eNew := C.MakeEdge(mesh, eOrg)
+	if eNew == nil {
+		return nil
+	}
+
+	eNewSym := eNew.Sym
+
+	if eDst.Lface != eOrg.Lface {
+		// We are connecting two disjoint loops -- destroy eDst.Lface
+		joiningLoops = true
+		C.KillFace(mesh, eDst.Lface, eOrg.Lface)
+	}
+
+	// Connect the new edge appropriately
+	C.Splice(eNew, eOrg.Lnext)
+	C.Splice(eNewSym, eDst)
+
+	// Set the vertex and face information
+	eNew.Org = dst(eOrg)
+	eNewSym.Org = eDst.Org
+	eNew.Lface = eOrg.Lface
+	eNewSym.Lface = eOrg.Lface
+
+	// Make sure the old face points to a valid half-edge
+	eOrg.Lface.anEdge = eNewSym
+
+	if !joiningLoops {
+		newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+
+		// We split one loop into two -- the new loop is eNew.Lface
+		C.MakeFace(newFace, eNew, eOrg.Lface)
+	}
+	return eNew
+}
+
 // tessMeshZapFace destroys a face and removes it from the
-// global face list.  All edges of fZap will have a NULL pointer as their
-// left face.  Any edges which also have a NULL pointer as their right face
+// global face list.  All edges of fZap will have a nil pointer as their
+// left face.  Any edges which also have a nil pointer as their right face
 // are deleted entirely (along with any isolated vertices this produces).
 // An entire mesh can be deleted by zapping its faces, one at a time,
 // in any order.  Zapped faces cannot be used in further mesh operations!
