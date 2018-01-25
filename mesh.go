@@ -29,6 +29,42 @@ package libtess2
 // #include "mesh.h"
 import "C"
 
+// tessMeshUnion forms the union of all structures in
+// both meshes, and returns the new mesh (the old meshes are destroyed).
+//
+// TODO: This function is not used anywhere?
+func tessMeshUnion(alloc *C.TESSalloc, mesh1, mesh2 *C.TESSmesh) *C.TESSmesh {
+	f1 := &mesh1.fHead
+	v1 := &mesh1.vHead
+	e1 := &mesh1.eHead
+	f2 := &mesh2.fHead
+	v2 := &mesh2.vHead
+	e2 := &mesh2.eHead
+
+	// Add the faces, vertices, and edges of mesh2 to those of mesh1
+	if f2.next != f2 {
+		f1.prev.next = f2.next
+		f2.next.prev = f1.prev
+		f2.prev.next = f1
+		f1.prev = f2.prev
+	}
+
+	if v2.next != v2 {
+		v1.prev.next = v2.next
+		v2.next.prev = v1.prev
+		v2.prev.next = v1
+		v1.prev = v2.prev
+	}
+
+	if e2.next != e2 {
+		e1.Sym.next.Sym.next = e2.next
+		e2.next.Sym.next = e1.Sym.next
+		e2.Sym.next.Sym.next = e1
+		e1.Sym.next = e2.Sym.next
+	}
+	return mesh1
+}
+
 func countFaceVerts(f *C.TESSface) int {
 	eCur := f.anEdge
 	n := 0

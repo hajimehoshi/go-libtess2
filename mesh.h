@@ -255,7 +255,6 @@ TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg );
 TESShalfEdge *tessMeshConnect( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 
 TESSmesh *tessMeshNewMesh( TESSalloc* alloc );
-TESSmesh *tessMeshUnion( TESSalloc* alloc, TESSmesh *mesh1, TESSmesh *mesh2 );
 void tessMeshZapFace( TESSmesh *mesh, TESSface *fZap );
 
 #endif
