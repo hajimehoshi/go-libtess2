@@ -784,7 +784,7 @@ func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
 		} else {
 			// Create a new vertex and edge which immediately follow e
 			// in the ordering around the left face.
-			if C.tessMeshSplitEdge(tess.mesh, e) == nil {
+			if tessMeshSplitEdge(tess.mesh, e) == nil {
 				tess.outOfMemory = 1
 				return
 			}

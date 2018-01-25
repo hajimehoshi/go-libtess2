@@ -437,30 +437,3 @@ TESShalfEdge *tessMeshAddEdgeVertex( TESSmesh *mesh, TESShalfEdge *eOrg )
 
 	return eNew;
 }
-
-
-/* tessMeshSplitEdge( eOrg ) splits eOrg into two edges eOrg and eNew,
-* such that eNew == eOrg->Lnext.  The new vertex is eOrg->Dst == eNew->Org.
-* eOrg and eNew will have the same left face.
-*/
-TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg )
-{
-	TESShalfEdge *eNew;
-	TESShalfEdge *tempHalfEdge= tessMeshAddEdgeVertex( mesh, eOrg );
-	if (tempHalfEdge == NULL) return NULL;
-
-	eNew = tempHalfEdge->Sym;
-
-	/* Disconnect eOrg from eOrg->Dst and connect it to eNew->Org */
-	Splice( eOrg->Sym, eOrg->Sym->Oprev );
-	Splice( eOrg->Sym, eNew );
-
-	/* Set the vertex and face information */
-	eOrg->Dst = eNew->Org;
-	eNew->Dst->anEdge = eNew->Sym;	/* may have pointed to eOrg->Sym */
-	eNew->Rface = eOrg->Rface;
-	eNew->winding = eOrg->winding;	/* copy old winding information */
-	eNew->Sym->winding = eOrg->Sym->winding;
-
-	return eNew;
-}

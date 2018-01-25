@@ -107,8 +107,16 @@ func rFace(e *C.TESShalfEdge) *C.TESSface {
 	return e.Sym.Lface
 }
 
+func setRFace(e *C.TESShalfEdge, f *C.TESSface) {
+	e.Sym.Lface = f
+}
+
 func dst(e *C.TESShalfEdge) *C.TESSvertex {
 	return e.Sym.Org
+}
+
+func setDst(e *C.TESShalfEdge, v *C.TESSvertex) {
+	e.Sym.Org = v
 }
 
 func rPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
@@ -486,7 +494,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		// eUp.Org appears to be below eLo
 		if !vertEq(eUp.Org, eLo.Org) {
 			// Splice eUp.Org into eLo
-			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+			tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			C.tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
 			regUp.dirty = 1 /* true */
 			regLo.dirty = 1 /* true */
@@ -504,7 +512,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		// eLo.Org appears to be above eUp, so splice eLo.Org into eUp
 		regionAbove(regUp).dirty = 1 /* true */
 		regUp.dirty = 1              /* true */
-		C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+		tessMeshSplitEdge(tess.mesh, eUp.Sym)
 		C.tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	}
 	return true
@@ -541,7 +549,7 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		// eLo.Dst is above eUp, so splice eLo.Dst into eUp
 		regionAbove(regUp).dirty = 1 /* true */
 		regUp.dirty = 1              /* true */
-		e := C.tessMeshSplitEdge(tess.mesh, eUp)
+		e := tessMeshSplitEdge(tess.mesh, eUp)
 		C.tessMeshSplice(tess.mesh, eLo.Sym, e)
 		e.Lface.inside = C.char(regUp.inside)
 	} else {
@@ -551,7 +559,7 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		// eUp.Dst is below eLo, so splice eUp.Dst into eLo
 		regUp.dirty = 1 /* true */
 		regLo.dirty = 1 /* true */
-		e := C.tessMeshSplitEdge(tess.mesh, eLo)
+		e := tessMeshSplitEdge(tess.mesh, eLo)
 		C.tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
 		rFace(e).inside = C.char(regUp.inside)
 	}
@@ -647,7 +655,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		// due to very small numerical errors in the intersection calculation.
 		if dstLo == tess.event {
 			// Splice dstLo into eUp, and process the new region(s)
-			C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+			tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			C.tessMeshSplice(tess.mesh, eLo.Sym, eUp)
 			regUp = topLeftRegion(tess, regUp)
 			eUp = regionBelow(regUp).eUp
@@ -657,7 +665,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		}
 		if dstUp == tess.event {
 			// Splice dstUp into eLo, and process the new region(s)
-			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+			tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			C.tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
 			regLo = regUp
 			regUp = topRightRegion(regUp)
@@ -673,14 +681,14 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		if tesedgeSign(dstUp, tess.event, &isect) >= 0 {
 			regionAbove(regUp).dirty = 1 /* true */
 			regUp.dirty = 1              /* true */
-			C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
+			tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			eUp.Org.s = tess.event.s
 			eUp.Org.t = tess.event.t
 		}
 		if tesedgeSign(dstLo, tess.event, &isect) <= 0 {
 			regUp.dirty = 1 /* true */
 			regLo.dirty = 1 /* true */
-			C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+			tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			eLo.Org.s = tess.event.s
 			eLo.Org.t = tess.event.t
 		}
@@ -695,8 +703,8 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	// the new face.  We expect the faces in the processed part of
 	// the mesh (ie. eUp.Lface) to be smaller than the faces in the
 	// unprocessed original contours (which will be eLo.Oprev.Lface).
-	C.tessMeshSplitEdge(tess.mesh, eUp.Sym)
-	C.tessMeshSplitEdge(tess.mesh, eLo.Sym)
+	tessMeshSplitEdge(tess.mesh, eUp.Sym)
+	tessMeshSplitEdge(tess.mesh, eLo.Sym)
 	C.tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	eUp.Org.s = isect.s
 	eUp.Org.t = isect.t
@@ -886,7 +894,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 
 	if vertEq(dst(e), vEvent) {
 		// General case -- splice vEvent into edge e which passes through it
-		C.tessMeshSplitEdge(tess.mesh, e.Sym)
+		tessMeshSplitEdge(tess.mesh, e.Sym)
 		if regUp.fixUpperEdge != 0 {
 			// This edge was fixable -- delete unused portion of original edge
 			C.tessMeshDelete(tess.mesh, e.Onext)

@@ -43,15 +43,37 @@ import (
 	"unsafe"
 )
 
-// tessMeshConnect creates a new edge from eOrg->Dst
-// to eDst->Org, and returns the corresponding half-edge eNew.
-// If eOrg->Lface == eDst->Lface, this splits one loop into two,
-// and the newly created loop is eNew->Lface.  Otherwise, two disjoint
-// loops are merged into one, and the loop eDst->Lface is destroyed.
+// tessMeshSplitEdge( eOrg ) splits eOrg into two edges eOrg and eNew,
+// such that eNew == eOrg.Lnext.  The new vertex is eOrg.Dst == eNew.Org.
+// eOrg and eNew will have the same left face.
+func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
+	tempHalfEdge := C.tessMeshAddEdgeVertex(mesh, eOrg)
+
+	eNew := tempHalfEdge.Sym
+
+	// Disconnect eOrg from eOrg.Dst and connect it to eNew.Org
+	C.Splice(eOrg.Sym, oPrev(eOrg.Sym))
+	C.Splice(eOrg.Sym, eNew)
+
+	// Set the vertex and face information
+	setDst(eOrg, eNew.Org)
+	dst(eNew).anEdge = eNew.Sym // may have pointed to eOrg.Sym
+	setRFace(eNew, rFace(eOrg))
+	eNew.winding = eOrg.winding // copy old winding information
+	eNew.Sym.winding = eOrg.Sym.winding
+
+	return eNew
+}
+
+// tessMeshConnect creates a new edge from eOrg.Dst
+// to eDst.Org, and returns the corresponding half-edge eNew.
+// If eOrg.Lface == eDst.Lface, this splits one loop into two,
+// and the newly created loop is eNew.Lface.  Otherwise, two disjoint
+// loops are merged into one, and the loop eDst.Lface is destroyed.
 //
 // If (eOrg == eDst), the new face will have only two edges.
-// If (eOrg->Lnext == eDst), the old face is reduced to a single edge.
-// If (eOrg->Lnext->Lnext == eDst), the old face is reduced to two edges.
+// If (eOrg.Lnext == eDst), the old face is reduced to a single edge.
+// If (eOrg.Lnext.Lnext == eDst), the old face is reduced to two edges.
 func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) *C.TESShalfEdge {
 	joiningLoops := false
 	eNew := C.MakeEdge(mesh, eOrg)

@@ -257,7 +257,6 @@ int tessMeshSplice( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 int tessMeshDelete( TESSmesh *mesh, TESShalfEdge *eDel );
 
 TESShalfEdge *tessMeshAddEdgeVertex( TESSmesh *mesh, TESShalfEdge *eOrg );
-TESShalfEdge *tessMeshSplitEdge( TESSmesh *mesh, TESShalfEdge *eOrg );
 
 void Splice( TESShalfEdge *a, TESShalfEdge *b );
 void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg );
