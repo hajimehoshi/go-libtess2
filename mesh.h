@@ -147,17 +147,6 @@ struct TESShalfEdge {
 						  from the right face to the left face */
 };
 
-#define Rface   Sym->Lface
-#define Dst Sym->Org
-
-#define Oprev   Sym->Lnext
-#define Lprev   Onext->Sym
-#define Dprev   Lnext->Sym
-#define Rprev   Sym->Onext
-#define Dnext   Rprev->Sym  /* 3 pointers */
-#define Rnext   Oprev->Sym  /* 3 pointers */
-
-
 struct TESSmesh {
 	TESSvertex vHead;      /* dummy header for vertex list */
 	TESSface fHead;      /* dummy header for face list */

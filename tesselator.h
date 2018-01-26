@@ -119,8 +119,6 @@ typedef int TESSindex;
   //typedef struct TESStesselator TESStesselator;
 typedef struct TESSalloc TESSalloc;
 
-#define TESS_UNDEF (~(TESSindex)0)
-
 #define TESS_NOTUSED(v) do { (void)(1 ? (void)0 : ( (void)(v) ) ); } while(0)
 
 // Custom memory allocator interface.
