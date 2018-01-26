@@ -47,10 +47,7 @@ import (
 // No vertex or face structures are allocated, but these must be assigned
 // before the current edge operation is completed.
 func makeEdge(mesh *C.TESSmesh, eNext *C.TESShalfEdge) *C.TESShalfEdge {
-	pair := (*C.EdgePair)(C.bucketAlloc(mesh.edgeBucket))
-	if pair == nil {
-		return nil
-	}
+	pair := &C.EdgePair{}
 
 	e := &pair.e
 	eSym := &pair.eSym
@@ -182,8 +179,6 @@ func killEdge(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 	ePrev := eDel.Sym.next
 	eNext.Sym.next = ePrev
 	ePrev.Sym.next = eNext
-
-	C.bucketFree(mesh.edgeBucket, unsafe.Pointer(eDel))
 }
 
 // killVertex destroys a vertex and removes it from the global
@@ -527,7 +522,6 @@ func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
 		alloc.meshFaceBucketSize = 4096
 	}
 
-	mesh.edgeBucket = C.createBucketAlloc(alloc, C.CString("Mesh Edges"), C.sizeof_EdgePair, C.uint(alloc.meshEdgeBucketSize))
 	mesh.vertexBucket = C.createBucketAlloc(alloc, C.CString("Mesh Vertices"), C.sizeof_struct_TESSvertex, C.uint(alloc.meshVertexBucketSize))
 	mesh.faceBucket = C.createBucketAlloc(alloc, C.CString("Mesh Faces"), C.sizeof_struct_TESSface, C.uint(alloc.meshFaceBucketSize))
 
