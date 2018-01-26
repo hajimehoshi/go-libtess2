@@ -40,7 +40,6 @@ import "C"
 
 import (
 	"container/heap"
-	"unsafe"
 )
 
 type pq []*C.struct_TESSvertex
@@ -74,9 +73,9 @@ func pqNewPriorityQ(size C.int) *pq {
 	return p
 }
 
-func pqInsert(p *pq, key *C.struct_TESSvertex) C.PQhandle {
+func pqInsert(p *pq, key *C.struct_TESSvertex) *C.struct_TESSvertex {
 	heap.Push(p, key)
-	return (C.PQhandle)(unsafe.Pointer(key))
+	return key
 }
 
 func pqExtractMin(p *pq) *C.struct_TESSvertex {
@@ -86,8 +85,7 @@ func pqExtractMin(p *pq) *C.struct_TESSvertex {
 	return heap.Pop(p).(*C.struct_TESSvertex)
 }
 
-func pqDelete(p *pq, handle C.PQhandle) {
-	key := (*C.struct_TESSvertex)(unsafe.Pointer(handle))
+func pqDelete(p *pq, key *C.struct_TESSvertex) {
 	idx := -1
 	for i, v := range *p {
 		if key == v {

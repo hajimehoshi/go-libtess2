@@ -116,7 +116,7 @@ struct TESSvertex {
 	/* Internal data (keep hidden) */
 	TESSreal coords[3];  /* vertex location in 3D */
 	TESSreal s, t;       /* projection onto the sweep plane */
-	PQhandle pqHandle;   /* to allow deletion from priority queue */
+	TESSvertex* pqHandle;   /* to allow deletion from priority queue */
 	TESSindex n;			/* to allow identify unique vertices */
 	TESSindex idx;			/* to allow map result to original verts */
 };
