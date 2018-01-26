@@ -68,42 +68,25 @@ func (p *pq) Pop() interface{} {
 	return x
 }
 
-var (
-	idToPQ    = map[uintptr]*pq{}
-	pqCounter = uintptr(1)
-)
-
-func pqNewPriorityQ(size C.int) unsafe.Pointer {
+func pqNewPriorityQ(size C.int) *pq {
 	p := &pq{}
 	heap.Init(p)
-
-	c := pqCounter
-	pqCounter++
-	idToPQ[c] = p
-	return unsafe.Pointer(c)
+	return p
 }
 
-func pqDeletePriorityQ(pqID unsafe.Pointer) {
-	delete(idToPQ, uintptr(pqID))
-}
-
-func pqInsert(pqID unsafe.Pointer, key *C.struct_TESSvertex) C.PQhandle {
-	p := idToPQ[uintptr(pqID)]
+func pqInsert(p *pq, key *C.struct_TESSvertex) C.PQhandle {
 	heap.Push(p, key)
 	return (C.PQhandle)(unsafe.Pointer(key))
 }
 
-func pqExtractMin(pqID unsafe.Pointer) *C.struct_TESSvertex {
-	p := idToPQ[uintptr(pqID)]
+func pqExtractMin(p *pq) *C.struct_TESSvertex {
 	if len(*p) == 0 {
 		return nil
 	}
 	return heap.Pop(p).(*C.struct_TESSvertex)
 }
 
-func pqDelete(pqID unsafe.Pointer, handle C.PQhandle) {
-	p := idToPQ[uintptr(pqID)]
-
+func pqDelete(p *pq, handle C.PQhandle) {
 	key := (*C.struct_TESSvertex)(unsafe.Pointer(handle))
 	idx := -1
 	for i, v := range *p {
@@ -115,15 +98,13 @@ func pqDelete(pqID unsafe.Pointer, handle C.PQhandle) {
 	heap.Remove(p, idx)
 }
 
-func pqMinimum(pqID unsafe.Pointer) *C.struct_TESSvertex {
-	p := idToPQ[uintptr(pqID)]
+func pqMinimum(p *pq) *C.struct_TESSvertex {
 	if len(*p) == 0 {
 		return nil
 	}
 	return (*p)[0]
 }
 
-func pqIsEmpty(pqID unsafe.Pointer) bool {
-	p := idToPQ[uintptr(pqID)]
+func pqIsEmpty(p *pq) bool {
 	return len(*p) == 0
 }

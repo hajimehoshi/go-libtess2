@@ -501,7 +501,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 
 		} else if eUp.Org != eLo.Org {
 			// merge the two vertices, discarding eUp.Org
-			pqDelete(tess.pq, eUp.Org.pqHandle)
+			pqDelete((*pq)(tess.pq), eUp.Org.pqHandle)
 			spliceMergeVertices(tess, oPrev(eLo), eUp)
 		}
 	} else {
@@ -708,7 +708,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	eUp.Org.s = isect.s
 	eUp.Org.t = isect.t
-	eUp.Org.pqHandle = pqInsert(tess.pq, eUp.Org)
+	eUp.Org.pqHandle = pqInsert((*pq)(tess.pq), eUp.Org)
 	getIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
 	regionAbove(regUp).dirty = 1 /* true */
 	regUp.dirty = 1              /* true */
@@ -1142,16 +1142,12 @@ func initPriorityQ(tess *C.TESStesselator) {
 	// Make sure there is enough space for sentinels.
 	vertexCount += 8
 
-	tess.pq = pqNewPriorityQ(vertexCount)
+	tess.pq = unsafe.Pointer(pqNewPriorityQ(vertexCount))
 
 	vHead = &tess.mesh.vHead
 	for v := vHead.next; v != vHead; v = v.next {
-		v.pqHandle = pqInsert(tess.pq, v)
+		v.pqHandle = pqInsert((*pq)(tess.pq), v)
 	}
-}
-
-func donePriorityQ(tess *C.TESStesselator) {
-	pqDeletePriorityQ(tess.pq)
 }
 
 // removeDegenerateFaces deletes any degenerate faces with only two edges.  walkDirtyRegions()
@@ -1199,12 +1195,12 @@ func tessComputeInterior(tess *C.TESStesselator) {
 	initEdgeDict(tess)
 
 	for {
-		v := (*C.TESSvertex)(pqExtractMin(tess.pq))
+		v := pqExtractMin((*pq)(tess.pq))
 		if v == nil {
 			break
 		}
 		for {
-			vNext := (*C.TESSvertex)(pqMinimum(tess.pq))
+			vNext := (*C.TESSvertex)(pqMinimum((*pq)(tess.pq)))
 			if vNext == nil || !vertEq(vNext, v) {
 				break
 			}
@@ -1222,7 +1218,7 @@ func tessComputeInterior(tess *C.TESStesselator) {
 			// intersection point.  This might leave two edges with a small
 			// gap between them.  This kind of error is especially obvious
 			// when using boundary extraction (TESS_BOUNDARY_ONLY).
-			vNext = (*C.TESSvertex)(pqExtractMin(tess.pq))
+			vNext = pqExtractMin((*pq)(tess.pq))
 			spliceMergeVertices(tess, v.anEdge, vNext.anEdge)
 		}
 		sweepEvent(tess, v)
@@ -1231,7 +1227,6 @@ func tessComputeInterior(tess *C.TESStesselator) {
 	// Set tess.event for debugging purposes
 	tess.event = dictKey(dictMin((*dict)(tess.dict))).eUp.Org
 	doneEdgeDict(tess)
-	donePriorityQ(tess)
 
 	removeDegenerateFaces(tess, tess.mesh)
 	tessMeshCheckMesh(tess.mesh)
