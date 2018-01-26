@@ -43,6 +43,42 @@ import (
 	"unsafe"
 )
 
+// makeFace attaches a new face and makes it the left
+// face of all edges in the face loop to which eOrig belongs.  "fNext" gives
+// a place to insert the new face in the global face list.  We insert
+// the new face *before* fNext so that algorithms which walk the face
+// list will not see the newly created faces.
+func makeFace(newFace *C.TESSface, eOrig *C.TESShalfEdge, fNext *C.TESSface) {
+	fNew := newFace
+
+	assert(fNew != nil)
+
+	// insert in circular doubly-linked list before fNext
+	fPrev := fNext.prev
+	fNew.prev = fPrev
+	fPrev.next = fNew
+	fNew.next = fNext
+	fNext.prev = fNew
+
+	fNew.anEdge = eOrig
+	fNew.trail = nil
+	fNew.marked = 0 /* false */
+
+	// The new face is marked "inside" if the old one was.  This is a
+	// convenience for the common case where a face has been split in two.
+	fNew.inside = fNext.inside
+
+	// fix other edges on this face loop
+	e := eOrig
+	for {
+		e.Lface = fNew
+		e = e.Lnext
+		if e == eOrig {
+			break
+		}
+	}
+}
+
 // killEdge destroys an edge (the half-edges eDel and eDel.Sym),
 // and removes from the global edge list.
 func killEdge(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
@@ -119,7 +155,7 @@ func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
 
 	C.MakeVertex(newVertex1, e, &mesh.vHead)
 	C.MakeVertex(newVertex2, e.Sym, &mesh.vHead)
-	C.MakeFace(newFace, e, &mesh.fHead)
+	makeFace(newFace, e, &mesh.fHead)
 	return e
 }
 
@@ -180,7 +216,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 
 		// We split one loop into two -- the new loop is eDst.Lface.
 		// Make sure the old face points to a valid half-edge.
-		C.MakeFace(newFace, eDst, eOrg.Lface)
+		makeFace(newFace, eDst, eOrg.Lface)
 		eOrg.Lface.anEdge = eOrg
 	}
 }
@@ -218,7 +254,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 			newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
 
 			// We are splitting one loop into two -- create a new loop for eDel.
-			C.MakeFace(newFace, eDel, eDel.Lface)
+			makeFace(newFace, eDel, eDel.Lface)
 		}
 	}
 
@@ -320,7 +356,7 @@ func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdg
 		newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
 
 		// We split one loop into two -- the new loop is eNew.Lface
-		C.MakeFace(newFace, eNew, eOrg.Lface)
+		makeFace(newFace, eNew, eOrg.Lface)
 	}
 	return eNew
 }
