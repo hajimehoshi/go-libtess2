@@ -123,7 +123,7 @@ func pqMinimum(pqID unsafe.Pointer) *C.struct_TESSvertex {
 	return (*p)[0]
 }
 
-func pqIsEmpty(pqID unsafe.Pointer) C.bool {
+func pqIsEmpty(pqID unsafe.Pointer) bool {
 	p := idToPQ[uintptr(pqID)]
 	return len(*p) == 0
 }

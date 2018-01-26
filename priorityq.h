@@ -32,8 +32,6 @@
 #ifndef PRIORITYQ_H
 #define PRIORITYQ_H
 
-#include <stdbool.h>
-
 typedef void PriorityQ;
 typedef void* PQhandle;
 
