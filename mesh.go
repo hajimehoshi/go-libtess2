@@ -43,6 +43,21 @@ import (
 	"unsafe"
 )
 
+// splice is best described by the Guibas/Stolfi paper or the
+// CS348a notes (see mesh.h).  Basically it modifies the mesh so that
+// a.Onext and b.Onext are exchanged.  This can have various effects
+// depending on whether a and b belong to different face or vertex rings.
+// For more explanation see tessMeshSplice() below.
+func splice(a, b *C.TESShalfEdge) {
+	aOnext := a.Onext
+	bOnext := b.Onext
+
+	aOnext.Sym.Lnext = b
+	bOnext.Sym.Lnext = a
+	a.Onext = bOnext
+	b.Onext = aOnext
+}
+
 // makeVertex attaches a new vertex and makes it the
 // origin of all edges in the vertex loop to which eOrig belongs. "vNext" gives
 // a place to insert the new vertex in the global vertex list.  We insert
@@ -232,7 +247,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 	}
 
 	// Change the edge structure
-	C.Splice(eDst, eOrg)
+	splice(eDst, eOrg)
 
 	if !joiningVertices {
 		newVertex := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
@@ -280,7 +295,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 		rFace(eDel).anEdge = oPrev(eDel)
 		eDel.Org.anEdge = eDel.Onext
 
-		C.Splice(eDel, oPrev(eDel))
+		splice(eDel, oPrev(eDel))
 		if !joiningLoops {
 			newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
 
@@ -298,7 +313,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 		// Make sure that eDel.Dst and eDel.Lface point to valid half-edges
 		eDel.Lface.anEdge = oPrev(eDelSym)
 		eDelSym.Org.anEdge = eDelSym.Onext
-		C.Splice(eDelSym, oPrev(eDelSym))
+		splice(eDelSym, oPrev(eDelSym))
 	}
 
 	// Any isolated vertices or faces have already been freed.
@@ -316,7 +331,7 @@ func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEd
 	eNewSym := eNew.Sym
 
 	// Connect the new edge appropriately
-	C.Splice(eNew, eOrg.Lnext)
+	splice(eNew, eOrg.Lnext)
 
 	// Set the vertex and face information
 	eNew.Org = dst(eOrg)
@@ -337,8 +352,8 @@ func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
 	eNew := tempHalfEdge.Sym
 
 	// Disconnect eOrg from eOrg.Dst and connect it to eNew.Org
-	C.Splice(eOrg.Sym, oPrev(eOrg.Sym))
-	C.Splice(eOrg.Sym, eNew)
+	splice(eOrg.Sym, oPrev(eOrg.Sym))
+	splice(eOrg.Sym, eNew)
 
 	// Set the vertex and face information
 	setDst(eOrg, eNew.Org)
@@ -371,8 +386,8 @@ func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdg
 	}
 
 	// Connect the new edge appropriately
-	C.Splice(eNew, eOrg.Lnext)
-	C.Splice(eNewSym, eDst)
+	splice(eNew, eOrg.Lnext)
+	splice(eNewSym, eDst)
 
 	// Set the vertex and face information
 	eNew.Org = dst(eOrg)
@@ -416,7 +431,7 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 			} else {
 				// Make sure that e.Org points to a valid half-edge
 				e.Org.anEdge = e.Onext
-				C.Splice(e, oPrev(e))
+				splice(e, oPrev(e))
 			}
 			eSym := e.Sym
 			if eSym.Onext == eSym {
@@ -424,7 +439,7 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 			} else {
 				// Make sure that eSym.Org points to a valid half-edge
 				eSym.Org.anEdge = eSym.Onext
-				C.Splice(eSym, oPrev(eSym))
+				splice(eSym, oPrev(eSym))
 			}
 			killEdge(mesh, e)
 		}

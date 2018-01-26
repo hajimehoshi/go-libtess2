@@ -85,20 +85,3 @@ TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext )
 
 	return e;
 }
-
-/* Splice( a, b ) is best described by the Guibas/Stolfi paper or the
-* CS348a notes (see mesh.h).  Basically it modifies the mesh so that
-* a->Onext and b->Onext are exchanged.  This can have various effects
-* depending on whether a and b belong to different face or vertex rings.
-* For more explanation see tessMeshSplice() below.
-*/
-void Splice( TESShalfEdge *a, TESShalfEdge *b )
-{
-	TESShalfEdge *aOnext = a->Onext;
-	TESShalfEdge *bOnext = b->Onext;
-
-	aOnext->Sym->Lnext = b;
-	bOnext->Sym->Lnext = a;
-	a->Onext = bOnext;
-	b->Onext = aOnext;
-}
