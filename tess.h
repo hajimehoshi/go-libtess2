@@ -39,40 +39,6 @@
 extern "C" {
 #endif
 
-typedef struct TESStesselator TESStesselator;
-
-struct TESStesselator {
-
-	/*** state needed for collecting the input data ***/
-	TESSmesh	*mesh;		/* stores the input contours, and eventually
-						the tessellation itself */
-	int outOfMemory;
-
-	/*** state needed for projecting onto the sweep plane ***/
-
-	TESSreal normal[3];	/* user-specified normal (if provided) */
-	TESSreal sUnit[3];	/* unit vector in s-direction (debugging) */
-	TESSreal tUnit[3];	/* unit vector in t-direction (debugging) */
-
-	TESSreal bmin[2];
-	TESSreal bmax[2];
-
-	/*** state needed for the line sweep ***/
-	int	windingRule;	/* rule for determining polygon interior */
-
-	void *dict;		/* edge dictionary for sweep line */
-	void* pq;		/* priority queue of vertex events */
-	TESSvertex *event;		/* current sweep event being processed */
-
-	TESSindex vertexIndexCounter;
-	
-	TESSreal *vertices;
-	TESSindex *vertexIndices;
-	int vertexCount;
-	TESSindex *elements;
-	int elementCount;
-};
-
 #ifdef __cplusplus
 };
 #endif

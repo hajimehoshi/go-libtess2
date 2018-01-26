@@ -71,10 +71,10 @@ type dictNode struct {
 
 type dict struct {
 	head  dictNode
-	frame *C.struct_TESStesselator
+	frame *tesselator
 }
 
-func dictNewDict(frame *C.struct_TESStesselator) *dict {
+func dictNewDict(frame *tesselator) *dict {
 	d := &dict{
 		frame: frame,
 	}

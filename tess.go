@@ -60,13 +60,46 @@ import (
 	"fmt"
 )
 
+type tesselator struct {
+	// state needed for collecting the input data
+
+	// stores the input contours, and eventually
+	// the tessellation itself
+	mesh *C.TESSmesh
+
+	// state needed for projecting onto the sweep plane
+
+	normal [3]C.TESSreal // user-specified normal (if provided)
+	sUnit  [3]C.TESSreal // unit vector in s-direction (debugging)
+	tUnit  [3]C.TESSreal // unit vector in t-direction (debugging)
+
+	bmin [2]C.TESSreal
+	bmax [2]C.TESSreal
+
+	// state needed for the line sweep
+
+	windingRule int // rule for determining polygon interior
+
+	dict  *dict         // edge dictionary for sweep line
+	pq    *pq           // priority queue of vertex events
+	event *C.TESSvertex // current sweep event being processed
+
+	vertexIndexCounter C.TESSindex
+
+	vertices      *C.TESSreal
+	vertexIndices *C.TESSindex
+	vertexCount   int
+	elements      *C.TESSindex
+	elementCount  int
+}
+
 type Vertex struct {
 	X float32 // TODO: Replace this to float64 later
 	Y float32
 }
 
 type Tesselator struct {
-	p *C.TESStesselator
+	p *tesselator
 }
 
 func NewTesselator() *Tesselator {
@@ -81,7 +114,7 @@ func (t *Tesselator) AddContour(contour []Vertex) {
 		fs[2*i] = v.X
 		fs[2*i+1] = v.Y
 	}
-	tessAddContour((*C.struct_TESStesselator)(t.p), 2, fs)
+	tessAddContour(t.p, 2, fs)
 }
 
 func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
@@ -90,7 +123,7 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		vertexSize = 2
 	)
 
-	r := tessTesselate((*C.struct_TESStesselator)(t.p),
+	r := tessTesselate(t.p,
 		C.TESS_WINDING_ODD,
 		C.TESS_POLYGONS,
 		polySize,
@@ -103,8 +136,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	elements := []int{}
 	vertices := []Vertex{}
 
-	vc := int((*C.struct_TESStesselator)(t.p).vertexCount)
-	vs := (*C.struct_TESStesselator)(t.p).vertices
+	vc := int(t.p.vertexCount)
+	vs := t.p.vertices
 	for i := 0; i < vc; i++ {
 		v := Vertex{
 			X: float32(C.golibtess2_vertexAt(vs, C.TESSindex(i)*2)),
@@ -113,8 +146,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		vertices = append(vertices, v)
 	}
 
-	ec := int((*C.struct_TESStesselator)(t.p).elementCount)
-	es := (*C.struct_TESStesselator)(t.p).elements
+	ec := t.p.elementCount
+	es := t.p.elements
 	for i := 0; i < ec; i++ {
 		for j := 0; j < polySize; j++ {
 			e := int(C.golibtess2_elementAt(es, C.int(i)*polySize+C.int(j)))
@@ -153,7 +186,7 @@ func shortAxis(v []C.TESSreal) int {
 	return i
 }
 
-func computeNormal(tess *C.TESStesselator, norm []C.TESSreal) {
+func computeNormal(tess *tesselator, norm []C.TESSreal) {
 	maxVal := make([]C.TESSreal, 3)
 	minVal := make([]C.TESSreal, 3)
 	d1 := make([]C.TESSreal, 3)
@@ -236,7 +269,7 @@ func computeNormal(tess *C.TESStesselator, norm []C.TESSreal) {
 	}
 }
 
-func checkOrientation(tess *C.TESStesselator) {
+func checkOrientation(tess *tesselator) {
 	fHead := &tess.mesh.fHead
 	vHead := &tess.mesh.vHead
 
@@ -273,7 +306,7 @@ func dot(u, v []C.TESSreal) C.TESSreal {
 
 // Determine the polygon normal and project vertices onto the plane
 // of the polygon.
-func tessProjectPolygon(tess *C.TESStesselator) {
+func tessProjectPolygon(tess *tesselator) {
 	const (
 		S_UNIT_X = 1.0
 		S_UNIT_Y = 0.0
@@ -466,11 +499,11 @@ func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool
 // Use tessDeleteTess to delete the tesselator.
 // Returns:
 //   new tesselator object.
-func tessNewTess() *C.TESStesselator {
+func tessNewTess() *tesselator {
 	// Only initialize fields which can be changed by the api.  Other fields
 	// are initialized where they are used.
 
-	tess := &C.TESStesselator{}
+	tess := &tesselator{}
 
 	tess.normal[0] = 0
 	tess.normal[1] = 0
@@ -486,7 +519,6 @@ func tessNewTess() *C.TESStesselator {
 	// Initialize to begin polygon.
 	tess.mesh = nil
 
-	tess.outOfMemory = 0
 	tess.vertexIndexCounter = 0
 
 	tess.vertices = nil
@@ -508,7 +540,7 @@ func neighbourFace(edge *C.TESShalfEdge) C.TESSindex {
 	return rFace(edge).n
 }
 
-func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, polySize int, vertexSize int) {
+func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySize int, vertexSize int) {
 	// Assume that the input data is triangles now.
 	// Try to merge as many polygons as possible
 	if polySize > 3 {
@@ -549,12 +581,12 @@ func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, p
 		maxFaceCount++
 	}
 
-	tess.elementCount = C.int(maxFaceCount)
+	tess.elementCount = maxFaceCount
 	if elementType == C.TESS_CONNECTED_POLYGONS {
 		maxFaceCount *= 2
 	}
 	tess.elements = &make([]C.TESSindex, maxFaceCount*polySize)[0]
-	tess.vertexCount = C.int(maxVertexCount)
+	tess.vertexCount = maxVertexCount
 	tess.vertices = &make([]C.TESSreal, int(tess.vertexCount)*vertexSize)[0]
 	tess.vertexIndices = &make([]C.TESSindex, tess.vertexCount)[0]
 
@@ -618,7 +650,7 @@ func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, p
 	}
 }
 
-func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
+func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 	tess.vertexCount = 0
 	tess.elementCount = 0
 
@@ -690,7 +722,7 @@ func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
 //   tess - pointer to tesselator object.
 //   size - number of coordinates per vertex. Must be 2 or 3.
 //   vertices - vertices array
-func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
+func tessAddContour(tess *tesselator, size int, vertices []float32) {
 	if tess.mesh == nil {
 		tess.mesh = tessMeshNewMesh()
 	}
@@ -751,7 +783,7 @@ func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
 //   normal - defines the normal of the input contours, of null the normal is calculated automatically.
 // Returns:
 //   true if succeed, false if failed.
-func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []C.TESSreal) bool {
+func tessTesselate(tess *tesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []C.TESSreal) bool {
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {
@@ -760,7 +792,7 @@ func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, pol
 		tess.normal[2] = normal[2]
 	}
 
-	tess.windingRule = C.int(windingRule)
+	tess.windingRule = windingRule
 
 	if vertexSize < 2 {
 		vertexSize = 2
