@@ -31,18 +31,6 @@ package libtess2
 // #include <stdlib.h>
 // #include <string.h>
 //
-// static void* golibtess2_stdAlloc(void* userData, unsigned int size) {
-//   int* allocated = ( int*)userData;
-//   TESS_NOTUSED(userData);
-//   *allocated += (int)size;
-//   return malloc(size);
-// }
-//
-// static void golibtess2_stdFree(void* userData, void* ptr) {
-//   TESS_NOTUSED(userData);
-//   free(ptr);
-// }
-//
 // static TESSindex golibtess2_elementAt(TESSindex* elements, int i) {
 //   return elements[i];
 // }
@@ -491,7 +479,7 @@ func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
 	// Only initialize fields which can be changed by the api.  Other fields
 	// are initialized where they are used.
 
-	tess := (*C.TESStesselator)(C.golibtess2_stdAlloc(alloc.userData, C.sizeof_TESStesselator))
+	tess := &C.TESStesselator{}
 	tess.alloc = *alloc
 	// Check and set defaults.
 	if tess.alloc.meshEdgeBucketSize == 0 {
@@ -598,15 +586,10 @@ func outputPolymesh(tess *C.TESStesselator, mesh *C.TESSmesh, elementType int, p
 	if elementType == C.TESS_CONNECTED_POLYGONS {
 		maxFaceCount *= 2
 	}
-	tess.elements = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
-		C.uint(C.sizeof_TESSindex*maxFaceCount*polySize)))
-
+	tess.elements = &make([]C.TESSindex, maxFaceCount*polySize)[0]
 	tess.vertexCount = C.int(maxVertexCount)
-	tess.vertices = (*C.TESSreal)(C.golibtess2_stdAlloc(tess.alloc.userData,
-		C.sizeof_TESSreal*C.uint(tess.vertexCount)*C.uint(vertexSize)))
-
-	tess.vertexIndices = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
-		C.uint(C.sizeof_TESSindex*tess.vertexCount)))
+	tess.vertices = &make([]C.TESSreal, int(tess.vertexCount)*vertexSize)[0]
+	tess.vertexIndices = &make([]C.TESSindex, tess.vertexCount)[0]
 
 	// Output vertices.
 	for v := mesh.vHead.next; v != &mesh.vHead; v = v.next {
@@ -689,14 +672,9 @@ func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
 		tess.elementCount++
 	}
 
-	tess.elements = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
-		C.uint(C.sizeof_TESSindex*tess.elementCount*2)))
-
-	tess.vertices = (*C.TESSreal)(C.golibtess2_stdAlloc(tess.alloc.userData,
-		C.sizeof_TESSreal*C.uint(tess.vertexCount)*C.uint(vertexSize)))
-
-	tess.vertexIndices = (*C.TESSindex)(C.golibtess2_stdAlloc(tess.alloc.userData,
-		C.uint(C.sizeof_TESSindex*tess.vertexCount)))
+	tess.elements = &make([]C.TESSindex, tess.elementCount*2)[0]
+	tess.vertices = &make([]C.TESSreal, int(tess.vertexCount)*vertexSize)[0]
+	tess.vertexIndices = &make([]C.TESSindex, int(tess.vertexCount))[0]
 
 	verts := tess.vertices
 	elements := tess.elements
