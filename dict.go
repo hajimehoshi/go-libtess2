@@ -29,10 +29,6 @@ package libtess2
 // #include "sweep.h"
 import "C"
 
-import (
-	"unsafe"
-)
-
 type dictNode struct {
 	key  *C.struct_ActiveRegion
 	prev *dictNode
@@ -44,29 +40,16 @@ type dict struct {
 	frame *C.struct_TESStesselator
 }
 
-var (
-	idToNode    = map[uintptr]*dictNode{}
-	nodeToID    = map[*dictNode]uintptr{}
-	nodeCounter = uintptr(1)
-)
-
 func dictNewDict(frame *C.struct_TESStesselator) *dict {
 	d := &dict{
 		frame: frame,
 	}
 	d.head.next = &d.head
 	d.head.prev = &d.head
-
-	c := nodeCounter
-	nodeCounter++
-	idToNode[c] = &d.head
-	nodeToID[&d.head] = c
-
 	return d
 }
 
-func dictInsertBefore(d *dict, nodeID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
-	n := idToNode[uintptr(nodeID)]
+func dictInsertBefore(d *dict, n *dictNode, key *C.struct_ActiveRegion) *dictNode {
 	for {
 		n = n.prev
 		if n.key == nil || edgeLeq(d.frame, n.key, key) {
@@ -82,15 +65,10 @@ func dictInsertBefore(d *dict, nodeID unsafe.Pointer, key *C.struct_ActiveRegion
 	n.next.prev = nn
 	n.next = nn
 
-	c := nodeCounter
-	nodeCounter++
-	idToNode[c] = nn
-	nodeToID[nn] = c
-	return unsafe.Pointer(c)
+	return nn
 }
 
-func dictDelete(nodeID unsafe.Pointer) {
-	n := idToNode[uintptr(nodeID)]
+func dictDelete(n *dictNode) {
 	n.next.prev = n.prev
 	n.prev.next = n.next
 }
@@ -98,7 +76,7 @@ func dictDelete(nodeID unsafe.Pointer) {
 // dictSearch returns the node with the smallest key greater than or equal
 // to the given key.  If there is no such key, returns a node whose
 // key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
-func dictSearch(d *dict, key *C.struct_ActiveRegion) unsafe.Pointer {
+func dictSearch(d *dict, key *C.struct_ActiveRegion) *dictNode {
 	n := &d.head
 	for {
 		n = n.next
@@ -106,32 +84,29 @@ func dictSearch(d *dict, key *C.struct_ActiveRegion) unsafe.Pointer {
 			break
 		}
 	}
-	return unsafe.Pointer(nodeToID[n])
+	return n
 }
 
-func dictKey(nodeID unsafe.Pointer) *C.struct_ActiveRegion {
-	n := idToNode[uintptr(nodeID)]
+func dictKey(n *dictNode) *C.struct_ActiveRegion {
 	return n.key
 }
 
-func dictSucc(nodeID unsafe.Pointer) unsafe.Pointer {
-	n := idToNode[uintptr(nodeID)]
-	return unsafe.Pointer(nodeToID[n.next])
+func dictSucc(n *dictNode) *dictNode {
+	return n.next
 }
 
-func dictPred(nodeID unsafe.Pointer) unsafe.Pointer {
-	n := idToNode[uintptr(nodeID)]
-	return unsafe.Pointer(nodeToID[n.prev])
+func dictPred(n *dictNode) *dictNode {
+	return n.prev
 }
 
-func dictMin(d *dict) unsafe.Pointer {
-	return unsafe.Pointer(nodeToID[d.head.next])
+func dictMin(d *dict) *dictNode {
+	return d.head.next
 }
 
-func dictMax(d *dict) unsafe.Pointer {
-	return unsafe.Pointer(nodeToID[d.head.prev])
+func dictMax(d *dict) *dictNode {
+	return d.head.prev
 }
 
-func dictInsert(d *dict, key *C.struct_ActiveRegion) unsafe.Pointer {
-	return dictInsertBefore(d, unsafe.Pointer(nodeToID[&d.head]), key)
+func dictInsert(d *dict, key *C.struct_ActiveRegion) *dictNode {
+	return dictInsertBefore(d, &d.head, key)
 }
