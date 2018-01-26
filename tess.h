@@ -32,7 +32,6 @@
 #ifndef TESS_H
 #define TESS_H
 
-#include <setjmp.h>
 #include "mesh.h"
 #include "priorityq.h"
 #include "sweep.h"
@@ -74,8 +73,6 @@ struct TESStesselator {
 	int vertexCount;
 	TESSindex *elements;
 	int elementCount;
-
-	jmp_buf env;			/* place to jump to when memAllocs fail */
 };
 
 #ifdef __cplusplus
