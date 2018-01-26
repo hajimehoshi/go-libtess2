@@ -31,10 +31,6 @@ package libtess2
 // #include "sweep.h"
 // #include "tess.h"
 // #include "tesselator.h"
-//
-// static ActiveRegion* allocActiveRegion(TESStesselator* tess) {
-//   return (ActiveRegion*)bucketAlloc(tess->regionPool);
-// }
 import "C"
 
 // Invariants for the Edge Dictionary.
@@ -252,7 +248,7 @@ func topRightRegion(reg *C.ActiveRegion) *C.ActiveRegion {
 // The upper edge of the new region will be "eNewUp".
 // Winding number and "inside" flag are not updated.
 func addRegionBelow(tess *C.TESStesselator, regAbove *C.ActiveRegion, eNewUp *C.TESShalfEdge) *C.ActiveRegion {
-	regNew := C.allocActiveRegion(tess)
+	regNew := &C.struct_ActiveRegion{}
 	regNew.eUp = eNewUp
 	regNew.nodeUp = dictInsertBefore(tess.dict, regAbove.nodeUp, regNew)
 	regNew.fixUpperEdge = 0 /* false */
@@ -1043,7 +1039,7 @@ func sweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 // We add two sentinel edges above and below all other edges,
 // to avoid special cases at the top and bottom.
 func addSentinel(tess *C.TESStesselator, smin, smax C.TESSreal, t C.TESSreal) {
-	reg := C.allocActiveRegion(tess)
+	reg := &C.struct_ActiveRegion{}
 
 	e := tessMeshMakeEdge(tess.mesh)
 

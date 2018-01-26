@@ -68,8 +68,6 @@ struct TESStesselator {
 	PriorityQ *pq;		/* priority queue of vertex events */
 	TESSvertex *event;		/* current sweep event being processed */
 
-	struct BucketAlloc* regionPool;
-
 	TESSindex vertexIndexCounter;
 	
 	TESSreal *vertices;

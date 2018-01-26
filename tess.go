@@ -539,7 +539,6 @@ func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
 	if tess.alloc.regionBucketSize > 4096 {
 		tess.alloc.regionBucketSize = 4096
 	}
-	tess.regionPool = C.createBucketAlloc(&tess.alloc, C.CString("Regions"), C.sizeof_ActiveRegion, C.uint(tess.alloc.regionBucketSize))
 
 	// Initialize to begin polygon.
 	tess.mesh = nil
