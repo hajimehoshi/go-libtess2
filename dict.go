@@ -59,7 +59,7 @@ type activeRegion struct {
 	// marks temporary edges introduced when
 	// we process a "right vertex" (one without
 	// any edges leaving to the right)
-	fixUpperEdge int
+	fixUpperEdge bool
 }
 
 type dictNode struct {

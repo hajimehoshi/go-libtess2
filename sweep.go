@@ -150,7 +150,7 @@ func adjust(x C.TESSreal) C.TESSreal {
 }
 
 func deleteRegion(tess *C.TESStesselator, reg *activeRegion) {
-	if reg.fixUpperEdge != 0 {
+	if reg.fixUpperEdge {
 		// It was created with zero winding number, so it better be
 		// deleted with zero winding number (ie. it better not get merged
 		// with a real edge).
@@ -206,9 +206,9 @@ func addWinding(eDst *C.TESShalfEdge, eSrc *C.TESShalfEdge) {
 
 // fixUpperEdge replace an upper edge which needs fixing (see ConnectRightVertex).
 func fixUpperEdge(tess *C.TESStesselator, reg *activeRegion, newEdge *C.TESShalfEdge) {
-	assert(reg.fixUpperEdge != 0)
+	assert(reg.fixUpperEdge)
 	tessMeshDelete(tess.mesh, reg.eUp)
-	reg.fixUpperEdge = 0 /* false */
+	reg.fixUpperEdge = false
 	reg.eUp = newEdge
 	newEdge.activeRegion = unsafe.Pointer(reg)
 }
@@ -226,7 +226,7 @@ func topLeftRegion(tess *C.TESStesselator, reg *activeRegion) *activeRegion {
 
 	// If the edge above was a temporary edge introduced by ConnectRightVertex,
 	// now is the time to fix it.
-	if reg.fixUpperEdge != 0 {
+	if reg.fixUpperEdge {
 		e := tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
 		fixUpperEdge(tess, reg, e)
 		reg = regionAbove(reg)
@@ -254,7 +254,6 @@ func addRegionBelow(tess *C.TESStesselator, regAbove *activeRegion, eNewUp *C.TE
 	regNew := &activeRegion{}
 	regNew.eUp = eNewUp
 	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew)
-	regNew.fixUpperEdge = 0 /* false */
 	eNewUp.activeRegion = unsafe.Pointer(regNew)
 	return regNew
 }
@@ -312,11 +311,11 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *activeRegion, regLast *
 	regPrev := regFirst
 	ePrev := regFirst.eUp
 	for regPrev != regLast {
-		regPrev.fixUpperEdge = 0 /* false */ // placement was OK
+		regPrev.fixUpperEdge = false // placement was OK
 		reg := regionBelow(regPrev)
 		e := reg.eUp
 		if e.Org != ePrev.Org {
-			if reg.fixUpperEdge == 0 {
+			if !reg.fixUpperEdge {
 				// Remove the last left-going edge.  Even though there are no further
 				// edges in the dictionary with this origin, there may be further
 				// such edges in the mesh (if we are adding left edges to a vertex
@@ -584,7 +583,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *activeRegion) bool {
 	assert(tesedgeSign(dstUp, tess.event, orgUp) <= 0)
 	assert(tesedgeSign(dstLo, tess.event, orgLo) >= 0)
 	assert(orgUp != tess.event && orgLo != tess.event)
-	assert(regUp.fixUpperEdge == 0 && regLo.fixUpperEdge == 0)
+	assert(!regUp.fixUpperEdge && !regLo.fixUpperEdge)
 
 	if orgUp == orgLo {
 		// right endpoints are the same
@@ -749,12 +748,12 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *activeRegion) {
 				// If the upper or lower edge was marked fixUpperEdge, then
 				// we no longer need it (since these edges are needed only for
 				// vertices which otherwise have no right-going edges).
-				if regLo.fixUpperEdge != 0 {
+				if regLo.fixUpperEdge {
 					deleteRegion(tess, regLo)
 					tessMeshDelete(tess.mesh, eLo)
 					regLo = regionBelow(regUp)
 					eLo = regLo.eUp
-				} else if regUp.fixUpperEdge != 0 {
+				} else if regUp.fixUpperEdge {
 					deleteRegion(tess, regUp)
 					tessMeshDelete(tess.mesh, eUp)
 					regUp = regionAbove(regLo)
@@ -763,7 +762,7 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *activeRegion) {
 			}
 		}
 		if eUp.Org != eLo.Org {
-			if dst(eUp) != dst(eLo) && regUp.fixUpperEdge == 0 && regLo.fixUpperEdge == 0 && (dst(eUp) == tess.event || dst(eLo) == tess.event) {
+			if dst(eUp) != dst(eLo) && !regUp.fixUpperEdge && !regLo.fixUpperEdge && (dst(eUp) == tess.event || dst(eLo) == tess.event) {
 				// When all else fails in CheckForIntersect(), it uses tess.event
 				// as the intersection location.  To make this possible, it requires
 				// that tess.event lie between the upper and lower edges, and also
@@ -864,7 +863,7 @@ func connectRightVertex(tess *C.TESStesselator, regUp *activeRegion, eBottomLeft
 	// Prevent cleanup, otherwise eNew might disappear before we've even
 	// had a chance to mark it as a temporary edge.
 	addRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, false)
-	(*activeRegion)(eNew.Sym.activeRegion).fixUpperEdge = 1 /* true */
+	(*activeRegion)(eNew.Sym.activeRegion).fixUpperEdge = true
 	walkDirtyRegions(tess, regUp)
 }
 
@@ -893,10 +892,10 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *activeRegion, vEvent *
 	if vertEq(dst(e), vEvent) {
 		// General case -- splice vEvent into edge e which passes through it
 		tessMeshSplitEdge(tess.mesh, e.Sym)
-		if regUp.fixUpperEdge != 0 {
+		if regUp.fixUpperEdge {
 			// This edge was fixable -- delete unused portion of original edge
 			tessMeshDelete(tess.mesh, e.Onext)
-			regUp.fixUpperEdge = 0 // false
+			regUp.fixUpperEdge = false
 		}
 		tessMeshSplice(tess.mesh, vEvent.anEdge, e)
 		// recurse
@@ -912,7 +911,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *activeRegion, vEvent *
 	eTopRight := reg.eUp.Sym
 	eTopLeft := eTopRight.Onext
 	eLast := eTopRight.Onext
-	if reg.fixUpperEdge != 0 {
+	if reg.fixUpperEdge {
 		// Here e.Dst has only a single fixable edge going right.
 		// We can delete it since now we have some real right-going edges.
 		assert(eTopLeft != eTopRight) // there are some left edges too
@@ -973,7 +972,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		reg = regLo
 	}
 
-	if regUp.inside || reg.fixUpperEdge != 0 {
+	if regUp.inside || reg.fixUpperEdge {
 		var eNew *C.TESShalfEdge
 		if reg == regUp {
 			eNew = tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
@@ -981,7 +980,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 			tempHalfEdge := tessMeshConnect(tess.mesh, dNext(eLo), vEvent.anEdge)
 			eNew = tempHalfEdge.Sym
 		}
-		if reg.fixUpperEdge != 0 {
+		if reg.fixUpperEdge {
 			fixUpperEdge(tess, reg, eNew)
 		} else {
 			computeWinding(tess, addRegionBelow(tess, regUp, eNew))
@@ -1087,7 +1086,7 @@ func doneEdgeDict(tess *C.TESStesselator) {
 		// only the two sentinel edges, plus at most one "fixable" edge
 		// created by ConnectRightVertex().
 		if !reg.sentinel {
-			assert(reg.fixUpperEdge != 0)
+			assert(reg.fixUpperEdge)
 			fixedEdges++
 			assert(fixedEdges == 1)
 		}
