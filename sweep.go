@@ -255,7 +255,6 @@ func addRegionBelow(tess *C.TESStesselator, regAbove *activeRegion, eNewUp *C.TE
 	regNew.eUp = eNewUp
 	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew)
 	regNew.fixUpperEdge = 0 /* false */
-	regNew.dirty = 0        /* false */
 	eNewUp.activeRegion = unsafe.Pointer(regNew)
 	return regNew
 }
@@ -394,7 +393,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *activeRegion, eFirst *C.TESSha
 
 		// Check for two outgoing edges with same slope -- process these
 		// before any intersection tests (see example in tessComputeInterior).
-		regPrev.dirty = 1 /* true */
+		regPrev.dirty = true
 		if !firstTime && checkForRightSplice(tess, regPrev) {
 			addWinding(e, ePrev)
 			deleteRegion(tess, regPrev)
@@ -404,7 +403,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *activeRegion, eFirst *C.TESSha
 		regPrev = reg
 		ePrev = e
 	}
-	regPrev.dirty = 1 /* true */
+	regPrev.dirty = true
 	assert(regPrev.windingNumber-int(e.winding) == reg.windingNumber)
 
 	if cleanUp {
@@ -489,8 +488,8 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *activeRegion) bool {
 			// Splice eUp.Org into eLo
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
-			regUp.dirty = 1 /* true */
-			regLo.dirty = 1 /* true */
+			regUp.dirty = true
+			regLo.dirty = true
 
 		} else if eUp.Org != eLo.Org {
 			// merge the two vertices, discarding eUp.Org
@@ -503,8 +502,8 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *activeRegion) bool {
 		}
 
 		// eLo.Org appears to be above eUp, so splice eLo.Org into eUp
-		regionAbove(regUp).dirty = 1 /* true */
-		regUp.dirty = 1              /* true */
+		regionAbove(regUp).dirty = true
+		regUp.dirty = true
 		tessMeshSplitEdge(tess.mesh, eUp.Sym)
 		tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	}
@@ -540,8 +539,8 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *activeRegion) bool {
 		}
 
 		// eLo.Dst is above eUp, so splice eLo.Dst into eUp
-		regionAbove(regUp).dirty = 1 /* true */
-		regUp.dirty = 1              /* true */
+		regionAbove(regUp).dirty = true
+		regUp.dirty = true
 		e := tessMeshSplitEdge(tess.mesh, eUp)
 		tessMeshSplice(tess.mesh, eLo.Sym, e)
 		e.Lface.inside = 0
@@ -553,8 +552,8 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *activeRegion) bool {
 			return false
 		}
 		// eUp.Dst is below eLo, so splice eUp.Dst into eLo
-		regUp.dirty = 1 /* true */
-		regLo.dirty = 1 /* true */
+		regUp.dirty = true
+		regLo.dirty = true
 		e := tessMeshSplitEdge(tess.mesh, eLo)
 		tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
 		rFace(e).inside = 0
@@ -678,15 +677,15 @@ func checkForIntersect(tess *C.TESStesselator, regUp *activeRegion) bool {
 		// edge passes on the wrong side of tess.event, split it
 		// (and wait for ConnectRightVertex to splice it appropriately).
 		if tesedgeSign(dstUp, tess.event, &isect) >= 0 {
-			regionAbove(regUp).dirty = 1 /* true */
-			regUp.dirty = 1              /* true */
+			regionAbove(regUp).dirty = true
+			regUp.dirty = true
 			tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			eUp.Org.s = tess.event.s
 			eUp.Org.t = tess.event.t
 		}
 		if tesedgeSign(dstLo, tess.event, &isect) <= 0 {
-			regUp.dirty = 1 /* true */
-			regLo.dirty = 1 /* true */
+			regUp.dirty = true
+			regLo.dirty = true
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
 			eLo.Org.s = tess.event.s
 			eLo.Org.t = tess.event.t
@@ -709,9 +708,9 @@ func checkForIntersect(tess *C.TESStesselator, regUp *activeRegion) bool {
 	eUp.Org.t = isect.t
 	eUp.Org.pqHandle = pqInsert((*pq)(tess.pq), eUp.Org)
 	getIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
-	regionAbove(regUp).dirty = 1 /* true */
-	regUp.dirty = 1              /* true */
-	regLo.dirty = 1              /* true */
+	regionAbove(regUp).dirty = true
+	regUp.dirty = true
+	regLo.dirty = true
 	return false
 }
 
@@ -727,19 +726,19 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *activeRegion) {
 
 	for {
 		// Find the lowest dirty region (we walk from the bottom up).
-		for regLo.dirty != 0 {
+		for regLo.dirty {
 			regUp = regLo
 			regLo = regionBelow(regLo)
 		}
-		if regUp.dirty == 0 {
+		if !regUp.dirty {
 			regLo = regUp
 			regUp = regionAbove(regUp)
-			if regUp == nil || regUp.dirty == 0 {
+			if regUp == nil || !regUp.dirty {
 				// We've walked all the dirty regions
 				return
 			}
 		}
-		regUp.dirty = 0 /* false */
+		regUp.dirty = false
 		eUp := regUp.eUp
 		eLo := regLo.eUp
 

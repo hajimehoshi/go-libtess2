@@ -54,7 +54,7 @@ type activeRegion struct {
 	// marks regions where the upper or lower
 	// edge has changed, but we haven't checked
 	// whether they intersect yet
-	dirty int
+	dirty bool
 
 	// marks temporary edges introduced when
 	// we process a "right vertex" (one without
