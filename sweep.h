@@ -35,27 +35,4 @@
 #include "mesh.h"
 #include "tess.h"
 
-/* The following is here *only* for access by debugging routines */
-
-/* For each pair of adjacent edges crossing the sweep line, there is
-* an ActiveRegion to represent the region between them.  The active
-* regions are kept in sorted order in a dynamic dictionary.  As the
-* sweep line crosses each vertex, we update the affected regions.
-*/
-
-struct ActiveRegion {
-	TESShalfEdge *eUp;		/* upper edge, directed right to left */
-	void *nodeUp;	/* dictionary node corresponding to eUp */
-	int windingNumber;	/* used to determine which regions are
-							* inside the polygon */
-	int inside;		/* is this region inside the polygon? */
-	int sentinel;	/* marks fake edges at t = +/-infinity */
-	int dirty;		/* marks regions where the upper or lower
-					* edge has changed, but we haven't checked
-					* whether they intersect yet */
-	int fixUpperEdge;	/* marks temporary edges introduced when
-						* we process a "right vertex" (one without
-						* any edges leaving to the right) */
-};
-
 #endif

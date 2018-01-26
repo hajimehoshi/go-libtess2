@@ -38,7 +38,6 @@ typedef struct TESSmesh TESSmesh;
 typedef struct TESSvertex TESSvertex;
 typedef struct TESSface TESSface;
 typedef struct TESShalfEdge TESShalfEdge;
-typedef struct ActiveRegion ActiveRegion;
 
 /* The mesh structure is similar in spirit, notation, and operations
 * to the "quad-edge" structure (see L. Guibas and J. Stolfi, Primitives
@@ -140,7 +139,7 @@ struct TESShalfEdge {
 	TESSface *Lface;     /* left face */
 
 	/* Internal data (keep hidden) */
-	ActiveRegion *activeRegion;  /* a region with this upper edge (sweep.c) */
+	void* activeRegion;  /* a region with this upper edge (sweep.c) */
 	int winding;    /* change in winding number when crossing
 						  from the right face to the left face */
 };

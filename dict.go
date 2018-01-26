@@ -29,8 +29,45 @@ package libtess2
 // #include "sweep.h"
 import "C"
 
+import (
+	"unsafe"
+)
+
+// activeRegion:
+// For each pair of adjacent edges crossing the sweep line, there is
+// an ActiveRegion to represent the region between them.  The active
+// regions are kept in sorted order in a dynamic dictionary.  As the
+// sweep line crosses each vertex, we update the affected regions.
+type activeRegion struct {
+	// upper edge, directed right to left
+	eUp *C.TESShalfEdge
+
+	// dictionary node corresponding to eUp
+	nodeUp unsafe.Pointer
+
+	// used to determine which regions are
+	// inside the polygon
+	windingNumber int
+
+	// is this region inside the polygon?
+	inside int
+
+	// marks fake edges at t = +/-infinity
+	sentinel int
+
+	// marks regions where the upper or lower
+	// edge has changed, but we haven't checked
+	// whether they intersect yet
+	dirty int
+
+	// marks temporary edges introduced when
+	// we process a "right vertex" (one without
+	// any edges leaving to the right)
+	fixUpperEdge int
+}
+
 type dictNode struct {
-	key  *C.struct_ActiveRegion
+	key  *activeRegion
 	prev *dictNode
 	next *dictNode
 }
@@ -49,7 +86,7 @@ func dictNewDict(frame *C.struct_TESStesselator) *dict {
 	return d
 }
 
-func dictInsertBefore(d *dict, n *dictNode, key *C.struct_ActiveRegion) *dictNode {
+func dictInsertBefore(d *dict, n *dictNode, key *activeRegion) *dictNode {
 	for {
 		n = n.prev
 		if n.key == nil || edgeLeq(d.frame, n.key, key) {
@@ -76,7 +113,7 @@ func dictDelete(n *dictNode) {
 // dictSearch returns the node with the smallest key greater than or equal
 // to the given key.  If there is no such key, returns a node whose
 // key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
-func dictSearch(d *dict, key *C.struct_ActiveRegion) *dictNode {
+func dictSearch(d *dict, key *activeRegion) *dictNode {
 	n := &d.head
 	for {
 		n = n.next
@@ -87,7 +124,7 @@ func dictSearch(d *dict, key *C.struct_ActiveRegion) *dictNode {
 	return n
 }
 
-func dictKey(n *dictNode) *C.struct_ActiveRegion {
+func dictKey(n *dictNode) *activeRegion {
 	return n.key
 }
 
@@ -107,6 +144,6 @@ func dictMax(d *dict) *dictNode {
 	return d.head.prev
 }
 
-func dictInsert(d *dict, key *C.struct_ActiveRegion) *dictNode {
+func dictInsert(d *dict, key *activeRegion) *dictNode {
 	return dictInsertBefore(d, &d.head, key)
 }
