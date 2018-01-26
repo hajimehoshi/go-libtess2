@@ -63,7 +63,7 @@ struct TESStesselator {
 	int	windingRule;	/* rule for determining polygon interior */
 
 	void *dict;		/* edge dictionary for sweep line */
-	PriorityQ *pq;		/* priority queue of vertex events */
+	void* pq;		/* priority queue of vertex events */
 	TESSvertex *event;		/* current sweep event being processed */
 
 	TESSindex vertexIndexCounter;

@@ -32,7 +32,6 @@
 #ifndef PRIORITYQ_H
 #define PRIORITYQ_H
 
-typedef void PriorityQ;
 typedef void* PQhandle;
 
 #endif
