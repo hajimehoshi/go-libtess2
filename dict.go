@@ -26,7 +26,8 @@
 
 package libtess2
 
-// #include "sweep.h"
+// #include "mesh.h"
+// #include "tess.h"
 import "C"
 
 // activeRegion:
