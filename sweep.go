@@ -255,7 +255,6 @@ func addRegionBelow(tess *C.TESStesselator, regAbove *activeRegion, eNewUp *C.TE
 	regNew.eUp = eNewUp
 	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew)
 	regNew.fixUpperEdge = 0 /* false */
-	regNew.sentinel = 0     /* false */
 	regNew.dirty = 0        /* false */
 	eNewUp.activeRegion = unsafe.Pointer(regNew)
 	return regNew
@@ -1054,7 +1053,7 @@ func addSentinel(tess *C.TESStesselator, smin, smax C.TESSreal, t C.TESSreal) {
 	tess.event = dst(e)
 
 	reg.eUp = e
-	reg.sentinel = 1
+	reg.sentinel = true
 	reg.nodeUp = dictInsert((*dict)(tess.dict), reg)
 }
 
@@ -1088,7 +1087,7 @@ func doneEdgeDict(tess *C.TESStesselator) {
 		// At the end of all processing, the dictionary should contain
 		// only the two sentinel edges, plus at most one "fixable" edge
 		// created by ConnectRightVertex().
-		if reg.sentinel == 0 {
+		if !reg.sentinel {
 			assert(reg.fixUpperEdge != 0)
 			fixedEdges++
 			assert(fixedEdges == 1)

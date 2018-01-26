@@ -49,7 +49,7 @@ type activeRegion struct {
 	inside bool
 
 	// marks fake edges at t = +/-infinity
-	sentinel int
+	sentinel bool
 
 	// marks regions where the upper or lower
 	// edge has changed, but we haven't checked
