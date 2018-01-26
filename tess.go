@@ -39,20 +39,8 @@ package libtess2
 //   return elements[i] = v;
 // }
 //
-// static TESSreal golibtess2_vertexAt(TESSreal* vertices, TESSindex i) {
-//   return vertices[i];
-// }
-//
-// static TESSreal golibtess2_setVertexAt(TESSreal* vertices, int i, TESSreal v) {
-//   return vertices[i] = v;
-// }
-//
 // static TESSindex* golibtess2_incElement(TESSindex* elements) {
 //   return elements + 1;
-// }
-//
-// static TESSreal* golibtess2_incVertex(TESSreal* vertices) {
-//   return vertices + 1;
 // }
 import "C"
 
@@ -86,7 +74,7 @@ type tesselator struct {
 
 	vertexIndexCounter C.TESSindex
 
-	vertices      *C.TESSreal
+	vertices      []C.TESSreal
 	vertexIndices *C.TESSindex
 	vertexCount   int
 	elements      *C.TESSindex
@@ -140,8 +128,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	vs := t.p.vertices
 	for i := 0; i < vc; i++ {
 		v := Vertex{
-			X: float32(C.golibtess2_vertexAt(vs, C.TESSindex(i)*2)),
-			Y: float32(C.golibtess2_vertexAt(vs, C.TESSindex(i)*2+1)),
+			X: float32(vs[C.TESSindex(i)*2]),
+			Y: float32(vs[C.TESSindex(i)*2+1]),
 		}
 		vertices = append(vertices, v)
 	}
@@ -587,17 +575,17 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 	}
 	tess.elements = &make([]C.TESSindex, maxFaceCount*polySize)[0]
 	tess.vertexCount = maxVertexCount
-	tess.vertices = &make([]C.TESSreal, int(tess.vertexCount)*vertexSize)[0]
+	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
 	tess.vertexIndices = &make([]C.TESSindex, tess.vertexCount)[0]
 
 	// Output vertices.
 	for v := mesh.vHead.next; v != &mesh.vHead; v = v.next {
 		if v.n != undef {
 			// Store coordinate
-			C.golibtess2_setVertexAt(tess.vertices, C.int(v.n)*C.int(vertexSize), v.coords[0])
-			C.golibtess2_setVertexAt(tess.vertices, C.int(v.n)*C.int(vertexSize)+1, v.coords[1])
+			tess.vertices[int(v.n)*vertexSize] = v.coords[0]
+			tess.vertices[int(v.n)*vertexSize+1] = v.coords[1]
 			if vertexSize > 2 {
-				C.golibtess2_setVertexAt(tess.vertices, C.int(v.n)*C.int(vertexSize)+2, v.coords[2])
+				tess.vertices[int(v.n)*vertexSize+2] = v.coords[2]
 			}
 			// Store vertex index.
 			C.golibtess2_setElementAt(tess.vertexIndices, C.int(v.n), v.idx)
@@ -672,7 +660,7 @@ func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 	}
 
 	tess.elements = &make([]C.TESSindex, tess.elementCount*2)[0]
-	tess.vertices = &make([]C.TESSreal, int(tess.vertexCount)*vertexSize)[0]
+	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
 	tess.vertexIndices = &make([]C.TESSindex, int(tess.vertexCount))[0]
 
 	verts := tess.vertices
@@ -690,13 +678,13 @@ func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 		start := f.anEdge
 		edge := f.anEdge
 		for {
-			*verts = edge.Org.coords[0]
-			verts = C.golibtess2_incVertex(verts)
-			*verts = edge.Org.coords[1]
-			verts = C.golibtess2_incVertex(verts)
+			verts[0] = edge.Org.coords[0]
+			verts = verts[1:]
+			verts[0] = edge.Org.coords[1]
+			verts = verts[1:]
 			if vertexSize > 2 {
-				*verts = edge.Org.coords[2]
-				verts = C.golibtess2_incVertex(verts)
+				verts[0] = edge.Org.coords[2]
+				verts = verts[1:]
 			}
 			*vertInds = edge.Org.idx
 			vertInds = C.golibtess2_incElement(vertInds)
