@@ -252,6 +252,4 @@ struct TESSmesh {
 
 typedef struct { TESShalfEdge e, eSym; } EdgePair;
 
-TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext );
-
 #endif

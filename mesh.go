@@ -43,6 +43,50 @@ import (
 	"unsafe"
 )
 
+// makeEdge creates a new pair of half-edges which form their own loop.
+// No vertex or face structures are allocated, but these must be assigned
+// before the current edge operation is completed.
+func makeEdge(mesh *C.TESSmesh, eNext *C.TESShalfEdge) *C.TESShalfEdge {
+	pair := (*C.EdgePair)(C.bucketAlloc(mesh.edgeBucket))
+	if pair == nil {
+		return nil
+	}
+
+	e := &pair.e
+	eSym := &pair.eSym
+
+	// Make sure eNext points to the first edge of the edge pair
+	if eNext.Sym != eNext {
+		eNext = eNext.Sym
+	}
+
+	// Insert in circular doubly-linked list before eNext.
+	// Note that the prev pointer is stored in Sym.next.
+	ePrev := eNext.Sym.next
+	eSym.next = ePrev
+	ePrev.Sym.next = e
+	e.next = eNext
+	eNext.Sym.next = eSym
+
+	e.Sym = eSym
+	e.Onext = e
+	e.Lnext = eSym
+	e.Org = nil
+	e.Lface = nil
+	e.winding = 0
+	e.activeRegion = nil
+
+	eSym.Sym = e
+	eSym.Onext = eSym
+	eSym.Lnext = e
+	eSym.Org = nil
+	eSym.Lface = nil
+	eSym.winding = 0
+	eSym.activeRegion = nil
+
+	return e
+}
+
 // splice is best described by the Guibas/Stolfi paper or the
 // CS348a notes (see mesh.h).  Basically it modifies the mesh so that
 // a.Onext and b.Onext are exchanged.  This can have various effects
@@ -197,7 +241,7 @@ func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
 	newVertex2 := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
 	newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
 
-	e := C.MakeEdge(mesh, &mesh.eHead)
+	e := makeEdge(mesh, &mesh.eHead)
 
 	makeVertex(newVertex1, e, &mesh.vHead)
 	makeVertex(newVertex2, e.Sym, &mesh.vHead)
@@ -327,7 +371,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 // eNew == eOrg.Lnext, and eNew.Dst is a newly created vertex.
 // eOrg and eNew will have the same left face.
 func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
-	eNew := C.MakeEdge(mesh, eOrg)
+	eNew := makeEdge(mesh, eOrg)
 	eNewSym := eNew.Sym
 
 	// Connect the new edge appropriately
@@ -376,7 +420,7 @@ func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
 // If (eOrg.Lnext.Lnext == eDst), the old face is reduced to two edges.
 func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) *C.TESShalfEdge {
 	joiningLoops := false
-	eNew := C.MakeEdge(mesh, eOrg)
+	eNew := makeEdge(mesh, eOrg)
 	eNewSym := eNew.Sym
 
 	if eDst.Lface != eOrg.Lface {
