@@ -1045,7 +1045,7 @@ func sweepEvent(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 func addSentinel(tess *C.TESStesselator, smin, smax C.TESSreal, t C.TESSreal) {
 	reg := C.allocActiveRegion(tess)
 
-	e := C.tessMeshMakeEdge(tess.mesh)
+	e := tessMeshMakeEdge(tess.mesh)
 
 	e.Org.s = smax
 	e.Org.t = t

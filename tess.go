@@ -770,19 +770,12 @@ func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
 
 		if e == nil {
 			// Make a self-loop (one vertex, one edge).
-			e = C.tessMeshMakeEdge(tess.mesh)
-			if e == nil {
-				tess.outOfMemory = 1
-				return
-			}
+			e = tessMeshMakeEdge(tess.mesh)
 			tessMeshSplice(tess.mesh, e, e.Sym)
 		} else {
 			// Create a new vertex and edge which immediately follow e
 			// in the ordering around the left face.
-			if tessMeshSplitEdge(tess.mesh, e) == nil {
-				tess.outOfMemory = 1
-				return
-			}
+			tessMeshSplitEdge(tess.mesh, e)
 			e = e.Lnext
 		}
 

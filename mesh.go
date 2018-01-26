@@ -43,6 +43,21 @@ import (
 	"unsafe"
 )
 
+// tessMeshMakeEdge creates one edge, two vertices, and a loop (face).
+// The loop consists of the two new half-edges.
+func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
+	newVertex1 := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+	newVertex2 := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+	newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+
+	e := C.MakeEdge(mesh, &mesh.eHead)
+
+	C.MakeVertex(newVertex1, e, &mesh.vHead)
+	C.MakeVertex(newVertex2, e.Sym, &mesh.vHead)
+	C.MakeFace(newFace, e, &mesh.fHead)
+	return e
+}
+
 // tessMeshSplice is the basic operation for changing the
 // mesh connectivity and topology.  It changes the mesh so that
 //	eOrg.Onext <- OLD( eDst.Onext )

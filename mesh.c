@@ -240,33 +240,3 @@ void KillFace( TESSmesh *mesh, TESSface *fDel, TESSface *newLface )
 
 	bucketFree( mesh->faceBucket, fDel );
 }
-
-
-/****************** Basic Edge Operations **********************/
-
-/* tessMeshMakeEdge creates one edge, two vertices, and a loop (face).
-* The loop consists of the two new half-edges.
-*/
-TESShalfEdge *tessMeshMakeEdge( TESSmesh *mesh )
-{
-	TESSvertex *newVertex1 = (TESSvertex*)bucketAlloc(mesh->vertexBucket);
-	TESSvertex *newVertex2 = (TESSvertex*)bucketAlloc(mesh->vertexBucket);
-	TESSface *newFace = (TESSface*)bucketAlloc(mesh->faceBucket);
-	TESShalfEdge *e;
-
-	/* if any one is null then all get freed */
-	if (newVertex1 == NULL || newVertex2 == NULL || newFace == NULL) {
-		if (newVertex1 != NULL) bucketFree( mesh->vertexBucket, newVertex1 );
-		if (newVertex2 != NULL) bucketFree( mesh->vertexBucket, newVertex2 );
-		if (newFace != NULL) bucketFree( mesh->faceBucket, newFace );     
-		return NULL;
-	} 
-
-	e = MakeEdge( mesh, &mesh->eHead );
-	if (e == NULL) return NULL;
-
-	MakeVertex( newVertex1, e, &mesh->vHead );
-	MakeVertex( newVertex2, e->Sym, &mesh->vHead );
-	MakeFace( newFace, e, &mesh->fHead );
-	return e;
-}
