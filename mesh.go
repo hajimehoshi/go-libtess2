@@ -201,8 +201,6 @@ func killVertex(mesh *C.TESSmesh, vDel *C.TESSvertex, newOrg *C.TESSvertex) {
 	vNext := vDel.next
 	vNext.prev = vPrev
 	vPrev.next = vNext
-
-	C.bucketFree(mesh.vertexBucket, unsafe.Pointer(vDel))
 }
 
 // killFace destroys a face and removes it from the global face
@@ -232,8 +230,8 @@ func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
 // tessMeshMakeEdge creates one edge, two vertices, and a loop (face).
 // The loop consists of the two new half-edges.
 func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
-	newVertex1 := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
-	newVertex2 := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+	newVertex1 := &C.TESSvertex{}
+	newVertex2 := &C.TESSvertex{}
 	newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
 
 	e := makeEdge(mesh, &mesh.eHead)
@@ -289,7 +287,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 	splice(eDst, eOrg)
 
 	if !joiningVertices {
-		newVertex := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+		newVertex := &C.TESSvertex{}
 
 		// We split one vertex into two -- the new vertex is eDst.Org.
 		// Make sure the old vertex points to a valid half-edge.
@@ -374,7 +372,7 @@ func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEd
 
 	// Set the vertex and face information
 	eNew.Org = dst(eOrg)
-	newVertex := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+	newVertex := &C.TESSvertex{}
 	makeVertex(newVertex, eNewSym, eNew.Org)
 	eNew.Lface = eOrg.Lface
 	eNewSym.Lface = eOrg.Lface
@@ -522,7 +520,6 @@ func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
 		alloc.meshFaceBucketSize = 4096
 	}
 
-	mesh.vertexBucket = C.createBucketAlloc(alloc, C.CString("Mesh Vertices"), C.sizeof_struct_TESSvertex, C.uint(alloc.meshVertexBucketSize))
 	mesh.faceBucket = C.createBucketAlloc(alloc, C.CString("Mesh Faces"), C.sizeof_struct_TESSface, C.uint(alloc.meshFaceBucketSize))
 
 	v := &mesh.vHead

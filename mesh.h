@@ -153,7 +153,6 @@ struct TESSmesh {
 	TESShalfEdge eHead;      /* dummy header for edge list */
 	TESShalfEdge eHeadSym;   /* and its symmetric counterpart */
 
-	struct BucketAlloc* vertexBucket;
 	struct BucketAlloc* faceBucket;
 };
 
