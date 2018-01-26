@@ -33,7 +33,6 @@
 #define TESS_H
 
 #include "mesh.h"
-#include "priorityq.h"
 #include "sweep.h"
 #include "tesselator.h"
 

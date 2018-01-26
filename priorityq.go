@@ -26,7 +26,6 @@
 
 package libtess2
 
-// #include "priorityq.h"
 import "C"
 
 // The basic operations are insertion of a new key (pqInsert),

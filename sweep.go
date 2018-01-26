@@ -27,7 +27,6 @@
 package libtess2
 
 // #include "mesh.h"
-// #include "priorityq.h"
 // #include "sweep.h"
 // #include "tess.h"
 // #include "tesselator.h"

@@ -106,8 +106,6 @@ typedef struct ActiveRegion ActiveRegion;
 * a region which is not part of the output polygon.
 */
 
-#include "priorityq.h"
-
 struct TESSvertex {
 	TESSvertex *next;      /* next vertex (never NULL) */
 	TESSvertex *prev;      /* previous vertex (never NULL) */
