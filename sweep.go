@@ -253,7 +253,7 @@ func topRightRegion(reg *activeRegion) *activeRegion {
 func addRegionBelow(tess *C.TESStesselator, regAbove *activeRegion, eNewUp *C.TESShalfEdge) *activeRegion {
 	regNew := &activeRegion{}
 	regNew.eUp = eNewUp
-	regNew.nodeUp = unsafe.Pointer(dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew))
+	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew)
 	regNew.fixUpperEdge = 0 /* false */
 	regNew.sentinel = 0     /* false */
 	regNew.dirty = 0        /* false */
@@ -1054,7 +1054,7 @@ func addSentinel(tess *C.TESStesselator, smin, smax C.TESSreal, t C.TESSreal) {
 
 	reg.eUp = e
 	reg.sentinel = 1
-	reg.nodeUp = unsafe.Pointer(dictInsert((*dict)(tess.dict), reg))
+	reg.nodeUp = dictInsert((*dict)(tess.dict), reg)
 }
 
 // initEdgeDict:

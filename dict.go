@@ -29,10 +29,6 @@ package libtess2
 // #include "sweep.h"
 import "C"
 
-import (
-	"unsafe"
-)
-
 // activeRegion:
 // For each pair of adjacent edges crossing the sweep line, there is
 // an ActiveRegion to represent the region between them.  The active
@@ -43,7 +39,7 @@ type activeRegion struct {
 	eUp *C.TESShalfEdge
 
 	// dictionary node corresponding to eUp
-	nodeUp unsafe.Pointer
+	nodeUp *dictNode
 
 	// used to determine which regions are
 	// inside the polygon
