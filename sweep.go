@@ -33,6 +33,10 @@ package libtess2
 // #include "tesselator.h"
 import "C"
 
+import (
+	"unsafe"
+)
+
 // Invariants for the Edge Dictionary.
 // - each pair of adjacent edges e2=Succ(e1) satisfies EdgeLeq(e1,e2)
 //   at any valid location of the sweep event
@@ -250,7 +254,7 @@ func topRightRegion(reg *C.ActiveRegion) *C.ActiveRegion {
 func addRegionBelow(tess *C.TESStesselator, regAbove *C.ActiveRegion, eNewUp *C.TESShalfEdge) *C.ActiveRegion {
 	regNew := &C.struct_ActiveRegion{}
 	regNew.eUp = eNewUp
-	regNew.nodeUp = dictInsertBefore(tess.dict, regAbove.nodeUp, regNew)
+	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), regAbove.nodeUp, regNew)
 	regNew.fixUpperEdge = 0 /* false */
 	regNew.sentinel = 0     /* false */
 	regNew.dirty = 0        /* false */
@@ -947,7 +951,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 
 	// Get a pointer to the active region containing vEvent
 	tmp.eUp = vEvent.anEdge.Sym
-	regUp := dictKey(dictSearch(tess.dict, &tmp))
+	regUp := dictKey(dictSearch((*dict)(tess.dict), &tmp))
 	regLo := regionBelow(regUp)
 	if regLo == nil {
 		// This may happen if the input polygon is coplanar.
@@ -1051,14 +1055,14 @@ func addSentinel(tess *C.TESStesselator, smin, smax C.TESSreal, t C.TESSreal) {
 
 	reg.eUp = e
 	reg.sentinel = 1
-	reg.nodeUp = dictInsert(tess.dict, reg)
+	reg.nodeUp = dictInsert((*dict)(tess.dict), reg)
 }
 
 // initEdgeDict:
 // We maintain an ordering of edge intersections with the sweep line.
 // This order is maintained in a dynamic dictionary.
 func initEdgeDict(tess *C.TESStesselator) {
-	tess.dict = dictNewDict(tess)
+	tess.dict = unsafe.Pointer(dictNewDict(tess))
 
 	w := (tess.bmax[0] - tess.bmin[0])
 	h := (tess.bmax[1] - tess.bmin[1])
@@ -1077,7 +1081,7 @@ func initEdgeDict(tess *C.TESStesselator) {
 func doneEdgeDict(tess *C.TESStesselator) {
 	fixedEdges := 0
 	for {
-		reg := dictKey(dictMin(tess.dict))
+		reg := dictKey(dictMin((*dict)(tess.dict)))
 		if reg == nil {
 			break
 		}
@@ -1093,7 +1097,6 @@ func doneEdgeDict(tess *C.TESStesselator) {
 		deleteRegion(tess, reg)
 		// tessMeshDelete( reg.eUp );
 	}
-	dictDeleteDict(tess.dict)
 }
 
 // removeDegenerateEdges removes zero-length edges, and contours with fewer than 3 vertices.
@@ -1226,7 +1229,7 @@ func tessComputeInterior(tess *C.TESStesselator) {
 	}
 
 	// Set tess.event for debugging purposes
-	tess.event = dictKey(dictMin(tess.dict)).eUp.Org
+	tess.event = dictKey(dictMin((*dict)(tess.dict))).eUp.Org
 	doneEdgeDict(tess)
 	donePriorityQ(tess)
 
