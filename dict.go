@@ -111,6 +111,10 @@ func dictDelete(nodeID unsafe.Pointer) {
 }
 
 //export dictSearch
+//
+// Search returns the node with the smallest key greater than or equal
+// to the given key.  If there is no such key, returns a node whose
+// key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
 func dictSearch(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
 	d := idToDict[uintptr(dictID)]
 	n := &d.head

@@ -38,10 +38,6 @@ void *dictNewDict( struct TESStesselator *frame );
 
 void dictDeleteDict( void *dict );
 
-/* Search returns the node with the smallest key greater than or equal
-* to the given key.  If there is no such key, returns a node whose
-* key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
-*/
 void *dictSearch( void *dict, ActiveRegion* key );
 void *dictInsertBefore( void *dict, void *node, ActiveRegion *key );
 void dictDelete( void *node );
