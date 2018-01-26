@@ -43,6 +43,30 @@ import (
 	"unsafe"
 )
 
+// killVertex destroys a vertex and removes it from the global
+// vertex list.  It updates the vertex loop to point to a given new vertex.
+func killVertex(mesh *C.TESSmesh, vDel *C.TESSvertex, newOrg *C.TESSvertex) {
+	eStart := vDel.anEdge
+
+	// change the origin of all affected edges
+	e := eStart
+	for {
+		e.Org = newOrg
+		e = e.Onext
+		if e == eStart {
+			break
+		}
+	}
+
+	// delete from circular doubly-linked list
+	vPrev := vDel.prev
+	vNext := vDel.next
+	vNext.prev = vPrev
+	vPrev.next = vNext
+
+	C.bucketFree(mesh.vertexBucket, unsafe.Pointer(vDel))
+}
+
 // killFace destroys a face and removes it from the global face
 // list.  It updates the face loop to point to a given new face.
 func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
@@ -115,7 +139,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 	if eDst.Org != eOrg.Org {
 		// We are merging two disjoint vertices -- destroy eDst.Org
 		joiningVertices = true
-		C.KillVertex(mesh, eDst.Org, eOrg.Org)
+		killVertex(mesh, eDst.Org, eOrg.Org)
 	}
 	if eDst.Lface != eOrg.Lface {
 		// We are connecting two disjoint loops -- destroy eDst.Lface
@@ -166,7 +190,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 	}
 
 	if eDel.Onext == eDel {
-		C.KillVertex(mesh, eDel.Org, nil)
+		killVertex(mesh, eDel.Org, nil)
 	} else {
 		// Make sure that eDel.Org and eDel.Rface point to valid half-edges
 		rFace(eDel).anEdge = oPrev(eDel)
@@ -184,7 +208,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 	// Claim: the mesh is now in a consistent state, except that eDel.Org
 	// may have been deleted.  Now we disconnect eDel.Dst.
 	if eDelSym.Onext == eDelSym {
-		C.KillVertex(mesh, eDelSym.Org, nil)
+		killVertex(mesh, eDelSym.Org, nil)
 		killFace(mesh, eDelSym.Lface, nil)
 	} else {
 		// Make sure that eDel.Dst and eDel.Lface point to valid half-edges
@@ -304,7 +328,7 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 			// delete the edge -- see TESSmeshDelete above
 
 			if e.Onext == e {
-				C.KillVertex(mesh, e.Org, nil)
+				killVertex(mesh, e.Org, nil)
 			} else {
 				// Make sure that e.Org points to a valid half-edge
 				e.Org.anEdge = e.Onext
@@ -312,7 +336,7 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 			}
 			eSym := e.Sym
 			if eSym.Onext == eSym {
-				C.KillVertex(mesh, eSym.Org, nil)
+				killVertex(mesh, eSym.Org, nil)
 			} else {
 				// Make sure that eSym.Org points to a valid half-edge
 				eSym.Org.anEdge = eSym.Onext

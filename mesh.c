@@ -191,28 +191,3 @@ void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel )
 
 	bucketFree( mesh->edgeBucket, eDel );
 }
-
-
-/* KillVertex( vDel ) destroys a vertex and removes it from the global
-* vertex list.  It updates the vertex loop to point to a given new vertex.
-*/
-void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg )
-{
-	TESShalfEdge *e, *eStart = vDel->anEdge;
-	TESSvertex *vPrev, *vNext;
-
-	/* change the origin of all affected edges */
-	e = eStart;
-	do {
-		e->Org = newOrg;
-		e = e->Onext;
-	} while( e != eStart );
-
-	/* delete from circular doubly-linked list */
-	vPrev = vDel->prev;
-	vNext = vDel->next;
-	vNext->prev = vPrev;
-	vPrev->next = vNext;
-
-	bucketFree( mesh->vertexBucket, vDel );
-}
