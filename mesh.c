@@ -172,22 +172,3 @@ void MakeFace( TESSface *newFace, TESShalfEdge *eOrig, TESSface *fNext )
 		e = e->Lnext;
 	} while( e != eOrig );
 }
-
-/* KillEdge( eDel ) destroys an edge (the half-edges eDel and eDel->Sym),
-* and removes from the global edge list.
-*/
-void KillEdge( TESSmesh *mesh, TESShalfEdge *eDel )
-{
-	TESShalfEdge *ePrev, *eNext;
-
-	/* Half-edges are allocated in pairs, see EdgePair above */
-	if( eDel->Sym < eDel ) { eDel = eDel->Sym; }
-
-	/* delete from circular doubly-linked list */
-	eNext = eDel->next;
-	ePrev = eDel->Sym->next;
-	eNext->Sym->next = ePrev;
-	ePrev->Sym->next = eNext;
-
-	bucketFree( mesh->edgeBucket, eDel );
-}

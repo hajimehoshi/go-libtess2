@@ -43,6 +43,23 @@ import (
 	"unsafe"
 )
 
+// killEdge destroys an edge (the half-edges eDel and eDel.Sym),
+// and removes from the global edge list.
+func killEdge(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
+	// Half-edges are allocated in pairs, see EdgePair above
+	if eDel.Sym != eDel {
+		eDel = eDel.Sym
+	}
+
+	// delete from circular doubly-linked list
+	eNext := eDel.next
+	ePrev := eDel.Sym.next
+	eNext.Sym.next = ePrev
+	ePrev.Sym.next = eNext
+
+	C.bucketFree(mesh.edgeBucket, unsafe.Pointer(eDel))
+}
+
 // killVertex destroys a vertex and removes it from the global
 // vertex list.  It updates the vertex loop to point to a given new vertex.
 func killVertex(mesh *C.TESSmesh, vDel *C.TESSvertex, newOrg *C.TESSvertex) {
@@ -218,7 +235,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 	}
 
 	// Any isolated vertices or faces have already been freed.
-	C.KillEdge(mesh, eDel)
+	killEdge(mesh, eDel)
 }
 
 // All these routines can be implemented with the basic edge
@@ -342,7 +359,7 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 				eSym.Org.anEdge = eSym.Onext
 				C.Splice(eSym, oPrev(eSym))
 			}
-			C.KillEdge(mesh, e)
+			killEdge(mesh, e)
 		}
 		if e == eStart {
 			break
