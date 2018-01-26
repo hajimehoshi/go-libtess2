@@ -43,6 +43,30 @@ import (
 	"unsafe"
 )
 
+// killFace destroys a face and removes it from the global face
+// list.  It updates the face loop to point to a given new face.
+func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
+	eStart := fDel.anEdge
+
+	// change the left face of all affected edges
+	e := eStart
+	for {
+		e.Lface = newLface
+		e = e.Lnext
+		if e == eStart {
+			break
+		}
+	}
+
+	// delete from circular doubly-linked list
+	fPrev := fDel.prev
+	fNext := fDel.next
+	fNext.prev = fPrev
+	fPrev.next = fNext
+
+	C.bucketFree(mesh.faceBucket, unsafe.Pointer(fDel))
+}
+
 // tessMeshMakeEdge creates one edge, two vertices, and a loop (face).
 // The loop consists of the two new half-edges.
 func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
@@ -96,7 +120,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 	if eDst.Lface != eOrg.Lface {
 		// We are connecting two disjoint loops -- destroy eDst.Lface
 		joiningLoops = true
-		C.KillFace(mesh, eDst.Lface, eOrg.Lface)
+		killFace(mesh, eDst.Lface, eOrg.Lface)
 	}
 
 	// Change the edge structure
@@ -138,7 +162,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 	if eDel.Lface != rFace(eDel) {
 		// We are joining two loops into one -- remove the left face
 		joiningLoops = true
-		C.KillFace(mesh, eDel.Lface, rFace(eDel))
+		killFace(mesh, eDel.Lface, rFace(eDel))
 	}
 
 	if eDel.Onext == eDel {
@@ -161,7 +185,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 	// may have been deleted.  Now we disconnect eDel.Dst.
 	if eDelSym.Onext == eDelSym {
 		C.KillVertex(mesh, eDelSym.Org, nil)
-		C.KillFace(mesh, eDelSym.Lface, nil)
+		killFace(mesh, eDelSym.Lface, nil)
 	} else {
 		// Make sure that eDel.Dst and eDel.Lface point to valid half-edges
 		eDel.Lface.anEdge = oPrev(eDelSym)
@@ -235,7 +259,7 @@ func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdg
 	if eDst.Lface != eOrg.Lface {
 		// We are connecting two disjoint loops -- destroy eDst.Lface
 		joiningLoops = true
-		C.KillFace(mesh, eDst.Lface, eOrg.Lface)
+		killFace(mesh, eDst.Lface, eOrg.Lface)
 	}
 
 	// Connect the new edge appropriately

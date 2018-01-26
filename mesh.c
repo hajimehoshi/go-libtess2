@@ -216,27 +216,3 @@ void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg )
 
 	bucketFree( mesh->vertexBucket, vDel );
 }
-
-/* KillFace( fDel ) destroys a face and removes it from the global face
-* list.  It updates the face loop to point to a given new face.
-*/
-void KillFace( TESSmesh *mesh, TESSface *fDel, TESSface *newLface )
-{
-	TESShalfEdge *e, *eStart = fDel->anEdge;
-	TESSface *fPrev, *fNext;
-
-	/* change the left face of all affected edges */
-	e = eStart;
-	do {
-		e->Lface = newLface;
-		e = e->Lnext;
-	} while( e != eStart );
-
-	/* delete from circular doubly-linked list */
-	fPrev = fDel->prev;
-	fNext = fDel->next;
-	fNext->prev = fPrev;
-	fPrev->next = fNext;
-
-	bucketFree( mesh->faceBucket, fDel );
-}
