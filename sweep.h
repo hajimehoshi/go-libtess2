@@ -37,8 +37,6 @@
 
 /* The following is here *only* for access by debugging routines */
 
-#include "dict.h"
-
 /* For each pair of adjacent edges crossing the sweep line, there is
 * an ActiveRegion to represent the region between them.  The active
 * regions are kept in sorted order in a dynamic dictionary.  As the

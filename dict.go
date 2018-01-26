@@ -53,7 +53,6 @@ var (
 	nodeCounter = uintptr(1)
 )
 
-//export dictNewDict
 func dictNewDict(frame *C.struct_TESStesselator) unsafe.Pointer {
 	d := &dict{
 		frame: frame,
@@ -72,12 +71,10 @@ func dictNewDict(frame *C.struct_TESStesselator) unsafe.Pointer {
 	return unsafe.Pointer(c)
 }
 
-//export dictDeleteDict
 func dictDeleteDict(dictID unsafe.Pointer) {
 	delete(idToDict, uintptr(dictID))
 }
 
-//export dictInsertBefore
 func dictInsertBefore(dictID unsafe.Pointer, nodeID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
 	d := idToDict[uintptr(dictID)]
 	n := idToNode[uintptr(nodeID)]
@@ -103,15 +100,12 @@ func dictInsertBefore(dictID unsafe.Pointer, nodeID unsafe.Pointer, key *C.struc
 	return unsafe.Pointer(c)
 }
 
-//export dictDelete
 func dictDelete(nodeID unsafe.Pointer) {
 	n := idToNode[uintptr(nodeID)]
 	n.next.prev = n.prev
 	n.prev.next = n.next
 }
 
-//export dictSearch
-//
 // Search returns the node with the smallest key greater than or equal
 // to the given key.  If there is no such key, returns a node whose
 // key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
@@ -127,37 +121,31 @@ func dictSearch(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointe
 	return unsafe.Pointer(nodeToID[n])
 }
 
-//export dictKey
 func dictKey(nodeID unsafe.Pointer) *C.struct_ActiveRegion {
 	n := idToNode[uintptr(nodeID)]
 	return n.key
 }
 
-//export dictSucc
 func dictSucc(nodeID unsafe.Pointer) unsafe.Pointer {
 	n := idToNode[uintptr(nodeID)]
 	return unsafe.Pointer(nodeToID[n.next])
 }
 
-//export dictPred
 func dictPred(nodeID unsafe.Pointer) unsafe.Pointer {
 	n := idToNode[uintptr(nodeID)]
 	return unsafe.Pointer(nodeToID[n.prev])
 }
 
-//export dictMin
 func dictMin(dictID unsafe.Pointer) unsafe.Pointer {
 	d := idToDict[uintptr(dictID)]
 	return unsafe.Pointer(nodeToID[d.head.next])
 }
 
-//export dictMax
 func dictMax(dictID unsafe.Pointer) unsafe.Pointer {
 	d := idToDict[uintptr(dictID)]
 	return unsafe.Pointer(nodeToID[d.head.prev])
 }
 
-//export dictInsert
 func dictInsert(dictID unsafe.Pointer, key *C.struct_ActiveRegion) unsafe.Pointer {
 	d := idToDict[uintptr(dictID)]
 	return dictInsertBefore(dictID, unsafe.Pointer(nodeToID[&d.head]), key)

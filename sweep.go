@@ -158,7 +158,7 @@ func deleteRegion(tess *C.TESStesselator, reg *C.ActiveRegion) {
 		assert(reg.eUp.winding == 0)
 	}
 	reg.eUp.activeRegion = nil
-	C.dictDelete(reg.nodeUp)
+	dictDelete(reg.nodeUp)
 }
 
 // edgeLeq:
@@ -1081,7 +1081,7 @@ func initEdgeDict(tess *C.TESStesselator) {
 func doneEdgeDict(tess *C.TESStesselator) {
 	fixedEdges := 0
 	for {
-		reg := C.dictKey(C.dictMin(tess.dict))
+		reg := dictKey(dictMin(tess.dict))
 		if reg == nil {
 			break
 		}
@@ -1097,7 +1097,7 @@ func doneEdgeDict(tess *C.TESStesselator) {
 		deleteRegion(tess, reg)
 		// tessMeshDelete( reg.eUp );
 	}
-	C.dictDeleteDict(tess.dict)
+	dictDeleteDict(tess.dict)
 }
 
 // removeDegenerateEdges removes zero-length edges, and contours with fewer than 3 vertices.

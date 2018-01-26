@@ -35,8 +35,8 @@
 #include <setjmp.h>
 #include "bucketalloc.h"
 #include "mesh.h"
-#include "dict.h"
 #include "priorityq.h"
+#include "sweep.h"
 #include "tesselator.h"
 
 #ifdef __cplusplus
