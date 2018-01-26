@@ -64,7 +64,6 @@ var (
 	pqCounter = uintptr(1)
 )
 
-//export pqNewPriorityQ
 func pqNewPriorityQ(size C.int) unsafe.Pointer {
 	p := &pq{}
 	heap.Init(p)
@@ -75,19 +74,16 @@ func pqNewPriorityQ(size C.int) unsafe.Pointer {
 	return unsafe.Pointer(c)
 }
 
-//export pqDeletePriorityQ
 func pqDeletePriorityQ(pqID unsafe.Pointer) {
 	delete(idToPQ, uintptr(pqID))
 }
 
-//export pqInsert
 func pqInsert(pqID unsafe.Pointer, key *C.struct_TESSvertex) C.PQhandle {
 	p := idToPQ[uintptr(pqID)]
 	heap.Push(p, key)
 	return (C.PQhandle)(unsafe.Pointer(key))
 }
 
-//export pqExtractMin
 func pqExtractMin(pqID unsafe.Pointer) *C.struct_TESSvertex {
 	p := idToPQ[uintptr(pqID)]
 	if len(*p) == 0 {
@@ -96,7 +92,6 @@ func pqExtractMin(pqID unsafe.Pointer) *C.struct_TESSvertex {
 	return heap.Pop(p).(*C.struct_TESSvertex)
 }
 
-//export pqDelete
 func pqDelete(pqID unsafe.Pointer, handle C.PQhandle) {
 	p := idToPQ[uintptr(pqID)]
 
@@ -111,7 +106,6 @@ func pqDelete(pqID unsafe.Pointer, handle C.PQhandle) {
 	heap.Remove(p, idx)
 }
 
-//export pqMinimum
 func pqMinimum(pqID unsafe.Pointer) *C.struct_TESSvertex {
 	p := idToPQ[uintptr(pqID)]
 	if len(*p) == 0 {
@@ -120,7 +114,6 @@ func pqMinimum(pqID unsafe.Pointer) *C.struct_TESSvertex {
 	return (*p)[0]
 }
 
-//export pqIsEmpty
 func pqIsEmpty(pqID unsafe.Pointer) C.bool {
 	p := idToPQ[uintptr(pqID)]
 	return len(*p) == 0

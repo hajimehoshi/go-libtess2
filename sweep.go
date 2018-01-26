@@ -1200,12 +1200,12 @@ func tessComputeInterior(tess *C.TESStesselator) {
 	initEdgeDict(tess)
 
 	for {
-		v := (*C.TESSvertex)(C.pqExtractMin(tess.pq))
+		v := (*C.TESSvertex)(pqExtractMin(tess.pq))
 		if v == nil {
 			break
 		}
 		for {
-			vNext := (*C.TESSvertex)(C.pqMinimum(tess.pq))
+			vNext := (*C.TESSvertex)(pqMinimum(tess.pq))
 			if vNext == nil || !vertEq(vNext, v) {
 				break
 			}
@@ -1223,7 +1223,7 @@ func tessComputeInterior(tess *C.TESStesselator) {
 			// intersection point.  This might leave two edges with a small
 			// gap between them.  This kind of error is especially obvious
 			// when using boundary extraction (TESS_BOUNDARY_ONLY).
-			vNext = (*C.TESSvertex)(C.pqExtractMin(tess.pq))
+			vNext = (*C.TESSvertex)(pqExtractMin(tess.pq))
 			spliceMergeVertices(tess, v.anEdge, vNext.anEdge)
 		}
 		sweepEvent(tess, v)

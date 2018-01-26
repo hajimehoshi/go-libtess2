@@ -49,14 +49,4 @@ struct TESSvertex;
 typedef void PriorityQ;
 typedef void* PQhandle;
 
-void *pqNewPriorityQ( int size );
-void pqDeletePriorityQ( void *pq );
-
-PQhandle pqInsert( void* pq, struct TESSvertex *key );
-struct TESSvertex* pqExtractMin( void* pq );
-void pqDelete( void* pq, PQhandle handle );
-
-struct TESSvertex* pqMinimum( void* pq );
-bool pqIsEmpty( void* pq );
-
 #endif
