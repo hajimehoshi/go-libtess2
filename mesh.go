@@ -39,10 +39,6 @@ package libtess2
 // }
 import "C"
 
-import (
-	"unsafe"
-)
-
 // makeEdge creates a new pair of half-edges which form their own loop.
 // No vertex or face structures are allocated, but these must be assigned
 // before the current edge operation is completed.
@@ -223,8 +219,6 @@ func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
 	fNext := fDel.next
 	fNext.prev = fPrev
 	fPrev.next = fNext
-
-	C.bucketFree(mesh.faceBucket, unsafe.Pointer(fDel))
 }
 
 // tessMeshMakeEdge creates one edge, two vertices, and a loop (face).
@@ -232,7 +226,7 @@ func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
 func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
 	newVertex1 := &C.TESSvertex{}
 	newVertex2 := &C.TESSvertex{}
-	newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+	newFace := &C.TESSface{}
 
 	e := makeEdge(mesh, &mesh.eHead)
 
@@ -295,7 +289,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 		eOrg.Org.anEdge = eOrg
 	}
 	if !joiningLoops {
-		newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+		newFace := &C.TESSface{}
 
 		// We split one loop into two -- the new loop is eDst.Lface.
 		// Make sure the old face points to a valid half-edge.
@@ -334,7 +328,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 
 		splice(eDel, oPrev(eDel))
 		if !joiningLoops {
-			newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+			newFace := &C.TESSface{}
 
 			// We are splitting one loop into two -- create a new loop for eDel.
 			makeFace(newFace, eDel, eDel.Lface)
@@ -436,7 +430,7 @@ func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdg
 	eOrg.Lface.anEdge = eNewSym
 
 	if !joiningLoops {
-		newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+		newFace := &C.TESSface{}
 
 		// We split one loop into two -- the new loop is eNew.Lface
 		makeFace(newFace, eNew, eOrg.Lface)
@@ -490,8 +484,6 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 	fNext := fZap.next
 	fNext.prev = fPrev
 	fPrev.next = fNext
-
-	C.bucketFree(mesh.faceBucket, unsafe.Pointer(fZap))
 }
 
 // tessMeshNewMesh creates a new mesh with no edges, no vertices,
@@ -519,8 +511,6 @@ func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
 	if alloc.meshFaceBucketSize > 4096 {
 		alloc.meshFaceBucketSize = 4096
 	}
-
-	mesh.faceBucket = C.createBucketAlloc(alloc, C.CString("Mesh Faces"), C.sizeof_struct_TESSface, C.uint(alloc.meshFaceBucketSize))
 
 	v := &mesh.vHead
 	f := &mesh.fHead

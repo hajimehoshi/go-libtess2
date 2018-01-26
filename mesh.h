@@ -152,8 +152,6 @@ struct TESSmesh {
 	TESSface fHead;      /* dummy header for face list */
 	TESShalfEdge eHead;      /* dummy header for edge list */
 	TESShalfEdge eHeadSym;   /* and its symmetric counterpart */
-
-	struct BucketAlloc* faceBucket;
 };
 
 /* The mesh operations below have three motivations: completeness,
