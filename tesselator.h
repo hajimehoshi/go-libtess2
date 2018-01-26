@@ -169,29 +169,6 @@ struct TESSalloc
 //   new tesselator object.
 struct TESStesselator* tessNewTess( TESSalloc* alloc );
 
-// tessDeleteTess() - Deletes a tesselator.
-// Parameters:
-//   tess - pointer to tesselator object to be deleted.
-void tessDeleteTess( struct TESStesselator *tess );
-
-// tessGetVertexCount() - Returns number of vertices in the tesselated output.
-int tessGetVertexCount( struct TESStesselator *tess );
-
-// tessGetVertices() - Returns pointer to first coordinate of first vertex.
-const TESSreal* tessGetVertices( struct TESStesselator *tess );
-
-// tessGetVertexIndices() - Returns pointer to first vertex index.
-// Vertex indices can be used to map the generated vertices to the original vertices.
-// Every point added using tessAddContour() will get a new index starting at 0.
-// New vertices generated at the intersections of segments are assigned value TESS_UNDEF.
-const TESSindex* tessGetVertexIndices( struct TESStesselator *tess );
-	
-// tessGetElementCount() - Returns number of elements in the the tesselated output.
-int tessGetElementCount( struct TESStesselator *tess );
-
-// tessGetElements() - Returns pointer to the first element.
-const TESSindex* tessGetElements( struct TESStesselator *tess );
-
 #ifdef __cplusplus
 };
 #endif
