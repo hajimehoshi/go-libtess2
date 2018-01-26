@@ -58,7 +58,6 @@ import "C"
 
 import (
 	"fmt"
-	"unsafe"
 )
 
 type Vertex struct {
@@ -71,12 +70,8 @@ type Tesselator struct {
 }
 
 func NewTesselator() *Tesselator {
-	userData := 0
-	alloc := &C.TESSalloc{
-		userData: unsafe.Pointer(&userData),
-	}
 	return &Tesselator{
-		p: tessNewTess(alloc),
+		p: tessNewTess(),
 	}
 }
 
@@ -469,34 +464,13 @@ func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool
 
 // tessNewTess - Creates a new tesselator.
 // Use tessDeleteTess to delete the tesselator.
-// Parameters:
-//   alloc - pointer to a filled TESSalloc struct or NULL to use default malloc based allocator.
 // Returns:
 //   new tesselator object.
-func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
-	assert(alloc != nil)
-
+func tessNewTess() *C.TESStesselator {
 	// Only initialize fields which can be changed by the api.  Other fields
 	// are initialized where they are used.
 
 	tess := &C.TESStesselator{}
-	tess.alloc = *alloc
-	// Check and set defaults.
-	if tess.alloc.meshEdgeBucketSize == 0 {
-		tess.alloc.meshEdgeBucketSize = 512
-	}
-	if tess.alloc.meshVertexBucketSize == 0 {
-		tess.alloc.meshVertexBucketSize = 512
-	}
-	if tess.alloc.meshFaceBucketSize == 0 {
-		tess.alloc.meshFaceBucketSize = 256
-	}
-	if tess.alloc.dictNodeBucketSize == 0 {
-		tess.alloc.dictNodeBucketSize = 512
-	}
-	if tess.alloc.regionBucketSize == 0 {
-		tess.alloc.regionBucketSize = 256
-	}
 
 	tess.normal[0] = 0
 	tess.normal[1] = 0
@@ -508,13 +482,6 @@ func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
 	tess.bmax[1] = 0
 
 	tess.windingRule = C.TESS_WINDING_ODD
-
-	if tess.alloc.regionBucketSize < 16 {
-		tess.alloc.regionBucketSize = 16
-	}
-	if tess.alloc.regionBucketSize > 4096 {
-		tess.alloc.regionBucketSize = 4096
-	}
 
 	// Initialize to begin polygon.
 	tess.mesh = nil
@@ -725,7 +692,7 @@ func outputContours(tess *C.TESStesselator, mesh *C.TESSmesh, vertexSize int) {
 //   vertices - vertices array
 func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
 	if tess.mesh == nil {
-		tess.mesh = tessMeshNewMesh(&tess.alloc)
+		tess.mesh = tessMeshNewMesh()
 	}
 
 	if size < 2 {

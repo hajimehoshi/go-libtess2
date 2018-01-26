@@ -478,29 +478,8 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 
 // tessMeshNewMesh creates a new mesh with no edges, no vertices,
 // and no loops (what we usually call a "face").
-func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
+func tessMeshNewMesh() *C.TESSmesh {
 	mesh := &C.TESSmesh{}
-
-	if alloc.meshEdgeBucketSize < 16 {
-		alloc.meshEdgeBucketSize = 16
-	}
-	if alloc.meshEdgeBucketSize > 4096 {
-		alloc.meshEdgeBucketSize = 4096
-	}
-
-	if alloc.meshVertexBucketSize < 16 {
-		alloc.meshVertexBucketSize = 16
-	}
-	if alloc.meshVertexBucketSize > 4096 {
-		alloc.meshVertexBucketSize = 4096
-	}
-
-	if alloc.meshFaceBucketSize < 16 {
-		alloc.meshFaceBucketSize = 16
-	}
-	if alloc.meshFaceBucketSize > 4096 {
-		alloc.meshFaceBucketSize = 4096
-	}
 
 	v := &mesh.vHead
 	f := &mesh.fHead
@@ -543,7 +522,7 @@ func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
 // both meshes, and returns the new mesh (the old meshes are destroyed).
 //
 // TODO: This function is not used anywhere?
-func tessMeshUnion(alloc *C.TESSalloc, mesh1, mesh2 *C.TESSmesh) *C.TESSmesh {
+func tessMeshUnion(mesh1, mesh2 *C.TESSmesh) *C.TESSmesh {
 	f1 := &mesh1.fHead
 	v1 := &mesh1.vHead
 	e1 := &mesh1.eHead

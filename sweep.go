@@ -1137,7 +1137,7 @@ func initPriorityQ(tess *C.TESStesselator) {
 		vertexCount++
 	}
 	// Make sure there is enough space for sentinels.
-	vertexCount += max(8, tess.alloc.extraVertices)
+	vertexCount += 8
 
 	tess.pq = pqNewPriorityQ(vertexCount)
 
