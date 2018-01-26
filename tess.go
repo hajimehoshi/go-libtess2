@@ -31,8 +31,6 @@ package libtess2
 // #include <stdlib.h>
 // #include <string.h>
 //
-// struct TESStesselator* tessNewTess( TESSalloc* alloc );
-//
 // static void* golibtess2_stdAlloc(void* userData, unsigned int size) {
 //   int* allocated = ( int*)userData;
 //   TESS_NOTUSED(userData);
@@ -43,18 +41,6 @@ package libtess2
 // static void golibtess2_stdFree(void* userData, void* ptr) {
 //   TESS_NOTUSED(userData);
 //   free(ptr);
-// }
-//
-// static int allocated = 0;
-//
-// static TESStesselator* golibtess2_newTesselator() {
-//   TESSalloc ma;
-//   memset(&ma, 0, sizeof(ma));
-//   ma.memalloc = golibtess2_stdAlloc;
-//   ma.memfree = golibtess2_stdFree;
-//   ma.userData = (void*)&allocated;
-//   ma.extraVertices = 256; // realloc not provided, allow 256 extra vertices.
-//   return tessNewTess(&ma);
 // }
 //
 // static TESSindex golibtess2_elementAt(TESSindex* elements, int i) {
@@ -93,12 +79,16 @@ type Vertex struct {
 }
 
 type Tesselator struct {
-	p unsafe.Pointer
+	p *C.TESStesselator
 }
 
 func NewTesselator() *Tesselator {
+	userData := 0
+	alloc := &C.TESSalloc{
+		userData: unsafe.Pointer(&userData),
+	}
 	return &Tesselator{
-		p: unsafe.Pointer(C.golibtess2_newTesselator()),
+		p: tessNewTess(alloc),
 	}
 }
 
@@ -489,8 +479,6 @@ func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool
 	}
 }
 
-//export tessNewTess
-//
 // tessNewTess - Creates a new tesselator.
 // Use tessDeleteTess to delete the tesselator.
 // Parameters:
@@ -819,19 +807,6 @@ func tessAddContour(tess *C.TESStesselator, size int, vertices []float32) {
 // Returns:
 //   true if succeed, false if failed.
 func tessTesselate(tess *C.TESStesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []C.TESSreal) bool {
-	/*if tess.vertices != nil {
-		tess.alloc.memfree(tess.alloc.userData, tess.vertices)
-		tess.vertices = 0
-	}
-	if tess.elements != nil {
-		tess.alloc.memfree(tess.alloc.userData, tess.elements)
-		tess.elements = 0
-	}
-	if tess.vertexIndices != nil {
-		tess.alloc.memfree(tess.alloc.userData, tess.vertexIndices)
-		tess.vertexIndices = 0
-	}*/
-
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {
