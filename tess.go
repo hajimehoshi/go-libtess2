@@ -31,6 +31,8 @@ package libtess2
 // #include <stdlib.h>
 // #include <string.h>
 //
+// struct TESStesselator* tessNewTess( TESSalloc* alloc );
+//
 // static void* golibtess2_stdAlloc(void* userData, unsigned int size) {
 //   int* allocated = ( int*)userData;
 //   TESS_NOTUSED(userData);
@@ -488,6 +490,13 @@ func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool
 }
 
 //export tessNewTess
+//
+// tessNewTess - Creates a new tesselator.
+// Use tessDeleteTess to delete the tesselator.
+// Parameters:
+//   alloc - pointer to a filled TESSalloc struct or NULL to use default malloc based allocator.
+// Returns:
+//   new tesselator object.
 func tessNewTess(alloc *C.TESSalloc) *C.TESStesselator {
 	assert(alloc != nil)
 

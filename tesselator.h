@@ -153,22 +153,6 @@ struct TESSalloc
 	int extraVertices;			// Number of extra vertices allocated for the priority queue.
 };
 
-
-//
-// Example use:
-//
-//
-//
-//
-
-// tessNewTess() - Creates a new tesselator.
-// Use tessDeleteTess() to delete the tesselator.
-// Parameters:
-//   alloc - pointer to a filled TESSalloc struct or NULL to use default malloc based allocator.
-// Returns:
-//   new tesselator object.
-struct TESStesselator* tessNewTess( TESSalloc* alloc );
-
 #ifdef __cplusplus
 };
 #endif
