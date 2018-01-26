@@ -27,15 +27,6 @@
 package libtess2
 
 // #include "mesh.h"
-//
-// #include <stdlib.h>
-//
-// static void* golibtess2_stdAlloc(void* userData, unsigned int size) {
-//   int* allocated = ( int*)userData;
-//   TESS_NOTUSED(userData);
-//   *allocated += (int)size;
-//   return malloc(size);
-// }
 import "C"
 
 // makeEdge creates a new pair of half-edges which form their own loop.
@@ -488,7 +479,7 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 // tessMeshNewMesh creates a new mesh with no edges, no vertices,
 // and no loops (what we usually call a "face").
 func tessMeshNewMesh(alloc *C.TESSalloc) *C.TESSmesh {
-	mesh := (*C.TESSmesh)(C.golibtess2_stdAlloc(alloc.userData, C.sizeof_struct_TESSmesh))
+	mesh := &C.TESSmesh{}
 
 	if alloc.meshEdgeBucketSize < 16 {
 		alloc.meshEdgeBucketSize = 16
