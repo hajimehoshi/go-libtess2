@@ -33,7 +33,6 @@
 #define TESS_H
 
 #include <setjmp.h>
-#include "bucketalloc.h"
 #include "mesh.h"
 #include "priorityq.h"
 #include "sweep.h"

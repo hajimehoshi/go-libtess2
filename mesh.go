@@ -27,7 +27,6 @@
 package libtess2
 
 // #include "mesh.h"
-// #include "bucketalloc.h"
 //
 // #include <stdlib.h>
 //
