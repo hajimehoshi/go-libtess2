@@ -481,9 +481,7 @@ func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool
 			if !keepOnlyBoundary {
 				e.winding = 0
 			} else {
-				if C.tessMeshDelete(mesh, e) == 0 {
-					return
-				}
+				tessMeshDelete(mesh, e)
 			}
 		}
 	}

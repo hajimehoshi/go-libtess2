@@ -43,6 +43,59 @@ import (
 	"unsafe"
 )
 
+// tessMeshDelete removes the edge eDel.  There are several cases:
+// if (eDel.Lface != eDel.Rface), we join two loops into one; the loop
+// eDel.Lface is deleted.  Otherwise, we are splitting one loop into two;
+// the newly created loop will contain eDel.Dst.  If the deletion of eDel
+// would create isolated vertices, those are deleted as well.
+//
+// This function could be implemented as two calls to tessMeshSplice
+// plus a few calls to memFree, but this would allocate and delete
+// unnecessary vertices and faces.
+func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
+	eDelSym := eDel.Sym
+	joiningLoops := false
+
+	// First step: disconnect the origin vertex eDel.Org.  We make all
+	// changes to get a consistent mesh in this "intermediate" state.
+	if eDel.Lface != rFace(eDel) {
+		// We are joining two loops into one -- remove the left face
+		joiningLoops = true
+		C.KillFace(mesh, eDel.Lface, rFace(eDel))
+	}
+
+	if eDel.Onext == eDel {
+		C.KillVertex(mesh, eDel.Org, nil)
+	} else {
+		// Make sure that eDel.Org and eDel.Rface point to valid half-edges
+		rFace(eDel).anEdge = oPrev(eDel)
+		eDel.Org.anEdge = eDel.Onext
+
+		C.Splice(eDel, oPrev(eDel))
+		if !joiningLoops {
+			newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+
+			// We are splitting one loop into two -- create a new loop for eDel.
+			C.MakeFace(newFace, eDel, eDel.Lface)
+		}
+	}
+
+	// Claim: the mesh is now in a consistent state, except that eDel.Org
+	// may have been deleted.  Now we disconnect eDel.Dst.
+	if eDelSym.Onext == eDelSym {
+		C.KillVertex(mesh, eDelSym.Org, nil)
+		C.KillFace(mesh, eDelSym.Lface, nil)
+	} else {
+		// Make sure that eDel.Dst and eDel.Lface point to valid half-edges
+		eDel.Lface.anEdge = oPrev(eDelSym)
+		eDelSym.Org.anEdge = eDelSym.Onext
+		C.Splice(eDelSym, oPrev(eDelSym))
+	}
+
+	// Any isolated vertices or faces have already been freed.
+	C.KillEdge(mesh, eDel)
+}
+
 // All these routines can be implemented with the basic edge
 // operations above.  They are provided for convenience and efficiency.
 
@@ -320,7 +373,7 @@ func tessMeshMergeConvexFaces(mesh *C.TESSmesh, maxVertsPerFace int) {
 					// Merge if the resulting poly is convex.
 					if tesvertCCW(lPrev(eCur).Org, eCur.Org, eSym.Lnext.Lnext.Org) && tesvertCCW(lPrev(eSym).Org, eSym.Org, eCur.Lnext.Lnext.Org) {
 						eNext = eSym.Lnext
-						C.tessMeshDelete(mesh, eSym)
+						tessMeshDelete(mesh, eSym)
 						eCur = nil
 					}
 				}

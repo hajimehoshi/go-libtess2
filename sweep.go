@@ -208,7 +208,7 @@ func addWinding(eDst *C.TESShalfEdge, eSrc *C.TESShalfEdge) {
 // fixUpperEdge replace an upper edge which needs fixing (see ConnectRightVertex).
 func fixUpperEdge(tess *C.TESStesselator, reg *C.ActiveRegion, newEdge *C.TESShalfEdge) {
 	assert(reg.fixUpperEdge != 0)
-	C.tessMeshDelete(tess.mesh, reg.eUp)
+	tessMeshDelete(tess.mesh, reg.eUp)
 	reg.fixUpperEdge = 0 /* false */
 	reg.eUp = newEdge
 	newEdge.activeRegion = reg
@@ -405,7 +405,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 		if !firstTime && checkForRightSplice(tess, regPrev) {
 			addWinding(e, ePrev)
 			deleteRegion(tess, regPrev)
-			C.tessMeshDelete(tess.mesh, ePrev)
+			tessMeshDelete(tess.mesh, ePrev)
 		}
 		firstTime = false
 		regPrev = reg
@@ -753,12 +753,12 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 				// vertices which otherwise have no right-going edges).
 				if regLo.fixUpperEdge != 0 {
 					deleteRegion(tess, regLo)
-					C.tessMeshDelete(tess.mesh, eLo)
+					tessMeshDelete(tess.mesh, eLo)
 					regLo = regionBelow(regUp)
 					eLo = regLo.eUp
 				} else if regUp.fixUpperEdge != 0 {
 					deleteRegion(tess, regUp)
-					C.tessMeshDelete(tess.mesh, eUp)
+					tessMeshDelete(tess.mesh, eUp)
 					regUp = regionAbove(regLo)
 					eUp = regUp.eUp
 				}
@@ -787,7 +787,7 @@ func walkDirtyRegions(tess *C.TESStesselator, regUp *C.ActiveRegion) {
 			// A degenerate loop consisting of only two edges -- delete it.
 			addWinding(eLo, eUp)
 			deleteRegion(tess, regUp)
-			C.tessMeshDelete(tess.mesh, eUp)
+			tessMeshDelete(tess.mesh, eUp)
 			regUp = regionAbove(regLo)
 		}
 	}
@@ -897,7 +897,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		tessMeshSplitEdge(tess.mesh, e.Sym)
 		if regUp.fixUpperEdge != 0 {
 			// This edge was fixable -- delete unused portion of original edge
-			C.tessMeshDelete(tess.mesh, e.Onext)
+			tessMeshDelete(tess.mesh, e.Onext)
 			regUp.fixUpperEdge = 0 // false
 		}
 		C.tessMeshSplice(tess.mesh, vEvent.anEdge, e)
@@ -919,7 +919,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		// We can delete it since now we have some real right-going edges.
 		assert(eTopLeft != eTopRight) // there are some left edges too
 		deleteRegion(tess, reg)
-		C.tessMeshDelete(tess.mesh, eTopRight)
+		tessMeshDelete(tess.mesh, eTopRight)
 		eTopRight = oPrev(eTopLeft)
 	}
 	C.tessMeshSplice(tess.mesh, vEvent.anEdge, eTopRight)
@@ -1111,7 +1111,7 @@ func removeDegenerateEdges(tess *C.TESStesselator) {
 		if vertEq(e.Org, dst(e)) && e.Lnext.Lnext != e {
 			// Zero-length edge, contour has at least 3 edges
 			spliceMergeVertices(tess, eLnext, e) /* deletes e.Org */
-			C.tessMeshDelete(tess.mesh, e)
+			tessMeshDelete(tess.mesh, e)
 			e = eLnext
 			eLnext = e.Lnext
 		}
@@ -1121,12 +1121,12 @@ func removeDegenerateEdges(tess *C.TESStesselator) {
 				if eLnext == eNext || eLnext == eNext.Sym {
 					eNext = eNext.next
 				}
-				C.tessMeshDelete(tess.mesh, eLnext)
+				tessMeshDelete(tess.mesh, eLnext)
 			}
 			if e == eNext || e == eNext.Sym {
 				eNext = eNext.next
 			}
-			C.tessMeshDelete(tess.mesh, e)
+			tessMeshDelete(tess.mesh, e)
 		}
 	}
 }
@@ -1167,7 +1167,7 @@ func donePriorityQ(tess *C.TESStesselator) {
 // In both these cases it is *very* dangerous to delete the offending
 // edge at the time, since one of the routines further up the stack
 // will sometimes be keeping a pointer to that edge.
-func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
+func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) {
 	var fNext *C.TESSface
 	for f := mesh.fHead.next; f != &mesh.fHead; f = fNext {
 		fNext = f.next
@@ -1177,12 +1177,9 @@ func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
 		if e.Lnext.Lnext == e {
 			// A face with only two edges
 			addWinding(e.Onext, e)
-			if C.tessMeshDelete(tess.mesh, e) == 0 {
-				return false
-			}
+			tessMeshDelete(tess.mesh, e)
 		}
 	}
-	return true
 }
 
 // tessComputeInterior computes the planar arrangement specified
@@ -1190,7 +1187,7 @@ func removeDegenerateFaces(tess *C.TESStesselator, mesh *C.TESSmesh) bool {
 // into regions.  Each region is marked "inside" if it belongs
 // to the polygon, according to the rule given by tess.windingRule.
 // Each interior region is guaranteed be monotone.
-func tessComputeInterior(tess *C.TESStesselator) bool {
+func tessComputeInterior(tess *C.TESStesselator) {
 	//TESSvertex *v, *vNext;
 
 	// Each vertex defines an event for our sweep line.  Start by inserting
@@ -1237,10 +1234,6 @@ func tessComputeInterior(tess *C.TESStesselator) bool {
 	doneEdgeDict(tess)
 	donePriorityQ(tess)
 
-	if !removeDegenerateFaces(tess, tess.mesh) {
-		return false
-	}
+	removeDegenerateFaces(tess, tess.mesh)
 	tessMeshCheckMesh(tess.mesh)
-
-	return true
 }
