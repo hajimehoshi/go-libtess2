@@ -254,6 +254,5 @@ typedef struct { TESShalfEdge e, eSym; } EdgePair;
 
 void Splice( TESShalfEdge *a, TESShalfEdge *b );
 TESShalfEdge *MakeEdge( TESSmesh* mesh, TESShalfEdge *eNext );
-void MakeVertex( TESSvertex *newVertex, TESShalfEdge *eOrig, TESSvertex *vNext );
 
 #endif

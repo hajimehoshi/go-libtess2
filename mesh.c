@@ -102,35 +102,3 @@ void Splice( TESShalfEdge *a, TESShalfEdge *b )
 	a->Onext = bOnext;
 	b->Onext = aOnext;
 }
-
-/* MakeVertex( newVertex, eOrig, vNext ) attaches a new vertex and makes it the
-* origin of all edges in the vertex loop to which eOrig belongs. "vNext" gives
-* a place to insert the new vertex in the global vertex list.  We insert
-* the new vertex *before* vNext so that algorithms which walk the vertex
-* list will not see the newly created vertices.
-*/
-void MakeVertex( TESSvertex *newVertex, TESShalfEdge *eOrig, TESSvertex *vNext )
-{
-	TESShalfEdge *e;
-	TESSvertex *vPrev;
-	TESSvertex *vNew = newVertex;
-
-	assert(vNew != NULL);
-
-	/* insert in circular doubly-linked list before vNext */
-	vPrev = vNext->prev;
-	vNew->prev = vPrev;
-	vPrev->next = vNew;
-	vNew->next = vNext;
-	vNext->prev = vNew;
-
-	vNew->anEdge = eOrig;
-	/* leave coords, s, t undefined */
-
-	/* fix other edges on this vertex loop */
-	e = eOrig;
-	do {
-		e->Org = vNew;
-		e = e->Onext;
-	} while( e != eOrig );
-}

@@ -43,6 +43,37 @@ import (
 	"unsafe"
 )
 
+// makeVertex attaches a new vertex and makes it the
+// origin of all edges in the vertex loop to which eOrig belongs. "vNext" gives
+// a place to insert the new vertex in the global vertex list.  We insert
+// the new vertex *before* vNext so that algorithms which walk the vertex
+// list will not see the newly created vertices.
+func makeVertex(newVertex *C.TESSvertex, eOrig *C.TESShalfEdge, vNext *C.TESSvertex) {
+	vNew := newVertex
+
+	assert(vNew != nil)
+
+	// insert in circular doubly-linked list before vNext
+	vPrev := vNext.prev
+	vNew.prev = vPrev
+	vPrev.next = vNew
+	vNew.next = vNext
+	vNext.prev = vNew
+
+	vNew.anEdge = eOrig
+	// leave coords, s, t undefined
+
+	// fix other edges on this vertex loop
+	e := eOrig
+	for {
+		e.Org = vNew
+		e = e.Onext
+		if e == eOrig {
+			break
+		}
+	}
+}
+
 // makeFace attaches a new face and makes it the left
 // face of all edges in the face loop to which eOrig belongs.  "fNext" gives
 // a place to insert the new face in the global face list.  We insert
@@ -153,8 +184,8 @@ func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
 
 	e := C.MakeEdge(mesh, &mesh.eHead)
 
-	C.MakeVertex(newVertex1, e, &mesh.vHead)
-	C.MakeVertex(newVertex2, e.Sym, &mesh.vHead)
+	makeVertex(newVertex1, e, &mesh.vHead)
+	makeVertex(newVertex2, e.Sym, &mesh.vHead)
 	makeFace(newFace, e, &mesh.fHead)
 	return e
 }
@@ -208,7 +239,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 
 		// We split one vertex into two -- the new vertex is eDst.Org.
 		// Make sure the old vertex points to a valid half-edge.
-		C.MakeVertex(newVertex, eDst, eOrg.Org)
+		makeVertex(newVertex, eDst, eOrg.Org)
 		eOrg.Org.anEdge = eOrg
 	}
 	if !joiningLoops {
@@ -290,7 +321,7 @@ func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEd
 	// Set the vertex and face information
 	eNew.Org = dst(eOrg)
 	newVertex := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
-	C.MakeVertex(newVertex, eNewSym, eNew.Org)
+	makeVertex(newVertex, eNewSym, eNew.Org)
 	eNew.Lface = eOrg.Lface
 	eNewSym.Lface = eOrg.Lface
 
