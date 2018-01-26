@@ -43,6 +43,68 @@ import (
 	"unsafe"
 )
 
+// tessMeshSplice is the basic operation for changing the
+// mesh connectivity and topology.  It changes the mesh so that
+//	eOrg.Onext <- OLD( eDst.Onext )
+//	eDst.Onext <- OLD( eOrg.Onext )
+// where OLD(...) means the value before the meshSplice operation.
+//
+// This can have two effects on the vertex structure:
+//  - if eOrg.Org != eDst.Org, the two vertices are merged together
+//  - if eOrg.Org == eDst.Org, the origin is split into two vertices
+// In both cases, eDst.Org is changed and eOrg.Org is untouched.
+//
+// Similarly (and independently) for the face structure,
+//  - if eOrg.Lface == eDst.Lface, one loop is split into two
+//  - if eOrg.Lface != eDst.Lface, two distinct loops are joined into one
+// In both cases, eDst.Lface is changed and eOrg.Lface is unaffected.
+//
+// Some special cases:
+// If eDst == eOrg, the operation has no effect.
+// If eDst == eOrg.Lnext, the new face will have a single edge.
+// If eDst == eOrg.Lprev, the old face will have a single edge.
+// If eDst == eOrg.Onext, the new vertex will have a single edge.
+// If eDst == eOrg.Oprev, the old vertex will have a single edge.
+func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) {
+	joiningLoops := false
+	joiningVertices := false
+
+	if eOrg == eDst {
+		return
+	}
+
+	if eDst.Org != eOrg.Org {
+		// We are merging two disjoint vertices -- destroy eDst.Org
+		joiningVertices = true
+		C.KillVertex(mesh, eDst.Org, eOrg.Org)
+	}
+	if eDst.Lface != eOrg.Lface {
+		// We are connecting two disjoint loops -- destroy eDst.Lface
+		joiningLoops = true
+		C.KillFace(mesh, eDst.Lface, eOrg.Lface)
+	}
+
+	// Change the edge structure
+	C.Splice(eDst, eOrg)
+
+	if !joiningVertices {
+		newVertex := (*C.TESSvertex)(C.bucketAlloc(mesh.vertexBucket))
+
+		// We split one vertex into two -- the new vertex is eDst.Org.
+		// Make sure the old vertex points to a valid half-edge.
+		C.MakeVertex(newVertex, eDst, eOrg.Org)
+		eOrg.Org.anEdge = eOrg
+	}
+	if !joiningLoops {
+		newFace := (*C.TESSface)(C.bucketAlloc(mesh.faceBucket))
+
+		// We split one loop into two -- the new loop is eDst.Lface.
+		// Make sure the old face points to a valid half-edge.
+		C.MakeFace(newFace, eDst, eOrg.Lface)
+		eOrg.Lface.anEdge = eOrg
+	}
+}
+
 // tessMeshDelete removes the edge eDel.  There are several cases:
 // if (eDel.Lface != eDel.Rface), we join two loops into one; the loop
 // eDel.Lface is deleted.  Otherwise, we are splitting one loop into two;

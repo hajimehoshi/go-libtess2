@@ -253,7 +253,6 @@ struct TESSmesh {
 typedef struct { TESShalfEdge e, eSym; } EdgePair;
 
 TESShalfEdge *tessMeshMakeEdge( TESSmesh *mesh );
-int tessMeshSplice( TESSmesh *mesh, TESShalfEdge *eOrg, TESShalfEdge *eDst );
 
 void Splice( TESShalfEdge *a, TESShalfEdge *b );
 void KillVertex( TESSmesh *mesh, TESSvertex *vDel, TESSvertex *newOrg );

@@ -337,8 +337,8 @@ func finishLeftRegions(tess *C.TESStesselator, regFirst *C.ActiveRegion, regLast
 
 		// Relink edges so that ePrev.Onext == e
 		if ePrev.Onext != e {
-			C.tessMeshSplice(tess.mesh, oPrev(e), e)
-			C.tessMeshSplice(tess.mesh, ePrev, e)
+			tessMeshSplice(tess.mesh, oPrev(e), e)
+			tessMeshSplice(tess.mesh, ePrev, e)
 		}
 		finishRegion(tess, regPrev) // may change reg.eUp
 		ePrev = reg.eUp
@@ -388,8 +388,8 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 
 		if e.Onext != ePrev {
 			// Unlink e from its current position, and relink below ePrev
-			C.tessMeshSplice(tess.mesh, oPrev(e), e)
-			C.tessMeshSplice(tess.mesh, oPrev(ePrev), e)
+			tessMeshSplice(tess.mesh, oPrev(e), e)
+			tessMeshSplice(tess.mesh, oPrev(ePrev), e)
 		}
 		// Compute the winding number and "inside" flag for the new regions
 		reg.windingNumber = regPrev.windingNumber - e.winding
@@ -424,7 +424,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *C.ActiveRegion, eFirst *C.TESS
 // Two vertices with idential coordinates are combined into one.
 // e1.Org is kept, while e2.Org is discarded.
 func spliceMergeVertices(tess *C.TESStesselator, e1 *C.TESShalfEdge, e2 *C.TESShalfEdge) {
-	C.tessMeshSplice(tess.mesh, e1, e2)
+	tessMeshSplice(tess.mesh, e1, e2)
 }
 
 // vertexWeights finds some weights which describe how the intersection vertex is
@@ -495,7 +495,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		if !vertEq(eUp.Org, eLo.Org) {
 			// Splice eUp.Org into eLo
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
-			C.tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
+			tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
 			regUp.dirty = 1 /* true */
 			regLo.dirty = 1 /* true */
 
@@ -513,7 +513,7 @@ func checkForRightSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		regionAbove(regUp).dirty = 1 /* true */
 		regUp.dirty = 1              /* true */
 		tessMeshSplitEdge(tess.mesh, eUp.Sym)
-		C.tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
+		tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	}
 	return true
 }
@@ -550,7 +550,7 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		regionAbove(regUp).dirty = 1 /* true */
 		regUp.dirty = 1              /* true */
 		e := tessMeshSplitEdge(tess.mesh, eUp)
-		C.tessMeshSplice(tess.mesh, eLo.Sym, e)
+		tessMeshSplice(tess.mesh, eLo.Sym, e)
 		e.Lface.inside = C.char(regUp.inside)
 	} else {
 		if tesedgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
@@ -560,7 +560,7 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		regUp.dirty = 1 /* true */
 		regLo.dirty = 1 /* true */
 		e := tessMeshSplitEdge(tess.mesh, eLo)
-		C.tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
+		tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
 		rFace(e).inside = C.char(regUp.inside)
 	}
 	return true
@@ -656,7 +656,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		if dstLo == tess.event {
 			// Splice dstLo into eUp, and process the new region(s)
 			tessMeshSplitEdge(tess.mesh, eUp.Sym)
-			C.tessMeshSplice(tess.mesh, eLo.Sym, eUp)
+			tessMeshSplice(tess.mesh, eLo.Sym, eUp)
 			regUp = topLeftRegion(tess, regUp)
 			eUp = regionBelow(regUp).eUp
 			finishLeftRegions(tess, regionBelow(regUp), regLo)
@@ -666,7 +666,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 		if dstUp == tess.event {
 			// Splice dstUp into eLo, and process the new region(s)
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
-			C.tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
+			tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
 			regLo = regUp
 			regUp = topRightRegion(regUp)
 			e := rPrev(regionBelow(regUp).eUp)
@@ -705,7 +705,7 @@ func checkForIntersect(tess *C.TESStesselator, regUp *C.ActiveRegion) bool {
 	// unprocessed original contours (which will be eLo.Oprev.Lface).
 	tessMeshSplitEdge(tess.mesh, eUp.Sym)
 	tessMeshSplitEdge(tess.mesh, eLo.Sym)
-	C.tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
+	tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	eUp.Org.s = isect.s
 	eUp.Org.t = isect.t
 	eUp.Org.pqHandle = pqInsert(tess.pq, eUp.Org)
@@ -837,14 +837,14 @@ func connectRightVertex(tess *C.TESStesselator, regUp *C.ActiveRegion, eBottomLe
 	// Possible new degeneracies: upper or lower edge of regUp may pass
 	// through vEvent, or may coincide with new intersection vertex
 	if vertEq(eUp.Org, tess.event) {
-		C.tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
+		tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
 		regUp = topLeftRegion(tess, regUp)
 		eTopLeft = regionBelow(regUp).eUp
 		finishLeftRegions(tess, regionBelow(regUp), regLo)
 		degenerate = true
 	}
 	if vertEq(eLo.Org, tess.event) {
-		C.tessMeshSplice(tess.mesh, eBottomLeft, oPrev(eLo))
+		tessMeshSplice(tess.mesh, eBottomLeft, oPrev(eLo))
 		eBottomLeft = finishLeftRegions(tess, regLo, nil)
 		degenerate = true
 	}
@@ -900,7 +900,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 			tessMeshDelete(tess.mesh, e.Onext)
 			regUp.fixUpperEdge = 0 // false
 		}
-		C.tessMeshSplice(tess.mesh, vEvent.anEdge, e)
+		tessMeshSplice(tess.mesh, vEvent.anEdge, e)
 		// recurse
 		sweepEvent(tess, vEvent)
 		return
@@ -922,7 +922,7 @@ func connectLeftDegenerate(tess *C.TESStesselator, regUp *C.ActiveRegion, vEvent
 		tessMeshDelete(tess.mesh, eTopRight)
 		eTopRight = oPrev(eTopLeft)
 	}
-	C.tessMeshSplice(tess.mesh, vEvent.anEdge, eTopRight)
+	tessMeshSplice(tess.mesh, vEvent.anEdge, eTopRight)
 	if !edgeGoesLeft(eTopLeft) {
 		// e.Dst had no left-going edges -- indicate this to AddRightEdges()
 		eTopLeft = nil
