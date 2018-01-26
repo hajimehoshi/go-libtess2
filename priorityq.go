@@ -29,6 +29,15 @@ package libtess2
 // #include "priorityq.h"
 import "C"
 
+// The basic operations are insertion of a new key (pqInsert),
+// and examination/extraction of a key whose value is minimum
+// (pqMinimum/pqExtractMin).  Deletion is also allowed (pqDelete);
+// for this purpose pqInsert returns a "handle" which is supplied
+// as the argument.
+//
+// If the heap is empty, pqMinimum/pqExtractMin will return a NULL key.
+// This may also be tested with pqIsEmpty.
+
 import (
 	"container/heap"
 	"unsafe"

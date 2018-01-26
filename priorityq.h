@@ -34,18 +34,6 @@
 
 #include <stdbool.h>
 
-/* The basic operations are insertion of a new key (pqInsert),
-* and examination/extraction of a key whose value is minimum
-* (pqMinimum/pqExtractMin).  Deletion is also allowed (pqDelete);
-* for this purpose pqInsert returns a "handle" which is supplied
-* as the argument.
-*
-* If the heap is empty, pqMinimum/pqExtractMin will return a NULL key.
-* This may also be tested with pqIsEmpty.
-*/
-
-struct TESSvertex;
-
 typedef void PriorityQ;
 typedef void* PQhandle;
 
