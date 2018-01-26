@@ -33,10 +33,8 @@ import "C"
 // No vertex or face structures are allocated, but these must be assigned
 // before the current edge operation is completed.
 func makeEdge(mesh *C.TESSmesh, eNext *C.TESShalfEdge) *C.TESShalfEdge {
-	pair := &C.EdgePair{}
-
-	e := &pair.e
-	eSym := &pair.eSym
+	e := &C.TESShalfEdge{}
+	eSym := &C.TESShalfEdge{}
 
 	// Make sure eNext points to the first edge of the edge pair
 	if eNext.Sym != eNext {

@@ -231,10 +231,4 @@ struct TESSmesh {
 * tessMeshCheckMesh( mesh ) checks a mesh for self-consistency.
 */
 
-/* Allocate and free half-edges in pairs for efficiency.
-* The *only* place that should use this fact is allocation/free.
-*/
-
-typedef struct { TESShalfEdge e, eSym; } EdgePair;
-
 #endif
