@@ -46,7 +46,7 @@ type activeRegion struct {
 	windingNumber int
 
 	// is this region inside the polygon?
-	inside int
+	inside bool
 
 	// marks fake edges at t = +/-infinity
 	sentinel int

@@ -279,11 +279,7 @@ func isWindingInside(tess *C.TESStesselator, n int) bool {
 
 func computeWinding(tess *C.TESStesselator, reg *activeRegion) {
 	reg.windingNumber = regionAbove(reg).windingNumber + int(reg.eUp.winding)
-	if isWindingInside(tess, int(reg.windingNumber)) {
-		reg.inside = 1
-	} else {
-		reg.inside = 0
-	}
+	reg.inside = isWindingInside(tess, int(reg.windingNumber))
 }
 
 // finishRegion deletes a region from the sweep line.  This happens when the upper
@@ -295,7 +291,10 @@ func finishRegion(tess *C.TESStesselator, reg *activeRegion) {
 	e := reg.eUp
 	f := e.Lface
 
-	f.inside = C.char(reg.inside)
+	f.inside = 0
+	if reg.inside {
+		f.inside = 1
+	}
 	f.anEdge = e // optimization for tessMeshTessellateMonoRegion()
 	deleteRegion(tess, reg)
 }
@@ -392,11 +391,7 @@ func addRightEdges(tess *C.TESStesselator, regUp *activeRegion, eFirst *C.TESSha
 		}
 		// Compute the winding number and "inside" flag for the new regions
 		reg.windingNumber = regPrev.windingNumber - int(e.winding)
-		if isWindingInside(tess, int(reg.windingNumber)) {
-			reg.inside = 1
-		} else {
-			reg.inside = 0
-		}
+		reg.inside = isWindingInside(tess, int(reg.windingNumber))
 
 		// Check for two outgoing edges with same slope -- process these
 		// before any intersection tests (see example in tessComputeInterior).
@@ -550,7 +545,10 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *activeRegion) bool {
 		regUp.dirty = 1              /* true */
 		e := tessMeshSplitEdge(tess.mesh, eUp)
 		tessMeshSplice(tess.mesh, eLo.Sym, e)
-		e.Lface.inside = C.char(regUp.inside)
+		e.Lface.inside = 0
+		if regUp.inside {
+			e.Lface.inside = 1
+		}
 	} else {
 		if tesedgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
 			return false
@@ -560,7 +558,10 @@ func checkForLeftSplice(tess *C.TESStesselator, regUp *activeRegion) bool {
 		regLo.dirty = 1 /* true */
 		e := tessMeshSplitEdge(tess.mesh, eLo)
 		tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
-		rFace(e).inside = C.char(regUp.inside)
+		rFace(e).inside = 0
+		if regUp.inside {
+			rFace(e).inside = 1
+		}
 	}
 	return true
 }
@@ -974,7 +975,7 @@ func connectLeftVertex(tess *C.TESStesselator, vEvent *C.TESSvertex) {
 		reg = regLo
 	}
 
-	if regUp.inside != 0 || reg.fixUpperEdge != 0 {
+	if regUp.inside || reg.fixUpperEdge != 0 {
 		var eNew *C.TESShalfEdge
 		if reg == regUp {
 			eNew = tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
