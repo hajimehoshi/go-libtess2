@@ -321,7 +321,7 @@ func checkOrientation(tess *tesselator) {
 			continue
 		}
 		for {
-			area += (e.Org.s - dst(e).s) * (e.Org.t + dst(e).t)
+			area += (e.Org.s - e.dst().s) * (e.Org.t + e.dst().t)
 			e = e.Lnext
 			if e == f.anEdge {
 				break
@@ -452,27 +452,27 @@ func tessMeshTessellateMonoRegion(mesh *mesh, face *face) {
 	up := face.anEdge
 	assert(up.Lnext != up && up.Lnext.Lnext != up)
 
-	for vertLeq(dst(up), up.Org) {
+	for vertLeq(up.dst(), up.Org) {
 		up = lPrev(up)
 	}
-	for vertLeq(up.Org, dst(up)) {
+	for vertLeq(up.Org, up.dst()) {
 		up = up.Lnext
 	}
 	lo := lPrev(up)
 
 	for up.Lnext != lo {
-		if vertLeq(dst(up), lo.Org) {
+		if vertLeq(up.dst(), lo.Org) {
 			// up.Dst is on the left.  It is safe to form triangles from lo.Org.
 			// The edgeGoesLeft test guarantees progress even when some triangles
 			// are CW, given that the upper and lower chains are truly monotone.
-			for lo.Lnext != up && (edgeGoesLeft(lo.Lnext) || edgeSign(lo.Org, dst(lo), dst(lo.Lnext)) <= 0) {
+			for lo.Lnext != up && (edgeGoesLeft(lo.Lnext) || edgeSign(lo.Org, lo.dst(), lo.Lnext.dst()) <= 0) {
 				tempHalfEdge := tessMeshConnect(mesh, lo.Lnext, lo)
 				lo = tempHalfEdge.Sym
 			}
 			lo = lPrev(lo)
 		} else {
 			// lo.Org is on the left.  We can make CCW triangles from up.Dst.
-			for lo.Lnext != up && (edgeGoesRight(lPrev(up)) || edgeSign(dst(up), up.Org, lPrev(up).Org) >= 0) {
+			for lo.Lnext != up && (edgeGoesRight(lPrev(up)) || edgeSign(up.dst(), up.Org, lPrev(up).Org) >= 0) {
 				tempHalfEdge := tessMeshConnect(mesh, up, lPrev(up))
 				up = tempHalfEdge.Sym
 			}
@@ -514,7 +514,7 @@ func tessMeshSetWindingNumber(mesh *mesh, value int, keepOnlyBoundary bool) {
 	var eNext *halfEdge
 	for e := mesh.eHead.next; e != &mesh.eHead; e = eNext {
 		eNext = e.next
-		if rFace(e).inside != e.Lface.inside {
+		if e.rFace().inside != e.Lface.inside {
 			// This is a boundary edge (one side is interior, one is exterior).
 			e.winding = 0
 			if e.Lface.inside {
@@ -535,13 +535,13 @@ func tessMeshSetWindingNumber(mesh *mesh, value int, keepOnlyBoundary bool) {
 }
 
 func neighbourFace(edge *halfEdge) index {
-	if rFace(edge) == nil {
+	if edge.rFace() == nil {
 		return undef
 	}
-	if !rFace(edge).inside {
+	if !edge.rFace().inside {
 		return undef
 	}
-	return rFace(edge).n
+	return edge.rFace().n
 }
 
 func outputPolymesh(tess *tesselator, mesh *mesh, elementType elementType, polySize int, vertexSize int) {

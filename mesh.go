@@ -489,17 +489,17 @@ func tessMeshDelete(mesh *mesh, eDel *halfEdge) {
 
 	// First step: disconnect the origin vertex eDel.Org.  We make all
 	// changes to get a consistent mesh in this "intermediate" state.
-	if eDel.Lface != rFace(eDel) {
+	if eDel.Lface != eDel.rFace() {
 		// We are joining two loops into one -- remove the left face
 		joiningLoops = true
-		killFace(mesh, eDel.Lface, rFace(eDel))
+		killFace(mesh, eDel.Lface, eDel.rFace())
 	}
 
 	if eDel.Onext == eDel {
 		killVertex(mesh, eDel.Org, nil)
 	} else {
 		// Make sure that eDel.Org and eDel.Rface point to valid half-edges
-		rFace(eDel).anEdge = oPrev(eDel)
+		eDel.rFace().anEdge = oPrev(eDel)
 		eDel.Org.anEdge = eDel.Onext
 
 		splice(eDel, oPrev(eDel))
@@ -541,7 +541,7 @@ func tessMeshAddEdgeVertex(mesh *mesh, eOrg *halfEdge) *halfEdge {
 	splice(eNew, eOrg.Lnext)
 
 	// Set the vertex and face information
-	eNew.Org = dst(eOrg)
+	eNew.Org = eOrg.dst()
 	newVertex := &vertex{}
 	makeVertex(newVertex, eNewSym, eNew.Org)
 	eNew.Lface = eOrg.Lface
@@ -563,9 +563,9 @@ func tessMeshSplitEdge(mesh *mesh, eOrg *halfEdge) *halfEdge {
 	splice(eOrg.Sym, eNew)
 
 	// Set the vertex and face information
-	setDst(eOrg, eNew.Org)
-	dst(eNew).anEdge = eNew.Sym // may have pointed to eOrg.Sym
-	setRFace(eNew, rFace(eOrg))
+	eOrg.setDst(eNew.Org)
+	eNew.dst().anEdge = eNew.Sym // may have pointed to eOrg.Sym
+	eNew.setRFace(eOrg.rFace())
 	eNew.winding = eOrg.winding // copy old winding information
 	eNew.Sym.winding = eOrg.Sym.winding
 
@@ -597,7 +597,7 @@ func tessMeshConnect(mesh *mesh, eOrg *halfEdge, eDst *halfEdge) *halfEdge {
 	splice(eNewSym, eDst)
 
 	// Set the vertex and face information
-	eNew.Org = dst(eOrg)
+	eNew.Org = eOrg.dst()
 	eNewSym.Org = eDst.Org
 	eNew.Lface = eOrg.Lface
 	eNewSym.Lface = eOrg.Lface
@@ -630,7 +630,7 @@ func tessMeshZapFace(mesh *mesh, fZap *face) {
 		eNext = e.Lnext
 
 		e.Lface = nil
-		if rFace(e) == nil {
+		if e.rFace() == nil {
 			// delete the edge -- see TESSmeshDelete above
 
 			if e.Onext == e {
@@ -858,7 +858,7 @@ func tessMeshCheckMesh(mesh *mesh) {
 		assert(e.Sym != e)
 		assert(e.Sym.Sym == e)
 		assert(e.Org != nil)
-		assert(dst(e) != nil)
+		assert(e.dst() != nil)
 		assert(e.Lnext.Onext.Sym == e)
 		assert(e.Onext.Sym.Lnext == e)
 		ePrev = e
@@ -866,6 +866,6 @@ func tessMeshCheckMesh(mesh *mesh) {
 	assert(e.Sym.next == ePrev.Sym)
 	assert(e.Sym == &mesh.eHeadSym)
 	assert(e.Sym.Sym == e)
-	assert(e.Org == nil && dst(e) == nil)
-	assert(e.Lface == nil && rFace(e) == nil)
+	assert(e.Org == nil && e.dst() == nil)
+	assert(e.Lface == nil && e.rFace() == nil)
 }

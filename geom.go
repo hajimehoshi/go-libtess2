@@ -43,11 +43,11 @@ func transLeq(u, v *vertex) bool {
 }
 
 func edgeGoesLeft(e *halfEdge) bool {
-	return vertLeq(dst(e), e.Org)
+	return vertLeq(e.dst(), e.Org)
 }
 
 func edgeGoesRight(e *halfEdge) bool {
-	return vertLeq(e.Org, dst(e))
+	return vertLeq(e.Org, e.dst())
 }
 
 // edgeEval:

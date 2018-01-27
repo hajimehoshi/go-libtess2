@@ -92,19 +92,19 @@ func maxf(a, b float) float {
 	return a
 }
 
-func rFace(e *halfEdge) *face {
+func (e *halfEdge) rFace() *face {
 	return e.Sym.Lface
 }
 
-func setRFace(e *halfEdge, f *face) {
+func (e *halfEdge) setRFace(f *face) {
 	e.Sym.Lface = f
 }
 
-func dst(e *halfEdge) *vertex {
+func (e *halfEdge) dst() *vertex {
 	return e.Sym.Org
 }
 
-func setDst(e *halfEdge, v *vertex) {
+func (e *halfEdge) setDst(v *vertex) {
 	e.Sym.Org = v
 }
 
@@ -165,24 +165,24 @@ func edgeLeq(tess *tesselator, reg1 *activeRegion, reg2 *activeRegion) bool {
 	e1 := reg1.eUp
 	e2 := reg2.eUp
 
-	if dst(e1) == event {
-		if dst(e2) == event {
+	if e1.dst() == event {
+		if e2.dst() == event {
 			// Two edges right of the sweep line which meet at the sweep event.
 			// Sort them by slope.
 			if vertLeq(e1.Org, e2.Org) {
-				return edgeSign(dst(e2), e1.Org, e2.Org) <= 0
+				return edgeSign(e2.dst(), e1.Org, e2.Org) <= 0
 			}
-			return edgeSign(dst(e1), e2.Org, e1.Org) >= 0
+			return edgeSign(e1.dst(), e2.Org, e1.Org) >= 0
 		}
-		return edgeSign(dst(e2), event, e2.Org) <= 0
+		return edgeSign(e2.dst(), event, e2.Org) <= 0
 	}
-	if dst(e2) == event {
-		return edgeSign(dst(e1), event, e1.Org) >= 0
+	if e2.dst() == event {
+		return edgeSign(e1.dst(), event, e1.Org) >= 0
 	}
 
 	// General case - compute signed distance *from* e1, e2 to event
-	t1 := edgeEval(dst(e1), event, e1.Org)
-	t2 := edgeEval(dst(e2), event, e2.Org)
+	t1 := edgeEval(e1.dst(), event, e1.Org)
+	t2 := edgeEval(e2.dst(), event, e2.Org)
 	return (t1 >= t2)
 }
 
@@ -225,11 +225,11 @@ func topLeftRegion(tess *tesselator, reg *activeRegion) *activeRegion {
 }
 
 func topRightRegion(reg *activeRegion) *activeRegion {
-	d := dst(reg.eUp)
+	d := reg.eUp.dst()
 	// Find the region above the uppermost edge with the same destination
 	for {
 		reg = reg.above()
-		if dst(reg.eUp) != d {
+		if reg.eUp.dst() != d {
 			break
 		}
 	}
@@ -344,7 +344,7 @@ func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *halfEdge, eLas
 	// Insert the new right-going edges in the dictionary
 	e := eFirst
 	for {
-		assert(vertLeq(e.Org, dst(e)))
+		assert(vertLeq(e.Org, e.dst()))
 		addRegionBelow(tess, regUp, e.Sym)
 		e = e.Onext
 		if e == eLast {
@@ -465,7 +465,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 	eLo := regLo.eUp
 
 	if vertLeq(eUp.Org, eLo.Org) {
-		if edgeSign(dst(eLo), eUp.Org, eLo.Org) > 0 {
+		if edgeSign(eLo.dst(), eUp.Org, eLo.Org) > 0 {
 			return false
 		}
 
@@ -483,7 +483,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 			spliceMergeVertices(tess, oPrev(eLo), eUp)
 		}
 	} else {
-		if edgeSign(dst(eUp), eLo.Org, eUp.Org) < 0 {
+		if edgeSign(eUp.dst(), eLo.Org, eUp.Org) < 0 {
 			return false
 		}
 
@@ -517,10 +517,10 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 
-	assert(!vertEq(dst(eUp), dst(eLo)))
+	assert(!vertEq(eUp.dst(), eLo.dst()))
 
-	if vertLeq(dst(eUp), dst(eLo)) {
-		if edgeSign(dst(eUp), dst(eLo), eUp.Org) < 0 {
+	if vertLeq(eUp.dst(), eLo.dst()) {
+		if edgeSign(eUp.dst(), eLo.dst(), eUp.Org) < 0 {
 			return false
 		}
 
@@ -531,7 +531,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 		tessMeshSplice(tess.mesh, eLo.Sym, e)
 		e.Lface.inside = regUp.inside
 	} else {
-		if edgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
+		if edgeSign(eLo.dst(), eUp.dst(), eLo.Org) > 0 {
 			return false
 		}
 		// eUp.Dst is below eLo, so splice eUp.Dst into eLo
@@ -539,7 +539,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 		regLo.dirty = true
 		e := tessMeshSplitEdge(tess.mesh, eLo)
 		tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
-		rFace(e).inside = regUp.inside
+		e.rFace().inside = regUp.inside
 	}
 	return true
 }
@@ -557,8 +557,8 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	eLo := regLo.eUp
 	orgUp := eUp.Org
 	orgLo := eLo.Org
-	dstUp := dst(eUp)
-	dstLo := dst(eLo)
+	dstUp := eUp.dst()
+	dstLo := eLo.dst()
 
 	assert(!vertEq(dstLo, dstUp))
 	assert(edgeSign(dstUp, tess.event, orgUp) <= 0)
@@ -722,7 +722,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 		eUp := regUp.eUp
 		eLo := regLo.eUp
 
-		if dst(eUp) != dst(eLo) {
+		if eUp.dst() != eLo.dst() {
 			// Check that the edge ordering is obeyed at the Dst vertices.
 			if checkForLeftSplice(tess, regUp) {
 
@@ -743,7 +743,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 			}
 		}
 		if eUp.Org != eLo.Org {
-			if dst(eUp) != dst(eLo) && !regUp.fixUpperEdge && !regLo.fixUpperEdge && (dst(eUp) == tess.event || dst(eLo) == tess.event) {
+			if eUp.dst() != eLo.dst() && !regUp.fixUpperEdge && !regLo.fixUpperEdge && (eUp.dst() == tess.event || eLo.dst() == tess.event) {
 				// When all else fails in CheckForIntersect(), it uses tess.event
 				// as the intersection location.  To make this possible, it requires
 				// that tess.event lie between the upper and lower edges, and also
@@ -761,7 +761,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 				checkForRightSplice(tess, regUp)
 			}
 		}
-		if eUp.Org == eLo.Org && dst(eUp) == dst(eLo) {
+		if eUp.Org == eLo.Org && eUp.dst() == eLo.dst() {
 			// A degenerate loop consisting of only two edges -- delete it.
 			addWinding(eLo, eUp)
 			deleteRegion(tess, regUp)
@@ -808,7 +808,7 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *half
 	eLo := regLo.eUp
 	degenerate := false
 
-	if dst(eUp) != dst(eLo) {
+	if eUp.dst() != eLo.dst() {
 		checkForIntersect(tess, regUp)
 	}
 
@@ -870,7 +870,7 @@ func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *vertex
 		return
 	}
 
-	if vertEq(dst(e), vEvent) {
+	if vertEq(e.dst(), vEvent) {
 		// General case -- splice vEvent into edge e which passes through it
 		tessMeshSplitEdge(tess.mesh, e.Sym)
 		if regUp.fixUpperEdge {
@@ -939,7 +939,7 @@ func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 	eLo := regLo.eUp
 
 	// Try merging with U or L first
-	if edgeSign(dst(eUp), vEvent, eUp.Org) == 0 {
+	if edgeSign(eUp.dst(), vEvent, eUp.Org) == 0 {
 		connectLeftDegenerate(tess, regUp, vEvent)
 		return
 	}
@@ -947,7 +947,7 @@ func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 	// Connect vEvent to rightmost processed vertex of either chain.
 	// e.Dst is the vertex that we will connect to vEvent.
 	var reg *activeRegion
-	if vertLeq(dst(eLo), dst(eUp)) {
+	if vertLeq(eLo.dst(), eUp.dst()) {
 		reg = regUp
 	} else {
 		reg = regLo
@@ -1027,9 +1027,9 @@ func addSentinel(tess *tesselator, smin, smax float, t float) {
 
 	e.Org.s = smax
 	e.Org.t = t
-	dst(e).s = smin
-	dst(e).t = t
-	tess.event = dst(e)
+	e.dst().s = smin
+	e.dst().t = t
+	tess.event = e.dst()
 
 	reg.eUp = e
 	reg.sentinel = true
@@ -1087,7 +1087,7 @@ func removeDegenerateEdges(tess *tesselator) {
 		eNext = e.next
 		eLnext := e.Lnext
 
-		if vertEq(e.Org, dst(e)) && e.Lnext.Lnext != e {
+		if vertEq(e.Org, e.dst()) && e.Lnext.Lnext != e {
 			// Zero-length edge, contour has at least 3 edges
 			spliceMergeVertices(tess, eLnext, e) /* deletes e.Org */
 			tessMeshDelete(tess.mesh, e)
