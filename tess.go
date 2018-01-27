@@ -151,6 +151,7 @@ type tesselator struct {
 type Vertex struct {
 	X float32 // TODO: Replace this to float64 later
 	Y float32
+	Z float32
 }
 
 type Contour []Vertex
@@ -158,17 +159,18 @@ type Contour []Vertex
 func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, error) {
 	t := tessNewTess()
 	for _, c := range contours {
-		fs := make([]float32, len(c)*2)
+		fs := make([]float32, len(c)*3)
 		for i, v := range c {
-			fs[2*i] = v.X
-			fs[2*i+1] = v.Y
+			fs[3*i] = v.X
+			fs[3*i+1] = v.Y
+			fs[3*i+2] = v.Z
 		}
-		tessAddContour(t, 2, fs)
+		tessAddContour(t, 3, fs)
 	}
 
 	const (
 		polySize   = 3
-		vertexSize = 2
+		vertexSize = 3
 	)
 
 	r := tessTesselate(t,
@@ -188,8 +190,9 @@ func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, er
 	vs := t.vertices
 	for i := 0; i < vc; i++ {
 		v := Vertex{
-			X: float32(vs[index(i)*2]),
-			Y: float32(vs[index(i)*2+1]),
+			X: float32(vs[i*3]),
+			Y: float32(vs[i*3+1]),
+			Z: float32(vs[i*3+2]),
 		}
 		vertices = append(vertices, v)
 	}
