@@ -33,6 +33,74 @@ import (
 	"fmt"
 )
 
+// The contents of the tessGetElements() depends on element type being passed to tessTesselate().
+// Tesselation result element types:
+// POLYGONS
+//   Each element in the element array is polygon defined as 'polySize' number of vertex indices.
+//   If a polygon has than 'polySize' vertices, the remaining indices are stored as UNDEF.
+//   Example, drawing a polygon:
+//     const int nelems = tessGetElementCount(tess);
+//     const TESSindex* elems = tessGetElements(tess);
+//     for (int i = 0; i < nelems; i++) {
+//         const TESSindex* poly = &elems[i * polySize];
+//         glBegin(GL_POLYGON);
+//         for (int j = 0; j < polySize; j++) {
+//             if (poly[j] == UNDEF) break;
+//             glVertex2fv(&verts[poly[j]*vertexSize]);
+//         }
+//         glEnd();
+//     }
+//
+// CONNECTED_POLYGONS
+//   Each element in the element array is polygon defined as 'polySize' number of vertex indices,
+//   followed by 'polySize' indices to neighour polygons, that is each element is 'polySize' * 2 indices.
+//   If a polygon has than 'polySize' vertices, the remaining indices are stored as UNDEF.
+//   If a polygon edge is a boundary, that is, not connected to another polygon, the neighbour index is UNDEF.
+//   Example, flood fill based on seed polygon:
+//     const int nelems = tessGetElementCount(tess);
+//     const TESSindex* elems = tessGetElements(tess);
+//     unsigned char* visited = (unsigned char*)calloc(nelems);
+//     TESSindex stack[50];
+//     int nstack = 0;
+//     stack[nstack++] = seedPoly;
+//     visited[startPoly] = 1;
+//     while (nstack > 0) {
+//         TESSindex idx = stack[--nstack];
+//			const TESSindex* poly = &elems[idx * polySize * 2];
+//			const TESSindex* nei = &poly[polySize];
+//          for (int i = 0; i < polySize; i++) {
+//              if (poly[i] == UNDEF) break;
+//              if (nei[i] != UNDEF && !visited[nei[i]])
+//	                stack[nstack++] = nei[i];
+//                  visited[nei[i]] = 1;
+//              }
+//          }
+//     }
+//
+// BOUNDARY_CONTOURS
+//   Each element in the element array is [base index, count] pair defining a range of vertices for a contour.
+//   The first value is index to first vertex in contour and the second value is number of vertices in the contour.
+//   Example, drawing contours:
+//     const int nelems = tessGetElementCount(tess);
+//     const TESSindex* elems = tessGetElements(tess);
+//     for (int i = 0; i < nelems; i++) {
+//         const TESSindex base = elems[i * 2];
+//         const TESSindex count = elems[i * 2 + 1];
+//         glBegin(GL_LINE_LOOP);
+//         for (int j = 0; j < count; j++) {
+//             glVertex2fv(&verts[(base+j) * vertexSize]);
+//         }
+//         glEnd();
+//     }
+//
+type elementType int
+
+const (
+	elementTypePolygons elementType = iota
+	elementTypeConnectedPolygons
+	elementTypeBoundaryContours
+)
+
 type float float32
 
 type index int
@@ -102,7 +170,7 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 
 	r := tessTesselate(t.p,
 		C.TESS_WINDING_ODD,
-		C.TESS_POLYGONS,
+		elementTypePolygons,
 		polySize,
 		vertexSize,
 		nil)
@@ -517,7 +585,7 @@ func neighbourFace(edge *halfEdge) index {
 	return rFace(edge).n
 }
 
-func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int, vertexSize int) {
+func outputPolymesh(tess *tesselator, mesh *mesh, elementType elementType, polySize int, vertexSize int) {
 	// Assume that the input data is triangles now.
 	// Try to merge as many polygons as possible
 	if polySize > 3 {
@@ -559,7 +627,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 	}
 
 	tess.elementCount = maxFaceCount
-	if elementType == C.TESS_CONNECTED_POLYGONS {
+	if elementType == elementTypeConnectedPolygons {
 		maxFaceCount *= 2
 	}
 	tess.elements = make([]index, maxFaceCount*polySize)
@@ -608,7 +676,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 		}
 
 		// Store polygon connectivity
-		if elementType == C.TESS_CONNECTED_POLYGONS {
+		if elementType == elementTypeConnectedPolygons {
 			edge = f.anEdge
 			for {
 				elements[0] = neighbourFace(edge)
@@ -759,7 +827,7 @@ func tessAddContour(tess *tesselator, size int, vertices []float32) {
 //   normal - defines the normal of the input contours, of null the normal is calculated automatically.
 // Returns:
 //   true if succeed, false if failed.
-func tessTesselate(tess *tesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []float) bool {
+func tessTesselate(tess *tesselator, windingRule int, elementType elementType, polySize int, vertexSize int, normal []float) bool {
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {
@@ -797,7 +865,7 @@ func tessTesselate(tess *tesselator, windingRule int, elementType int, polySize 
 	// If the user wants only the boundary contours, we throw away all edges
 	// except those which separate the interior from the exterior.
 	// Otherwise we tessellate all the regions marked "inside".
-	if elementType == C.TESS_BOUNDARY_CONTOURS {
+	if elementType == elementTypeBoundaryContours {
 		tessMeshSetWindingNumber(mesh, 1, true)
 	} else {
 		tessMeshTessellateInterior(mesh)
@@ -805,7 +873,7 @@ func tessTesselate(tess *tesselator, windingRule int, elementType int, polySize 
 
 	tessMeshCheckMesh(mesh)
 
-	if elementType == C.TESS_BOUNDARY_CONTOURS {
+	if elementType == elementTypeBoundaryContours {
 		// output contours
 		outputContours(tess, mesh, vertexSize)
 	} else {
