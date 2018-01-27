@@ -26,9 +26,6 @@
 
 package libtess2
 
-// #include "tesselator.h"
-import "C"
-
 import (
 	"fmt"
 )

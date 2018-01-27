@@ -26,9 +26,6 @@
 
 package libtess2
 
-// #include "tesselator.h"
-import "C"
-
 // Invariants for the Edge Dictionary.
 // - each pair of adjacent edges e2=Succ(e1) satisfies EdgeLeq(e1,e2)
 //   at any valid location of the sweep event
@@ -67,7 +64,7 @@ func assert(cond bool) {
 	}
 }
 
-func min(a, b C.int) C.int {
+func min(a, b int) int {
 	if a < b {
 		return a
 	}
@@ -81,7 +78,7 @@ func minf(a, b float) float {
 	return b
 }
 
-func max(a, b C.int) C.int {
+func max(a, b int) int {
 	if a < b {
 		return b
 	}
@@ -1114,7 +1111,7 @@ func removeDegenerateEdges(tess *tesselator) {
 // initPriorityQ inserts all vertices into the priority queue which determines the
 // order in which vertices cross the sweep line.
 func initPriorityQ(tess *tesselator) {
-	vertexCount := C.int(0)
+	vertexCount := 0
 
 	vHead := &tess.mesh.vHead
 	for v := vHead.next; v != vHead; v = v.next {

@@ -26,8 +26,6 @@
 
 package libtess2
 
-import "C"
-
 // The basic operations are insertion of a new key (pqInsert),
 // and examination/extraction of a key whose value is minimum
 // (pqMinimum/pqExtractMin).  Deletion is also allowed (pqDelete);
@@ -66,7 +64,7 @@ func (p *pq) Pop() interface{} {
 	return x
 }
 
-func pqNewPriorityQ(size C.int) *pq {
+func pqNewPriorityQ(size int) *pq {
 	p := &pq{}
 	heap.Init(p)
 	return p

@@ -26,9 +26,6 @@
 
 package libtess2
 
-// #include "tesselator.h"
-import "C"
-
 func vertEq(u, v *vertex) bool {
 	return u.s == v.s && u.t == v.t
 }

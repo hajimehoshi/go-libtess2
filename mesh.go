@@ -26,9 +26,6 @@
 
 package libtess2
 
-// #include "tesselator.h"
-import "C"
-
 // The mesh operations below have three motivations: completeness,
 // convenience, and efficiency.  The basic mesh operations are MakeEdge,
 // Splice, and Delete.  All the other edge operations can be implemented
