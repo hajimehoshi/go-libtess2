@@ -115,7 +115,6 @@ enum TessElementType
 };
 
 typedef float TESSreal;
-typedef int TESSindex;
 
 #ifdef __cplusplus
 };

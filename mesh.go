@@ -115,8 +115,8 @@ type vertex struct {
 	coords   [3]C.TESSreal // vertex location in 3D
 	s, t     C.TESSreal    // projection onto the sweep plane
 	pqHandle *vertex       // to allow deletion from priority queue
-	n        C.TESSindex   // to allow identify unique vertices
-	idx      C.TESSindex   // to allow map result to original verts
+	n        index         // to allow identify unique vertices
+	idx      index         // to allow map result to original verts
 }
 
 type face struct {
@@ -126,10 +126,10 @@ type face struct {
 
 	// Internal data (keep hidden)
 
-	trail  *face       // "stack" for conversion to strips
-	n      C.TESSindex // to allow identiy unique faces
-	marked bool        // flag for conversion to strips
-	inside bool        // this face is in the polygon interior
+	trail  *face // "stack" for conversion to strips
+	n      index // to allow identiy unique faces
+	marked bool  // flag for conversion to strips
+	inside bool  // this face is in the polygon interior
 }
 
 type halfEdge struct {

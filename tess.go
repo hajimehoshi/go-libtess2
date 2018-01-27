@@ -33,6 +33,8 @@ import (
 	"fmt"
 )
 
+type index int
+
 type tesselator struct {
 	// state needed for collecting the input data
 
@@ -57,12 +59,12 @@ type tesselator struct {
 	pq    *pq     // priority queue of vertex events
 	event *vertex // current sweep event being processed
 
-	vertexIndexCounter C.TESSindex
+	vertexIndexCounter index
 
 	vertices      []C.TESSreal
-	vertexIndices []C.TESSindex
+	vertexIndices []index
 	vertexCount   int
-	elements      []C.TESSindex
+	elements      []index
 	elementCount  int
 }
 
@@ -113,8 +115,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	vs := t.p.vertices
 	for i := 0; i < vc; i++ {
 		v := Vertex{
-			X: float32(vs[C.TESSindex(i)*2]),
-			Y: float32(vs[C.TESSindex(i)*2+1]),
+			X: float32(vs[index(i)*2]),
+			Y: float32(vs[index(i)*2+1]),
 		}
 		vertices = append(vertices, v)
 	}
@@ -503,7 +505,7 @@ func tessNewTess() *tesselator {
 	return tess
 }
 
-func neighbourFace(edge *halfEdge) C.TESSindex {
+func neighbourFace(edge *halfEdge) index {
 	if rFace(edge) == nil {
 		return undef
 	}
@@ -540,7 +542,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 		for {
 			v := edge.Org
 			if v.n == undef {
-				v.n = C.TESSindex(maxVertexCount)
+				v.n = index(maxVertexCount)
 				maxVertexCount++
 			}
 			faceVerts++
@@ -550,7 +552,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 			}
 		}
 		assert(faceVerts <= polySize)
-		f.n = C.TESSindex(maxFaceCount)
+		f.n = index(maxFaceCount)
 		maxFaceCount++
 	}
 
@@ -558,10 +560,10 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 	if elementType == C.TESS_CONNECTED_POLYGONS {
 		maxFaceCount *= 2
 	}
-	tess.elements = make([]C.TESSindex, maxFaceCount*polySize)
+	tess.elements = make([]index, maxFaceCount*polySize)
 	tess.vertexCount = maxVertexCount
 	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
-	tess.vertexIndices = make([]C.TESSindex, tess.vertexCount)
+	tess.vertexIndices = make([]index, tess.vertexCount)
 
 	// Output vertices.
 	for v := mesh.vHead.next; v != &mesh.vHead; v = v.next {
@@ -644,9 +646,9 @@ func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 		tess.elementCount++
 	}
 
-	tess.elements = make([]C.TESSindex, tess.elementCount*2)
+	tess.elements = make([]index, tess.elementCount*2)
 	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
-	tess.vertexIndices = make([]C.TESSindex, int(tess.vertexCount))
+	tess.vertexIndices = make([]index, int(tess.vertexCount))
 
 	verts := tess.vertices
 	elements := tess.elements
@@ -680,8 +682,8 @@ func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 			}
 		}
 
-		elements[0] = C.TESSindex(startVert)
-		elements[1] = C.TESSindex(vertCount)
+		elements[0] = index(startVert)
+		elements[1] = index(vertCount)
 		elements = elements[2:]
 
 		startVert += vertCount
