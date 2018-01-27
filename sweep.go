@@ -814,7 +814,7 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *half
 	// Prevent cleanup, otherwise eNew might disappear before we've even
 	// had a chance to mark it as a temporary edge.
 	addRightEdges(tess, regUp, eNew, eNew.Onext, eNew.Onext, false)
-	(*activeRegion)(eNew.Sym.activeRegion).fixUpperEdge = true
+	eNew.Sym.activeRegion.fixUpperEdge = true
 	walkDirtyRegions(tess, regUp)
 }
 
@@ -968,7 +968,7 @@ func sweepEvent(tess *tesselator, vEvent *vertex) {
 	// We mark these faces "inside" or "outside" the polygon according
 	// to their winding number, and delete the edges from the dictionary.
 	// This takes care of all the left-going edges from vEvent.
-	regUp := topLeftRegion(tess, (*activeRegion)(e.activeRegion))
+	regUp := topLeftRegion(tess, e.activeRegion)
 	reg := regUp.below()
 	eTopLeft := reg.eUp
 	eBottomLeft := finishLeftRegions(tess, reg, nil)
