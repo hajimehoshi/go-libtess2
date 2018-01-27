@@ -431,7 +431,7 @@ func tessMeshTessellateInterior(mesh *mesh) {
 	for f := mesh.fHead.next; f != &mesh.fHead; f = next {
 		// Make sure we don't try to tessellate the new triangles.
 		next = f.next
-		if f.inside != 0 {
+		if f.inside {
 			tessMeshTessellateMonoRegion(mesh, f)
 		}
 	}
@@ -451,7 +451,7 @@ func tessMeshSetWindingNumber(mesh *mesh, value int, keepOnlyBoundary bool) {
 		if rFace(e).inside != e.Lface.inside {
 			// This is a boundary edge (one side is interior, one is exterior).
 			e.winding = 0
-			if e.Lface.inside != 0 {
+			if e.Lface.inside {
 				e.winding = value
 			} else {
 				e.winding = -value
@@ -507,7 +507,7 @@ func neighbourFace(edge *halfEdge) C.TESSindex {
 	if rFace(edge) == nil {
 		return undef
 	}
-	if rFace(edge).inside == 0 {
+	if !rFace(edge).inside {
 		return undef
 	}
 	return rFace(edge).n
@@ -531,7 +531,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 	// Create unique IDs for all vertices and faces.
 	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
 		f.n = undef
-		if f.inside == 0 {
+		if !f.inside {
 			continue
 		}
 
@@ -580,7 +580,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 	// Output indices.
 	elements := tess.elements
 	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
-		if f.inside == 0 {
+		if !f.inside {
 			continue
 		}
 
@@ -628,7 +628,7 @@ func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 	tess.elementCount = 0
 
 	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
-		if f.inside == 0 {
+		if !f.inside {
 			continue
 		}
 
@@ -655,7 +655,7 @@ func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 	startVert := 0
 
 	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
-		if f.inside == 0 {
+		if !f.inside {
 			continue
 		}
 

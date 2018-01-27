@@ -129,7 +129,7 @@ type face struct {
 	trail  *face       // "stack" for conversion to strips
 	n      C.TESSindex // to allow identiy unique faces
 	marked bool        // flag for conversion to strips
-	inside int         // this face is in the polygon interior
+	inside bool        // this face is in the polygon interior
 }
 
 type halfEdge struct {
@@ -684,7 +684,7 @@ func tessMeshNewMesh() *mesh {
 	f.anEdge = nil
 	f.trail = nil
 	f.marked = false
-	f.inside = 0 /* false */
+	f.inside = false
 
 	e.next = e
 	e.Sym = eSym
@@ -759,7 +759,7 @@ func countFaceVerts(f *face) int {
 func tessMeshMergeConvexFaces(mesh *mesh, maxVertsPerFace int) {
 	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
 		// Skip faces which are outside the result.
-		if f.inside == 0 /* false */ {
+		if !f.inside {
 			continue
 		}
 
@@ -771,7 +771,7 @@ func tessMeshMergeConvexFaces(mesh *mesh, maxVertsPerFace int) {
 			eSym := eCur.Sym
 
 			// Try to merge if the neighbour face is valid.
-			if eSym != nil && eSym.Lface != nil && eSym.Lface.inside != 0 /* true */ {
+			if eSym != nil && eSym.Lface != nil && eSym.Lface.inside {
 				// Try to merge the neighbour faces if the resulting polygons
 				// does not exceed maximum number of vertices.
 				curNv := countFaceVerts(f)

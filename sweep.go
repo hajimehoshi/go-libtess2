@@ -281,10 +281,7 @@ func finishRegion(tess *tesselator, reg *activeRegion) {
 	e := reg.eUp
 	f := e.Lface
 
-	f.inside = 0
-	if reg.inside {
-		f.inside = 1
-	}
+	f.inside = reg.inside
 	f.anEdge = e // optimization for tessMeshTessellateMonoRegion()
 	deleteRegion(tess, reg)
 }
@@ -535,10 +532,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 		regUp.dirty = true
 		e := tessMeshSplitEdge(tess.mesh, eUp)
 		tessMeshSplice(tess.mesh, eLo.Sym, e)
-		e.Lface.inside = 0
-		if regUp.inside {
-			e.Lface.inside = 1
-		}
+		e.Lface.inside = regUp.inside
 	} else {
 		if tesedgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
 			return false
@@ -548,10 +542,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 		regLo.dirty = true
 		e := tessMeshSplitEdge(tess.mesh, eLo)
 		tessMeshSplice(tess.mesh, eUp.Lnext, eLo.Sym)
-		rFace(e).inside = 0
-		if regUp.inside {
-			rFace(e).inside = 1
-		}
+		rFace(e).inside = regUp.inside
 	}
 	return true
 }
