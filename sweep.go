@@ -1158,7 +1158,7 @@ func initPriorityQ(tess *tesselator) {
 // In both these cases it is *very* dangerous to delete the offending
 // edge at the time, since one of the routines further up the stack
 // will sometimes be keeping a pointer to that edge.
-func removeDegenerateFaces(tess *tesselator, mesh *C.TESSmesh) {
+func removeDegenerateFaces(tess *tesselator, mesh *mesh) {
 	var fNext *C.TESSface
 	for f := mesh.fHead.next; f != &mesh.fHead; f = fNext {
 		fNext = f.next

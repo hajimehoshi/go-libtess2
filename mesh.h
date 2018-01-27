@@ -144,13 +144,6 @@ struct TESShalfEdge {
 						  from the right face to the left face */
 };
 
-struct TESSmesh {
-	TESSvertex vHead;      /* dummy header for vertex list */
-	TESSface fHead;      /* dummy header for face list */
-	TESShalfEdge eHead;      /* dummy header for edge list */
-	TESShalfEdge eHeadSym;   /* and its symmetric counterpart */
-};
-
 /* The mesh operations below have three motivations: completeness,
 * convenience, and efficiency.  The basic mesh operations are MakeEdge,
 * Splice, and Delete.  All the other edge operations can be implemented

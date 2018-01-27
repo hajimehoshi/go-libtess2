@@ -29,10 +29,17 @@ package libtess2
 // #include "mesh.h"
 import "C"
 
+type mesh struct {
+	vHead    C.TESSvertex   // dummy header for vertex list
+	fHead    C.TESSface     // dummy header for face list
+	eHead    C.TESShalfEdge // dummy header for edge list
+	eHeadSym C.TESShalfEdge // and its symmetric counterpart
+}
+
 // makeEdge creates a new pair of half-edges which form their own loop.
 // No vertex or face structures are allocated, but these must be assigned
 // before the current edge operation is completed.
-func makeEdge(mesh *C.TESSmesh, eNext *C.TESShalfEdge) *C.TESShalfEdge {
+func makeEdge(mesh *mesh, eNext *C.TESShalfEdge) *C.TESShalfEdge {
 	e := &C.TESShalfEdge{}
 	eSym := &C.TESShalfEdge{}
 
@@ -152,7 +159,7 @@ func makeFace(newFace *C.TESSface, eOrig *C.TESShalfEdge, fNext *C.TESSface) {
 
 // killEdge destroys an edge (the half-edges eDel and eDel.Sym),
 // and removes from the global edge list.
-func killEdge(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
+func killEdge(mesh *mesh, eDel *C.TESShalfEdge) {
 	// Half-edges are allocated in pairs, see EdgePair above
 	if eDel.Sym != eDel {
 		eDel = eDel.Sym
@@ -167,7 +174,7 @@ func killEdge(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 
 // killVertex destroys a vertex and removes it from the global
 // vertex list.  It updates the vertex loop to point to a given new vertex.
-func killVertex(mesh *C.TESSmesh, vDel *C.TESSvertex, newOrg *C.TESSvertex) {
+func killVertex(mesh *mesh, vDel *C.TESSvertex, newOrg *C.TESSvertex) {
 	eStart := vDel.anEdge
 
 	// change the origin of all affected edges
@@ -189,7 +196,7 @@ func killVertex(mesh *C.TESSmesh, vDel *C.TESSvertex, newOrg *C.TESSvertex) {
 
 // killFace destroys a face and removes it from the global face
 // list.  It updates the face loop to point to a given new face.
-func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
+func killFace(mesh *mesh, fDel *C.TESSface, newLface *C.TESSface) {
 	eStart := fDel.anEdge
 
 	// change the left face of all affected edges
@@ -211,7 +218,7 @@ func killFace(mesh *C.TESSmesh, fDel *C.TESSface, newLface *C.TESSface) {
 
 // tessMeshMakeEdge creates one edge, two vertices, and a loop (face).
 // The loop consists of the two new half-edges.
-func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
+func tessMeshMakeEdge(mesh *mesh) *C.TESShalfEdge {
 	newVertex1 := &C.TESSvertex{}
 	newVertex2 := &C.TESSvertex{}
 	newFace := &C.TESSface{}
@@ -246,7 +253,7 @@ func tessMeshMakeEdge(mesh *C.TESSmesh) *C.TESShalfEdge {
 // If eDst == eOrg.Lprev, the old face will have a single edge.
 // If eDst == eOrg.Onext, the new vertex will have a single edge.
 // If eDst == eOrg.Oprev, the old vertex will have a single edge.
-func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) {
+func tessMeshSplice(mesh *mesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) {
 	joiningLoops := false
 	joiningVertices := false
 
@@ -295,7 +302,7 @@ func tessMeshSplice(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge
 // This function could be implemented as two calls to tessMeshSplice
 // plus a few calls to memFree, but this would allocate and delete
 // unnecessary vertices and faces.
-func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
+func tessMeshDelete(mesh *mesh, eDel *C.TESShalfEdge) {
 	eDelSym := eDel.Sym
 	joiningLoops := false
 
@@ -345,7 +352,7 @@ func tessMeshDelete(mesh *C.TESSmesh, eDel *C.TESShalfEdge) {
 // tessMeshAddEdgeVertex creates a new edge eNew such that
 // eNew == eOrg.Lnext, and eNew.Dst is a newly created vertex.
 // eOrg and eNew will have the same left face.
-func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
+func tessMeshAddEdgeVertex(mesh *mesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
 	eNew := makeEdge(mesh, eOrg)
 	eNewSym := eNew.Sym
 
@@ -365,7 +372,7 @@ func tessMeshAddEdgeVertex(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEd
 // tessMeshSplitEdge splits eOrg into two edges eOrg and eNew,
 // such that eNew == eOrg.Lnext.  The new vertex is eOrg.Dst == eNew.Org.
 // eOrg and eNew will have the same left face.
-func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
+func tessMeshSplitEdge(mesh *mesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
 	tempHalfEdge := tessMeshAddEdgeVertex(mesh, eOrg)
 
 	eNew := tempHalfEdge.Sym
@@ -393,7 +400,7 @@ func tessMeshSplitEdge(mesh *C.TESSmesh, eOrg *C.TESShalfEdge) *C.TESShalfEdge {
 // If (eOrg == eDst), the new face will have only two edges.
 // If (eOrg.Lnext == eDst), the old face is reduced to a single edge.
 // If (eOrg.Lnext.Lnext == eDst), the old face is reduced to two edges.
-func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) *C.TESShalfEdge {
+func tessMeshConnect(mesh *mesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdge) *C.TESShalfEdge {
 	joiningLoops := false
 	eNew := makeEdge(mesh, eOrg)
 	eNewSym := eNew.Sym
@@ -432,7 +439,7 @@ func tessMeshConnect(mesh *C.TESSmesh, eOrg *C.TESShalfEdge, eDst *C.TESShalfEdg
 // are deleted entirely (along with any isolated vertices this produces).
 // An entire mesh can be deleted by zapping its faces, one at a time,
 // in any order.  Zapped faces cannot be used in further mesh operations!
-func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
+func tessMeshZapFace(mesh *mesh, fZap *C.TESSface) {
 	eStart := fZap.anEdge
 
 	// walk around face, deleting edges whose right face is also nil
@@ -476,8 +483,8 @@ func tessMeshZapFace(mesh *C.TESSmesh, fZap *C.TESSface) {
 
 // tessMeshNewMesh creates a new mesh with no edges, no vertices,
 // and no loops (what we usually call a "face").
-func tessMeshNewMesh() *C.TESSmesh {
-	mesh := &C.TESSmesh{}
+func tessMeshNewMesh() *mesh {
+	mesh := &mesh{}
 
 	v := &mesh.vHead
 	f := &mesh.fHead
@@ -520,7 +527,7 @@ func tessMeshNewMesh() *C.TESSmesh {
 // both meshes, and returns the new mesh (the old meshes are destroyed).
 //
 // TODO: This function is not used anywhere?
-func tessMeshUnion(mesh1, mesh2 *C.TESSmesh) *C.TESSmesh {
+func tessMeshUnion(mesh1, mesh2 *mesh) *mesh {
 	f1 := &mesh1.fHead
 	v1 := &mesh1.vHead
 	e1 := &mesh1.eHead
@@ -565,7 +572,7 @@ func countFaceVerts(f *C.TESSface) int {
 	return n
 }
 
-func tessMeshMergeConvexFaces(mesh *C.TESSmesh, maxVertsPerFace int) {
+func tessMeshMergeConvexFaces(mesh *mesh, maxVertsPerFace int) {
 	for f := mesh.fHead.next; f != &mesh.fHead; f = f.next {
 		// Skip faces which are outside the result.
 		if f.inside == 0 /* false */ {
@@ -606,7 +613,7 @@ func tessMeshMergeConvexFaces(mesh *C.TESSmesh, maxVertsPerFace int) {
 }
 
 // tessMeshCheckMesh checks a mesh for self-consistency.
-func tessMeshCheckMesh(mesh *C.TESSmesh) {
+func tessMeshCheckMesh(mesh *mesh) {
 	fHead := &mesh.fHead
 	vHead := &mesh.vHead
 	eHead := &mesh.eHead

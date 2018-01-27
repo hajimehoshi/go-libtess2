@@ -38,7 +38,7 @@ type tesselator struct {
 
 	// stores the input contours, and eventually
 	// the tessellation itself
-	mesh *C.TESSmesh
+	mesh *mesh
 
 	// state needed for projecting onto the sweep plane
 
@@ -378,7 +378,7 @@ func tessProjectPolygon(tess *tesselator) {
 // of two chain endpoints.  Determining whether we can add each triangle
 // to the fan is a simple orientation test.  By making the fan as large
 // as possible, we restore the invariant (check it yourself).
-func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
+func tessMeshTessellateMonoRegion(mesh *mesh, face *C.TESSface) {
 	// All edges are oriented CCW around the boundary of the region.
 	// First, find the half-edge whose origin vertex is rightmost.
 	// Since the sweep goes from left to right, face.anEdge should
@@ -426,7 +426,7 @@ func tessMeshTessellateMonoRegion(mesh *C.TESSmesh, face *C.TESSface) {
 // tessMeshTessellateInterior tessellates each region of
 // the mesh which is marked "inside" the polygon.  Each such region
 // must be monotone.
-func tessMeshTessellateInterior(mesh *C.TESSmesh) {
+func tessMeshTessellateInterior(mesh *mesh) {
 	var next *C.TESSface
 	for f := mesh.fHead.next; f != &mesh.fHead; f = next {
 		// Make sure we don't try to tessellate the new triangles.
@@ -444,7 +444,7 @@ func tessMeshTessellateInterior(mesh *C.TESSmesh) {
 //
 // If keepOnlyBoundary is TRUE, it also deletes all edges which do not
 // separate an interior region from an exterior one.
-func tessMeshSetWindingNumber(mesh *C.TESSmesh, value int, keepOnlyBoundary bool) {
+func tessMeshSetWindingNumber(mesh *mesh, value int, keepOnlyBoundary bool) {
 	var eNext *C.TESShalfEdge
 	for e := mesh.eHead.next; e != &mesh.eHead; e = eNext {
 		eNext = e.next
@@ -513,7 +513,7 @@ func neighbourFace(edge *C.TESShalfEdge) C.TESSindex {
 	return rFace(edge).n
 }
 
-func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySize int, vertexSize int) {
+func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int, vertexSize int) {
 	// Assume that the input data is triangles now.
 	// Try to merge as many polygons as possible
 	if polySize > 3 {
@@ -623,7 +623,7 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 	}
 }
 
-func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
+func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 	tess.vertexCount = 0
 	tess.elementCount = 0
 
