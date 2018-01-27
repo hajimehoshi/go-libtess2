@@ -29,6 +29,146 @@ package libtess2
 // #include "mesh.h"
 import "C"
 
+// The mesh operations below have three motivations: completeness,
+// convenience, and efficiency.  The basic mesh operations are MakeEdge,
+// Splice, and Delete.  All the other edge operations can be implemented
+// in terms of these.  The other operations are provided for convenience
+// and/or efficiency.
+//
+// When a face is split or a vertex is added, they are inserted into the
+// global list //before// the existing vertex or face (ie. e->Org or e->Lface).
+// This makes it easier to process all vertices or faces in the global lists
+// without worrying about processing the same data twice.  As a convenience,
+// when a face is split, the "inside" flag is copied from the old face.
+// Other internal data (v->data, v->activeRegion, f->data, f->marked,
+// f->trail, e->winding) is set to zero.
+//
+// ********************** Basic Edge Operations **************************
+//
+// tessMeshMakeEdge( mesh ) creates one edge, two vertices, and a loop.
+// The loop (face) consists of the two new half-edges.
+//
+// tessMeshSplice( eOrg, eDst ) is the basic operation for changing the
+// mesh connectivity and topology.  It changes the mesh so that
+//  eOrg->Onext <- OLD( eDst->Onext )
+//  eDst->Onext <- OLD( eOrg->Onext )
+// where OLD(...) means the value before the meshSplice operation.
+//
+// This can have two effects on the vertex structure:
+//  - if eOrg->Org != eDst->Org, the two vertices are merged together
+//  - if eOrg->Org == eDst->Org, the origin is split into two vertices
+// In both cases, eDst->Org is changed and eOrg->Org is untouched.
+//
+// Similarly (and independently) for the face structure,
+//  - if eOrg->Lface == eDst->Lface, one loop is split into two
+//  - if eOrg->Lface != eDst->Lface, two distinct loops are joined into one
+// In both cases, eDst->Lface is changed and eOrg->Lface is unaffected.
+//
+// tessMeshDelete( eDel ) removes the edge eDel.  There are several cases:
+// if (eDel->Lface != eDel->Rface), we join two loops into one; the loop
+// eDel->Lface is deleted.  Otherwise, we are splitting one loop into two;
+// the newly created loop will contain eDel->Dst.  If the deletion of eDel
+// would create isolated vertices, those are deleted as well.
+//
+// ********************** Other Edge Operations **************************
+//
+// tessMeshAddEdgeVertex( eOrg ) creates a new edge eNew such that
+// eNew == eOrg->Lnext, and eNew->Dst is a newly created vertex.
+// eOrg and eNew will have the same left face.
+//
+// tessMeshSplitEdge( eOrg ) splits eOrg into two edges eOrg and eNew,
+// such that eNew == eOrg->Lnext.  The new vertex is eOrg->Dst == eNew->Org.
+// eOrg and eNew will have the same left face.
+//
+// tessMeshConnect( eOrg, eDst ) creates a new edge from eOrg->Dst
+// to eDst->Org, and returns the corresponding half-edge eNew.
+// If eOrg->Lface == eDst->Lface, this splits one loop into two,
+// and the newly created loop is eNew->Lface.  Otherwise, two disjoint
+// loops are merged into one, and the loop eDst->Lface is destroyed.
+//
+// ************************ Other Operations *****************************
+//
+// tessMeshNewMesh() creates a new mesh with no edges, no vertices,
+// and no loops (what we usually call a "face").
+//
+// tessMeshUnion( mesh1, mesh2 ) forms the union of all structures in
+// both meshes, and returns the new mesh (the old meshes are destroyed).
+//
+// tessMeshDeleteMesh( mesh ) will free all storage for any valid mesh.
+//
+// tessMeshZapFace( fZap ) destroys a face and removes it from the
+// global face list.  All edges of fZap will have a NULL pointer as their
+// left face.  Any edges which also have a NULL pointer as their right face
+// are deleted entirely (along with any isolated vertices this produces).
+// An entire mesh can be deleted by zapping its faces, one at a time,
+// in any order.  Zapped faces cannot be used in further mesh operations!
+//
+// tessMeshCheckMesh( mesh ) checks a mesh for self-consistency.
+
+// The mesh structure is similar in spirit, notation, and operations
+// to the "quad-edge" structure (see L. Guibas and J. Stolfi, Primitives
+// for the manipulation of general subdivisions and the computation of
+// Voronoi diagrams, ACM Transactions on Graphics, 4(2):74-123, April 1985).
+// For a simplified description, see the course notes for CS348a,
+// "Mathematical Foundations of Computer Graphics", available at the
+// Stanford bookstore (and taught during the fall quarter).
+// The implementation also borrows a tiny subset of the graph-based approach
+// use in Mantyla's Geometric Work Bench (see M. Mantyla, An Introduction
+// to Sold Modeling, Computer Science Press, Rockville, Maryland, 1988).
+//
+// The fundamental data structure is the "half-edge".  Two half-edges
+// go together to make an edge, but they point in opposite directions.
+// Each half-edge has a pointer to its mate (the "symmetric" half-edge Sym),
+// its origin vertex (Org), the face on its left side (Lface), and the
+// adjacent half-edges in the CCW direction around the origin vertex
+// (Onext) and around the left face (Lnext).  There is also a "next"
+// pointer for the global edge list (see below).
+//
+// The notation used for mesh navigation:
+//  Sym   = the mate of a half-edge (same edge, but opposite direction)
+//  Onext = edge CCW around origin vertex (keep same origin)
+//  Dnext = edge CCW around destination vertex (keep same dest)
+//  Lnext = edge CCW around left face (dest becomes new origin)
+//  Rnext = edge CCW around right face (origin becomes new dest)
+//
+// "prev" means to substitute CW for CCW in the definitions above.
+//
+// The mesh keeps global lists of all vertices, faces, and edges,
+// stored as doubly-linked circular lists with a dummy header node.
+// The mesh stores pointers to these dummy headers (vHead, fHead, eHead).
+//
+// The circular edge list is special; since half-edges always occur
+// in pairs (e and e.Sym), each half-edge stores a pointer in only
+// one direction.  Starting at eHead and following the e.next pointers
+// will visit each //edge// once (ie. e or e.Sym, but not both).
+// e.Sym stores a pointer in the opposite direction, thus it is
+// always true that e.Sym.next.Sym.next == e.
+//
+// Each vertex has a pointer to next and previous vertices in the
+// circular list, and a pointer to a half-edge with this vertex as
+// the origin (NULL if this is the dummy header).  There is also a
+// field "data" for client data.
+//
+// Each face has a pointer to the next and previous faces in the
+// circular list, and a pointer to a half-edge with this face as
+// the left face (NULL if this is the dummy header).  There is also
+// a field "data" for client data.
+//
+// Note that what we call a "face" is really a loop; faces may consist
+// of more than one loop (ie. not simply connected), but there is no
+// record of this in the data structure.  The mesh may consist of
+// several disconnected regions, so it may not be possible to visit
+// the entire mesh by starting at a half-edge and traversing the edge
+// structure.
+//
+// The mesh does NOT support isolated vertices; a vertex is deleted along
+// with its last edge.  Similarly when two faces are merged, one of the
+// faces is deleted (see tessMeshDelete below).  For mesh operations,
+// all face (loop) and vertex pointers must not be NULL.  However, once
+// mesh manipulation is finished, TESSmeshZapFace can be used to delete
+// faces of the mesh, one at a time.  All external faces can be "zapped"
+// before the mesh is returned to the client; then a NULL face indicates
+// a region which is not part of the output polygon.
 type mesh struct {
 	vHead    C.TESSvertex   // dummy header for vertex list
 	fHead    C.TESSface     // dummy header for face list
