@@ -157,7 +157,7 @@ type Vertex struct {
 type Contour []Vertex
 
 func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, error) {
-	t := tessNewTess()
+	t := &tesselator{}
 	for _, c := range contours {
 		fs := make([]float32, len(c)*3)
 		for i, v := range c {
@@ -533,41 +533,6 @@ func tessMeshSetWindingNumber(mesh *mesh, value int, keepOnlyBoundary bool) {
 			}
 		}
 	}
-}
-
-// tessNewTess - Creates a new tesselator.
-// Use tessDeleteTess to delete the tesselator.
-// Returns:
-//   new tesselator object.
-func tessNewTess() *tesselator {
-	// Only initialize fields which can be changed by the api.  Other fields
-	// are initialized where they are used.
-
-	tess := &tesselator{}
-
-	tess.normal[0] = 0
-	tess.normal[1] = 0
-	tess.normal[2] = 0
-
-	tess.bmin[0] = 0
-	tess.bmin[1] = 0
-	tess.bmax[0] = 0
-	tess.bmax[1] = 0
-
-	tess.windingRule = WindingRuleOdd
-
-	// Initialize to begin polygon.
-	tess.mesh = nil
-
-	tess.vertexIndexCounter = 0
-
-	tess.vertices = nil
-	tess.vertexIndices = nil
-	tess.vertexCount = 0
-	tess.elements = nil
-	tess.elementCount = 0
-
-	return tess
 }
 
 func neighbourFace(edge *halfEdge) index {

@@ -55,7 +55,7 @@ package libtess2
 //   when it is necessary.)
 
 const (
-	undef = index(^0)
+	undef = index(-1)
 )
 
 func assert(cond bool) {
