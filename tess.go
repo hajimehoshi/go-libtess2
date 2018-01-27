@@ -43,6 +43,22 @@ const (
 	WindingRuleAbsGeqTwo
 )
 
+func (w WindingRule) isInside(n int) bool {
+	switch w {
+	case WindingRuleOdd:
+		return (n & 1) != 0
+	case WindingRuleNonzero:
+		return (n != 0)
+	case WindingRulePositive:
+		return (n > 0)
+	case WindingRuleNegative:
+		return (n < 0)
+	case WindingRuleAbsGeqTwo:
+		return (n >= 2) || (n <= -2)
+	}
+	panic("not reached")
+}
+
 // The contents of the tessGetElements() depends on element type being passed to tessTesselate().
 // Tesselation result element types:
 // POLYGONS

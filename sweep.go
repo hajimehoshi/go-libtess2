@@ -234,25 +234,9 @@ func addRegionBelow(tess *tesselator, regAbove *activeRegion, eNewUp *halfEdge) 
 	return regNew
 }
 
-func isWindingInside(tess *tesselator, n int) bool {
-	switch tess.windingRule {
-	case WindingRuleOdd:
-		return (n & 1) != 0
-	case WindingRuleNonzero:
-		return (n != 0)
-	case WindingRulePositive:
-		return (n > 0)
-	case WindingRuleNegative:
-		return (n < 0)
-	case WindingRuleAbsGeqTwo:
-		return (n >= 2) || (n <= -2)
-	}
-	panic("not reached")
-}
-
 func computeWinding(tess *tesselator, reg *activeRegion) {
 	reg.windingNumber = reg.above().windingNumber + int(reg.eUp.winding)
-	reg.inside = isWindingInside(tess, int(reg.windingNumber))
+	reg.inside = tess.windingRule.isInside(reg.windingNumber)
 }
 
 // finishRegion deletes a region from the sweep line.  This happens when the upper
@@ -361,7 +345,7 @@ func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *halfEdge, eLas
 		}
 		// Compute the winding number and "inside" flag for the new regions
 		reg.windingNumber = regPrev.windingNumber - int(e.winding)
-		reg.inside = isWindingInside(tess, int(reg.windingNumber))
+		reg.inside = tess.windingRule.isInside(reg.windingNumber)
 
 		// Check for two outgoing edges with same slope -- process these
 		// before any intersection tests (see example in tessComputeInterior).
