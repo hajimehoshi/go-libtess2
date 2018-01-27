@@ -124,7 +124,7 @@ func dNext(e *halfEdge) *halfEdge {
 	return rPrev(e).Sym
 }
 
-func regionBelow(r *activeRegion) *activeRegion {
+func (r *activeRegion) below() *activeRegion {
 	return dictKey(dictPred(r.nodeUp))
 }
 
@@ -217,7 +217,7 @@ func topLeftRegion(tess *tesselator, reg *activeRegion) *activeRegion {
 	// If the edge above was a temporary edge introduced by ConnectRightVertex,
 	// now is the time to fix it.
 	if reg.fixUpperEdge {
-		e := tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
+		e := tessMeshConnect(tess.mesh, reg.below().eUp.Sym, reg.eUp.Lnext)
 		fixUpperEdge(tess, reg, e)
 		reg = reg.above()
 	}
@@ -299,7 +299,7 @@ func finishLeftRegions(tess *tesselator, regFirst *activeRegion, regLast *active
 	ePrev := regFirst.eUp
 	for regPrev != regLast {
 		regPrev.fixUpperEdge = false // placement was OK
-		reg := regionBelow(regPrev)
+		reg := regPrev.below()
 		e := reg.eUp
 		if e.Org != ePrev.Org {
 			if !reg.fixUpperEdge {
@@ -356,13 +356,13 @@ func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *halfEdge, eLas
 	// updating the winding numbers of each region, and re-linking the mesh
 	// edges to match the dictionary ordering (if necessary).
 	if eTopLeft == nil {
-		eTopLeft = rPrev(regionBelow(regUp).eUp)
+		eTopLeft = rPrev(regUp.below().eUp)
 	}
 	regPrev := regUp
 	ePrev := eTopLeft
 	var reg *activeRegion
 	for {
-		reg = regionBelow(regPrev)
+		reg = regPrev.below()
 		e = reg.eUp.Sym
 		if e.Org != ePrev.Org {
 			break
@@ -460,7 +460,7 @@ func getIntersectData(tess *tesselator, isect *vertex,
 // This is a guaranteed solution, no matter how degenerate things get.
 // Basically this is a combinatorial solution to a numerical problem.
 func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
-	regLo := regionBelow(regUp)
+	regLo := regUp.below()
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 
@@ -513,7 +513,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 // We fix the problem by just splicing the offending vertex into the
 // other edge.
 func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
-	regLo := regionBelow(regUp)
+	regLo := regUp.below()
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 
@@ -552,7 +552,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 // call to AddRightEdges(); in this case all "dirty" regions have been
 // checked for intersections, and possibly regUp has been deleted.
 func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
-	regLo := regionBelow(regUp)
+	regLo := regUp.below()
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 	orgUp := eUp.Org
@@ -636,8 +636,8 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 			tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			tessMeshSplice(tess.mesh, eLo.Sym, eUp)
 			regUp = topLeftRegion(tess, regUp)
-			eUp = regionBelow(regUp).eUp
-			finishLeftRegions(tess, regionBelow(regUp), regLo)
+			eUp = regUp.below().eUp
+			finishLeftRegions(tess, regUp.below(), regLo)
 			addRightEdges(tess, regUp, oPrev(eUp), eUp, eUp, true)
 			return true
 		}
@@ -647,7 +647,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 			tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
 			regLo = regUp
 			regUp = topRightRegion(regUp)
-			e := rPrev(regionBelow(regUp).eUp)
+			e := rPrev(regUp.below().eUp)
 			regLo.eUp = oPrev(eLo)
 			eLo = finishLeftRegions(tess, regLo, nil)
 			addRightEdges(tess, regUp, eLo.Onext, rPrev(eUp), e, true)
@@ -702,13 +702,13 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 // new dirty regions can be created as we make changes to restore
 // the invariants.
 func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
-	regLo := regionBelow(regUp)
+	regLo := regUp.below()
 
 	for {
 		// Find the lowest dirty region (we walk from the bottom up).
 		for regLo.dirty {
 			regUp = regLo
-			regLo = regionBelow(regLo)
+			regLo = regLo.below()
 		}
 		if !regUp.dirty {
 			regLo = regUp
@@ -732,7 +732,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 				if regLo.fixUpperEdge {
 					deleteRegion(tess, regLo)
 					tessMeshDelete(tess.mesh, eLo)
-					regLo = regionBelow(regUp)
+					regLo = regUp.below()
 					eLo = regLo.eUp
 				} else if regUp.fixUpperEdge {
 					deleteRegion(tess, regUp)
@@ -803,7 +803,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 // closest one, in which case we won''t need to make any changes.
 func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *halfEdge) {
 	eTopLeft := eBottomLeft.Onext
-	regLo := regionBelow(regUp)
+	regLo := regUp.below()
 	eUp := regUp.eUp
 	eLo := regLo.eUp
 	degenerate := false
@@ -817,8 +817,8 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *half
 	if vertEq(eUp.Org, tess.event) {
 		tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
 		regUp = topLeftRegion(tess, regUp)
-		eTopLeft = regionBelow(regUp).eUp
-		finishLeftRegions(tess, regionBelow(regUp), regLo)
+		eTopLeft = regUp.below().eUp
+		finishLeftRegions(tess, regUp.below(), regLo)
 		degenerate = true
 	}
 	if vertEq(eLo.Org, tess.event) {
@@ -888,7 +888,7 @@ func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *vertex
 	// Splice in the additional right-going edges.
 	assert(TOLERANCE_NONZERO)
 	regUp = topRightRegion(regUp)
-	reg := regionBelow(regUp)
+	reg := regUp.below()
 	eTopRight := reg.eUp.Sym
 	eTopLeft := eTopRight.Onext
 	eLast := eTopRight.Onext
@@ -930,7 +930,7 @@ func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 	// Get a pointer to the active region containing vEvent
 	tmp.eUp = vEvent.anEdge.Sym
 	regUp := dictKey(tess.dict.search(&tmp))
-	regLo := regionBelow(regUp)
+	regLo := regUp.below()
 	if regLo == nil {
 		// This may happen if the input polygon is coplanar.
 		return
@@ -999,7 +999,7 @@ func sweepEvent(tess *tesselator, vEvent *vertex) {
 	// to their winding number, and delete the edges from the dictionary.
 	// This takes care of all the left-going edges from vEvent.
 	regUp := topLeftRegion(tess, (*activeRegion)(e.activeRegion))
-	reg := regionBelow(regUp)
+	reg := regUp.below()
 	eTopLeft := reg.eUp
 	eBottomLeft := finishLeftRegions(tess, reg, nil)
 
