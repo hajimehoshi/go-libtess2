@@ -64,7 +64,7 @@ func (p *pq) Pop() interface{} {
 	return x
 }
 
-func pqNewPriorityQ(size int) *pq {
+func newPriorityQ() *pq {
 	p := &pq{}
 	heap.Init(p)
 	return p

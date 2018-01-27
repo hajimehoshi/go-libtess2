@@ -1113,18 +1113,9 @@ func removeDegenerateEdges(tess *tesselator) {
 // initPriorityQ inserts all vertices into the priority queue which determines the
 // order in which vertices cross the sweep line.
 func initPriorityQ(tess *tesselator) {
-	vertexCount := 0
+	tess.pq = newPriorityQ()
 
 	vHead := &tess.mesh.vHead
-	for v := vHead.next; v != vHead; v = v.next {
-		vertexCount++
-	}
-	// Make sure there is enough space for sentinels.
-	vertexCount += 8
-
-	tess.pq = pqNewPriorityQ(vertexCount)
-
-	vHead = &tess.mesh.vHead
 	for v := vHead.next; v != vHead; v = v.next {
 		v.pqHandle = pqInsert((*pq)(tess.pq), v)
 	}
