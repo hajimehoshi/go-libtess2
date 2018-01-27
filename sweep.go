@@ -1047,6 +1047,8 @@ func initEdgeDict(tess *tesselator) {
 
 	// If the bbox is empty, ensure that sentinels are not coincident by
 	// slightly enlarging it.
+	// TODO: This hack was introduced at https://github.com/memononen/libtess2/commit/d7c34ac3ff11993b0fc0395fe7d96f4cc75e6bb6.
+	// Is this logic correct?
 	smin := tess.bmin[0] - adjust(w)
 	smax := tess.bmax[0] + adjust(w)
 	tmin := tess.bmin[1] - adjust(h)
