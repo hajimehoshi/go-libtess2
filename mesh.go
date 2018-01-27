@@ -128,7 +128,7 @@ type face struct {
 
 	trail  *face       // "stack" for conversion to strips
 	n      C.TESSindex // to allow identiy unique faces
-	marked int         // flag for conversion to strips
+	marked bool        // flag for conversion to strips
 	inside int         // this face is in the polygon interior
 }
 
@@ -324,7 +324,7 @@ func makeFace(newFace *face, eOrig *halfEdge, fNext *face) {
 
 	fNew.anEdge = eOrig
 	fNew.trail = nil
-	fNew.marked = 0 /* false */
+	fNew.marked = false
 
 	// The new face is marked "inside" if the old one was.  This is a
 	// convenience for the common case where a face has been split in two.
@@ -683,7 +683,7 @@ func tessMeshNewMesh() *mesh {
 	f.prev = f
 	f.anEdge = nil
 	f.trail = nil
-	f.marked = 0 /* false */
+	f.marked = false
 	f.inside = 0 /* false */
 
 	e.next = e
