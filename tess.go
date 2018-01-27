@@ -173,14 +173,13 @@ func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, er
 		vertexSize = 3
 	)
 
-	r := tessTesselate(t,
+	if !tessTesselate(t,
 		windingRule,
 		elementTypePolygons,
 		polySize,
 		vertexSize,
-		nil)
-	if !r {
-		return nil, nil, fmt.Errorf("libtess2: tessTesselate failed: error code: %d", r)
+		nil) {
+		return nil, nil, fmt.Errorf("libtess2: tessTesselate failed")
 	}
 
 	vertices := make([]Vertex, t.vertexCount)
@@ -791,9 +790,7 @@ func tessTesselate(tess *tesselator, windingRule WindingRule, elementType elemen
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {
-		tess.normal[0] = normal[0]
-		tess.normal[1] = normal[1]
-		tess.normal[2] = normal[2]
+		copy(tess.normal[:], normal[:])
 	}
 
 	tess.windingRule = windingRule
