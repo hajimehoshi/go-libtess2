@@ -3,29 +3,54 @@
 package main
 
 import (
-	"fmt"
+	"image/color"
 
 	"github.com/hajimehoshi/go-libtess2"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
-func main() {
-	contour := []libtess2.Vertex{
+const (
+	screenWidth  = 640
+	screenHeight = 480
+)
+
+func update(screen *ebiten.Image) error {
+	t := libtess2.NewTesselator()
+	t.AddContour([]libtess2.Vertex{
 		{X: 0.0, Y: 3.0},
 		{X: -1.0, Y: 0.0},
 		{X: 1.6, Y: 1.9},
 		{X: -1.6, Y: 1.9},
 		{X: 1.0, Y: 0.0},
-	}
-	t := libtess2.NewTesselator()
-	t.AddContour(contour)
+	})
 	e, v, err := t.Tesselate()
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
 	for i := 0; i < len(e)/3; i++ {
-		fmt.Printf("(%.1f, %.1f), (%.1f, %.1f), (%.1f, %.1f)\n",
-			v[e[3*i]].X, v[e[3*i]].Y,
-			v[e[3*i+1]].X, v[e[3*i+1]].Y,
-			v[e[3*i+2]].X, v[e[3*i+2]].Y)
+		for j := 0; j < 3; j++ {
+			idx0 := 3*i + j
+			idx1 := 3*i + (j+1)%3
+			x0 := float64(v[e[idx0]].X*100 + screenWidth/2)
+			y0 := float64(v[e[idx0]].Y*100 + screenHeight/2)
+			x1 := float64(v[e[idx1]].X*100 + screenWidth/2)
+			y1 := float64(v[e[idx1]].Y*100 + screenHeight/2)
+			ebitenutil.DrawLine(screen, x0, y0, x1, y1, color.White)
+		}
+	}
+
+	return nil
+}
+
+func main() {
+	if err := ebiten.Run(update, 640, 480, 1, "go-libtess test"); err != nil {
+		panic(err)
 	}
 }
