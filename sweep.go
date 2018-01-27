@@ -64,25 +64,11 @@ func assert(cond bool) {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func minf(a, b float) float {
 	if a < b {
 		return a
 	}
 	return b
-}
-
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
 }
 
 func maxf(a, b float) float {
