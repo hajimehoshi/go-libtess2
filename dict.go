@@ -37,7 +37,7 @@ import "C"
 // sweep line crosses each vertex, we update the affected regions.
 type activeRegion struct {
 	// upper edge, directed right to left
-	eUp *C.TESShalfEdge
+	eUp *halfEdge
 
 	// dictionary node corresponding to eUp
 	nodeUp *dictNode

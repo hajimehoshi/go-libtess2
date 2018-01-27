@@ -34,48 +34,4 @@
 
 #include "tesselator.h"
 
-typedef struct TESSmesh TESSmesh; 
-typedef struct TESSvertex TESSvertex;
-typedef struct TESSface TESSface;
-typedef struct TESShalfEdge TESShalfEdge;
-
-struct TESSvertex {
-	TESSvertex *next;      /* next vertex (never NULL) */
-	TESSvertex *prev;      /* previous vertex (never NULL) */
-	TESShalfEdge *anEdge;    /* a half-edge with this origin */
-
-	/* Internal data (keep hidden) */
-	TESSreal coords[3];  /* vertex location in 3D */
-	TESSreal s, t;       /* projection onto the sweep plane */
-	TESSvertex* pqHandle;   /* to allow deletion from priority queue */
-	TESSindex n;			/* to allow identify unique vertices */
-	TESSindex idx;			/* to allow map result to original verts */
-};
-
-struct TESSface {
-	TESSface *next;      /* next face (never NULL) */
-	TESSface *prev;      /* previous face (never NULL) */
-	TESShalfEdge *anEdge;    /* a half edge with this left face */
-
-	/* Internal data (keep hidden) */
-	TESSface *trail;     /* "stack" for conversion to strips */
-	TESSindex n;		/* to allow identiy unique faces */
-	char marked;     /* flag for conversion to strips */
-	char inside;     /* this face is in the polygon interior */
-};
-
-struct TESShalfEdge {
-	TESShalfEdge *next;      /* doubly-linked list (prev==Sym->next) */
-	TESShalfEdge *Sym;       /* same edge, opposite direction */
-	TESShalfEdge *Onext;     /* next edge CCW around origin */
-	TESShalfEdge *Lnext;     /* next edge CCW around left face */
-	TESSvertex *Org;       /* origin vertex (Overtex too long) */
-	TESSface *Lface;     /* left face */
-
-	/* Internal data (keep hidden) */
-	void* activeRegion;  /* a region with this upper edge (sweep.c) */
-	int winding;    /* change in winding number when crossing
-						  from the right face to the left face */
-};
-
 #endif

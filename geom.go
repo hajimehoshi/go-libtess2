@@ -29,32 +29,32 @@ package libtess2
 // #include "mesh.h"
 import "C"
 
-func vertEq(u, v *C.TESSvertex) bool {
+func vertEq(u, v *vertex) bool {
 	return u.s == v.s && u.t == v.t
 }
 
-func vertLeq(u, v *C.TESSvertex) bool {
+func vertLeq(u, v *vertex) bool {
 	return (u.s < v.s) || (u.s == v.s && u.t <= v.t)
 }
 
-func vertL1dist(u, v *C.TESSvertex) C.TESSreal {
+func vertL1dist(u, v *vertex) C.TESSreal {
 	return abs(u.s-v.s) + abs(u.t-v.t)
 }
 
-func transLeq(u, v *C.TESSvertex) bool {
+func transLeq(u, v *vertex) bool {
 	return (u.t < v.t) || (u.t == v.t && u.s <= v.s)
 }
 
-func edgeGoesLeft(e *C.TESShalfEdge) bool {
+func edgeGoesLeft(e *halfEdge) bool {
 	return vertLeq(dst(e), e.Org)
 }
 
-func edgeGoesRight(e *C.TESShalfEdge) bool {
+func edgeGoesRight(e *halfEdge) bool {
 	return vertLeq(e.Org, dst(e))
 }
 
 // tesvertLeq returns true if u is lexicographically <= v.
-func tesvertLeq(u, v *C.TESSvertex) bool {
+func tesvertLeq(u, v *vertex) bool {
 	return vertLeq(u, v)
 }
 
@@ -68,7 +68,7 @@ func tesvertLeq(u, v *C.TESSvertex) bool {
 // is very close to u or w.  In particular if we set v.t = 0 and
 // let r be the negated result (this evaluates (uw)(v.s)), then
 // r is guaranteed to satisfy MIN(u.t,w.t) <= r <= MAX(u.t,w.t).
-func tesedgeEval(u, v, w *C.TESSvertex) C.TESSreal {
+func tesedgeEval(u, v, w *vertex) C.TESSreal {
 	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
@@ -88,7 +88,7 @@ func tesedgeEval(u, v, w *C.TESSvertex) C.TESSreal {
 // tesedgeSign returns a number whose sign matches EdgeEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
-func tesedgeSign(u, v, w *C.TESSvertex) C.TESSreal {
+func tesedgeSign(u, v, w *vertex) C.TESSreal {
 	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
@@ -111,7 +111,7 @@ func tesedgeSign(u, v, w *C.TESSvertex) C.TESSreal {
 // is very close to u or w.  In particular if we set v.s = 0 and
 // let r be the negated result (this evaluates (uw)(v.t)), then
 // r is guaranteed to satisfy MIN(u.s,w.s) <= r <= MAX(u.s,w.s).
-func testransEval(u, v, w *C.TESSvertex) C.TESSreal {
+func testransEval(u, v, w *vertex) C.TESSreal {
 	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
@@ -131,7 +131,7 @@ func testransEval(u, v, w *C.TESSvertex) C.TESSreal {
 // testransSign returns a number whose sign matches TransEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
-func testransSign(u, v, w *C.TESSvertex) C.TESSreal {
+func testransSign(u, v, w *vertex) C.TESSreal {
 	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
@@ -144,15 +144,13 @@ func testransSign(u, v, w *C.TESSvertex) C.TESSreal {
 	return 0
 }
 
-//export tesvertCCW
-//
 // tesvertCCW:
 // For almost-degenerate situations, the results are not reliable.
 // Unless the floating-point arithmetic can be performed without
 // rounding errors, *any* implementation will give incorrect results
 // on some degenerate inputs, so the client must have some way to
 // handle this situation.
-func tesvertCCW(u, v, w *C.TESSvertex) bool {
+func tesvertCCW(u, v, w *vertex) bool {
 	return (u.s*(v.t-w.t) + v.s*(w.t-u.t) + w.s*(u.t-v.t)) >= 0
 }
 
@@ -184,7 +182,7 @@ func interpolate(a, x, b, y C.TESSreal) C.TESSreal {
 // Given edges (o1,d1) and (o2,d2), compute their point of intersection.
 // The computed point is guaranteed to lie in the intersection of the
 // bounding rectangles defined by each edge.
-func tesedgeIntersect(o1 *C.TESSvertex, d1 *C.TESSvertex, o2 *C.TESSvertex, d2 *C.TESSvertex, v *C.TESSvertex) {
+func tesedgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex) {
 	// This is certainly not the most efficient way to find the intersection
 	// of two line segments, but it is very numerically stable.
 	//

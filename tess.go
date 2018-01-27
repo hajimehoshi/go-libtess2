@@ -53,9 +53,9 @@ type tesselator struct {
 
 	windingRule int // rule for determining polygon interior
 
-	dict  *dict         // edge dictionary for sweep line
-	pq    *pq           // priority queue of vertex events
-	event *C.TESSvertex // current sweep event being processed
+	dict  *dict   // edge dictionary for sweep line
+	pq    *pq     // priority queue of vertex events
+	event *vertex // current sweep event being processed
 
 	vertexIndexCounter C.TESSindex
 
@@ -165,8 +165,8 @@ func computeNormal(tess *tesselator, norm []C.TESSreal) {
 	d1 := make([]C.TESSreal, 3)
 	d2 := make([]C.TESSreal, 3)
 	tNorm := make([]C.TESSreal, 3)
-	maxVert := make([]*C.TESSvertex, 3)
-	minVert := make([]*C.TESSvertex, 3)
+	maxVert := make([]*vertex, 3)
+	minVert := make([]*vertex, 3)
 
 	vHead := &tess.mesh.vHead
 	v := vHead.next
@@ -378,7 +378,7 @@ func tessProjectPolygon(tess *tesselator) {
 // of two chain endpoints.  Determining whether we can add each triangle
 // to the fan is a simple orientation test.  By making the fan as large
 // as possible, we restore the invariant (check it yourself).
-func tessMeshTessellateMonoRegion(mesh *mesh, face *C.TESSface) {
+func tessMeshTessellateMonoRegion(mesh *mesh, face *face) {
 	// All edges are oriented CCW around the boundary of the region.
 	// First, find the half-edge whose origin vertex is rightmost.
 	// Since the sweep goes from left to right, face.anEdge should
@@ -427,7 +427,7 @@ func tessMeshTessellateMonoRegion(mesh *mesh, face *C.TESSface) {
 // the mesh which is marked "inside" the polygon.  Each such region
 // must be monotone.
 func tessMeshTessellateInterior(mesh *mesh) {
-	var next *C.TESSface
+	var next *face
 	for f := mesh.fHead.next; f != &mesh.fHead; f = next {
 		// Make sure we don't try to tessellate the new triangles.
 		next = f.next
@@ -445,16 +445,16 @@ func tessMeshTessellateInterior(mesh *mesh) {
 // If keepOnlyBoundary is TRUE, it also deletes all edges which do not
 // separate an interior region from an exterior one.
 func tessMeshSetWindingNumber(mesh *mesh, value int, keepOnlyBoundary bool) {
-	var eNext *C.TESShalfEdge
+	var eNext *halfEdge
 	for e := mesh.eHead.next; e != &mesh.eHead; e = eNext {
 		eNext = e.next
 		if rFace(e).inside != e.Lface.inside {
 			// This is a boundary edge (one side is interior, one is exterior).
 			e.winding = 0
 			if e.Lface.inside != 0 {
-				e.winding = C.int(value)
+				e.winding = value
 			} else {
-				e.winding = -C.int(value)
+				e.winding = -value
 			}
 		} else {
 
@@ -503,7 +503,7 @@ func tessNewTess() *tesselator {
 	return tess
 }
 
-func neighbourFace(edge *C.TESShalfEdge) C.TESSindex {
+func neighbourFace(edge *halfEdge) C.TESSindex {
 	if rFace(edge) == nil {
 		return undef
 	}
@@ -706,7 +706,7 @@ func tessAddContour(tess *tesselator, size int, vertices []float32) {
 		size = 3
 	}
 
-	var e *C.TESShalfEdge
+	var e *halfEdge
 	numVertices := len(vertices) / size
 	src := vertices
 	for i := 0; i < numVertices; i++ {

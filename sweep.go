@@ -31,10 +31,6 @@ package libtess2
 // #include "tesselator.h"
 import "C"
 
-import (
-	"unsafe"
-)
-
 // Invariants for the Edge Dictionary.
 // - each pair of adjacent edges e2=Succ(e1) satisfies EdgeLeq(e1,e2)
 //   at any valid location of the sweep event
@@ -101,35 +97,35 @@ func maxf(a, b C.TESSreal) C.TESSreal {
 	return a
 }
 
-func rFace(e *C.TESShalfEdge) *C.TESSface {
+func rFace(e *halfEdge) *face {
 	return e.Sym.Lface
 }
 
-func setRFace(e *C.TESShalfEdge, f *C.TESSface) {
+func setRFace(e *halfEdge, f *face) {
 	e.Sym.Lface = f
 }
 
-func dst(e *C.TESShalfEdge) *C.TESSvertex {
+func dst(e *halfEdge) *vertex {
 	return e.Sym.Org
 }
 
-func setDst(e *C.TESShalfEdge, v *C.TESSvertex) {
+func setDst(e *halfEdge, v *vertex) {
 	e.Sym.Org = v
 }
 
-func rPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
+func rPrev(e *halfEdge) *halfEdge {
 	return e.Sym.Onext
 }
 
-func oPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
+func oPrev(e *halfEdge) *halfEdge {
 	return e.Sym.Lnext
 }
 
-func lPrev(e *C.TESShalfEdge) *C.TESShalfEdge {
+func lPrev(e *halfEdge) *halfEdge {
 	return e.Onext.Sym
 }
 
-func dNext(e *C.TESShalfEdge) *C.TESShalfEdge {
+func dNext(e *halfEdge) *halfEdge {
 	return rPrev(e).Sym
 }
 
@@ -198,18 +194,18 @@ func edgeLeq(tess *tesselator, reg1 *activeRegion, reg2 *activeRegion) bool {
 // addWinding:
 // When we merge two edges into one, we need to compute the combined
 // winding of the new edge.
-func addWinding(eDst *C.TESShalfEdge, eSrc *C.TESShalfEdge) {
+func addWinding(eDst *halfEdge, eSrc *halfEdge) {
 	eDst.winding += eSrc.winding
 	eDst.Sym.winding += eSrc.Sym.winding
 }
 
 // fixUpperEdge replace an upper edge which needs fixing (see ConnectRightVertex).
-func fixUpperEdge(tess *tesselator, reg *activeRegion, newEdge *C.TESShalfEdge) {
+func fixUpperEdge(tess *tesselator, reg *activeRegion, newEdge *halfEdge) {
 	assert(reg.fixUpperEdge)
 	tessMeshDelete(tess.mesh, reg.eUp)
 	reg.fixUpperEdge = false
 	reg.eUp = newEdge
-	newEdge.activeRegion = unsafe.Pointer(reg)
+	newEdge.activeRegion = reg
 }
 
 func topLeftRegion(tess *tesselator, reg *activeRegion) *activeRegion {
@@ -249,11 +245,11 @@ func topRightRegion(reg *activeRegion) *activeRegion {
 // (according to where the new edge belongs in the sweep-line dictionary).
 // The upper edge of the new region will be "eNewUp".
 // Winding number and "inside" flag are not updated.
-func addRegionBelow(tess *tesselator, regAbove *activeRegion, eNewUp *C.TESShalfEdge) *activeRegion {
+func addRegionBelow(tess *tesselator, regAbove *activeRegion, eNewUp *halfEdge) *activeRegion {
 	regNew := &activeRegion{}
 	regNew.eUp = eNewUp
 	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew)
-	eNewUp.activeRegion = unsafe.Pointer(regNew)
+	eNewUp.activeRegion = regNew
 	return regNew
 }
 
@@ -306,7 +302,7 @@ func finishRegion(tess *tesselator, reg *activeRegion) {
 // is NULL we walk as far as possible.  At the same time we relink the
 // mesh if necessary, so that the ordering of edges around vOrg is the
 // same as in the dictionary.
-func finishLeftRegions(tess *tesselator, regFirst *activeRegion, regLast *activeRegion) *C.TESShalfEdge {
+func finishLeftRegions(tess *tesselator, regFirst *activeRegion, regLast *activeRegion) *halfEdge {
 	regPrev := regFirst
 	ePrev := regFirst.eUp
 	for regPrev != regLast {
@@ -350,7 +346,7 @@ func finishLeftRegions(tess *tesselator, regFirst *activeRegion, regLast *active
 // such that an imaginary upward vertical segment from vOrg would be
 // contained between eTopLeft.Oprev and eTopLeft; otherwise eTopLeft
 // should be nil.
-func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *C.TESShalfEdge, eLast *C.TESShalfEdge, eTopLeft *C.TESShalfEdge, cleanUp bool) {
+func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *halfEdge, eLast *halfEdge, eTopLeft *halfEdge, cleanUp bool) {
 	firstTime := true
 
 	// Insert the new right-going edges in the dictionary
@@ -413,7 +409,7 @@ func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *C.TESShalfEdge
 // spliceMergeVertices:
 // Two vertices with idential coordinates are combined into one.
 // e1.Org is kept, while e2.Org is discarded.
-func spliceMergeVertices(tess *tesselator, e1 *C.TESShalfEdge, e2 *C.TESShalfEdge) {
+func spliceMergeVertices(tess *tesselator, e1 *halfEdge, e2 *halfEdge) {
 	tessMeshSplice(tess.mesh, e1, e2)
 }
 
@@ -422,7 +418,7 @@ func spliceMergeVertices(tess *tesselator, e1 *C.TESShalfEdge, e2 *C.TESShalfEdg
 // which generated "isect" is allocated 50% of the weight; each edge
 // splits the weight between its org and dst according to the
 // relative distance to "isect".
-func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex) {
+func vertexWeights(isect *vertex, org *vertex, dst *vertex) {
 	t1 := vertL1dist(org, isect)
 	t2 := vertL1dist(dst, isect)
 
@@ -437,9 +433,9 @@ func vertexWeights(isect *C.TESSvertex, org *C.TESSvertex, dst *C.TESSvertex) {
 // We've computed a new intersection point, now we need a "data" pointer
 // from the user so that we can refer to this new vertex in the
 // rendering callbacks.
-func getIntersectData(tess *tesselator, isect *C.TESSvertex,
-	orgUp *C.TESSvertex, dstUp *C.TESSvertex,
-	orgLo *C.TESSvertex, dstLo *C.TESSvertex) {
+func getIntersectData(tess *tesselator, isect *vertex,
+	orgUp *vertex, dstUp *vertex,
+	orgLo *vertex, dstLo *vertex) {
 	isect.coords[0] = 0
 	isect.coords[1] = 0
 	isect.coords[2] = 0
@@ -606,7 +602,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 		}
 	}
 
-	var isect C.TESSvertex
+	var isect vertex
 	tesedgeIntersect(dstUp, orgUp, dstLo, orgLo, &isect)
 	// The following properties are guaranteed:
 	assert(minf(orgUp.t, dstUp.t) <= isect.t)
@@ -628,7 +624,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	// unbelievable inefficiency on sufficiently degenerate inputs.
 	// (If you have the test program, try running test54.d with the
 	// "X zoom" option turned on).
-	var orgMin *C.TESSvertex
+	var orgMin *vertex
 	if vertLeq(orgUp, orgLo) {
 		orgMin = orgUp
 	} else {
@@ -819,7 +815,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 // to the next processed vertex on the boundary of the combined region.
 // Quite possibly the vertex we connected to will turn out to be the
 // closest one, in which case we won''t need to make any changes.
-func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *C.TESShalfEdge) {
+func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *halfEdge) {
 	eTopLeft := eBottomLeft.Onext
 	regLo := regionBelow(regUp)
 	eUp := regUp.eUp
@@ -851,7 +847,7 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *C.TE
 
 	// Non-degenerate situation -- need to add a temporary, fixable edge.
 	// Connect to the closer of eLo.Org, eUp.Org.
-	var eNew *C.TESShalfEdge
+	var eNew *halfEdge
 	if vertLeq(eLo.Org, eUp.Org) {
 		eNew = oPrev(eLo)
 	} else {
@@ -870,7 +866,7 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *C.TE
 // The event vertex lies exacty on an already-processed edge or vertex.
 // Adding the new vertex involves splicing it into the already-processed
 // part of the mesh.
-func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *C.TESSvertex) {
+func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *vertex) {
 	// Because vertices at exactly the same location are merged together
 	// before we process the sweep event, some degenerate cases can't occur.
 	// However if someone eventually makes the modifications required to
@@ -940,7 +936,7 @@ func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *C.TESS
 //	- merging with the rightmost vertex of U or L
 //	- merging with the active edge of U or L
 //	- merging with an already-processed portion of U or L
-func connectLeftVertex(tess *tesselator, vEvent *C.TESSvertex) {
+func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 	var tmp activeRegion
 
 	// assert( vEvent.anEdge.Onext.Onext == vEvent.anEdge );
@@ -972,7 +968,7 @@ func connectLeftVertex(tess *tesselator, vEvent *C.TESSvertex) {
 	}
 
 	if regUp.inside || reg.fixUpperEdge {
-		var eNew *C.TESShalfEdge
+		var eNew *halfEdge
 		if reg == regUp {
 			eNew = tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
 		} else {
@@ -994,7 +990,7 @@ func connectLeftVertex(tess *tesselator, vEvent *C.TESSvertex) {
 
 // sweepEvent does everything necessary when the sweep line crosses a vertex.
 // Updates the mesh and the edge dictionary.
-func sweepEvent(tess *tesselator, vEvent *C.TESSvertex) {
+func sweepEvent(tess *tesselator, vEvent *vertex) {
 	tess.event = vEvent // for access in EdgeLeq()
 
 	// Check if this vertex is the right endpoint of an edge that is
@@ -1098,7 +1094,7 @@ func doneEdgeDict(tess *tesselator) {
 // removeDegenerateEdges removes zero-length edges, and contours with fewer than 3 vertices.
 func removeDegenerateEdges(tess *tesselator) {
 	eHead := &tess.mesh.eHead
-	var eNext *C.TESShalfEdge
+	var eNext *halfEdge
 	for e := eHead.next; e != eHead; e = eNext {
 		eNext = e.next
 		eLnext := e.Lnext
@@ -1159,7 +1155,7 @@ func initPriorityQ(tess *tesselator) {
 // edge at the time, since one of the routines further up the stack
 // will sometimes be keeping a pointer to that edge.
 func removeDegenerateFaces(tess *tesselator, mesh *mesh) {
-	var fNext *C.TESSface
+	var fNext *face
 	for f := mesh.fHead.next; f != &mesh.fHead; f = fNext {
 		fNext = f.next
 		e := f.anEdge
@@ -1196,7 +1192,7 @@ func tessComputeInterior(tess *tesselator) {
 			break
 		}
 		for {
-			vNext := (*C.TESSvertex)(pqMinimum((*pq)(tess.pq)))
+			vNext := (*vertex)(pqMinimum((*pq)(tess.pq)))
 			if vNext == nil || !vertEq(vNext, v) {
 				break
 			}

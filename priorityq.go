@@ -41,7 +41,7 @@ import (
 	"container/heap"
 )
 
-type pq []*C.struct_TESSvertex
+type pq []*vertex
 
 func (p pq) Len() int {
 	return len(p)
@@ -56,7 +56,7 @@ func (p pq) Swap(i, j int) {
 }
 
 func (p *pq) Push(x interface{}) {
-	*p = append(*p, x.(*C.struct_TESSvertex))
+	*p = append(*p, x.(*vertex))
 }
 
 func (p *pq) Pop() interface{} {
@@ -72,19 +72,19 @@ func pqNewPriorityQ(size C.int) *pq {
 	return p
 }
 
-func pqInsert(p *pq, key *C.struct_TESSvertex) *C.struct_TESSvertex {
+func pqInsert(p *pq, key *vertex) *vertex {
 	heap.Push(p, key)
 	return key
 }
 
-func pqExtractMin(p *pq) *C.struct_TESSvertex {
+func pqExtractMin(p *pq) *vertex {
 	if len(*p) == 0 {
 		return nil
 	}
-	return heap.Pop(p).(*C.struct_TESSvertex)
+	return heap.Pop(p).(*vertex)
 }
 
-func pqDelete(p *pq, key *C.struct_TESSvertex) {
+func pqDelete(p *pq, key *vertex) {
 	idx := -1
 	for i, v := range *p {
 		if key == v {
@@ -95,7 +95,7 @@ func pqDelete(p *pq, key *C.struct_TESSvertex) {
 	heap.Remove(p, idx)
 }
 
-func pqMinimum(p *pq) *C.struct_TESSvertex {
+func pqMinimum(p *pq) *vertex {
 	if len(*p) == 0 {
 		return nil
 	}
