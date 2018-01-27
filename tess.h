@@ -32,7 +32,6 @@
 #ifndef TESS_H
 #define TESS_H
 
-#include "mesh.h"
 #include "tesselator.h"
 
 #ifdef __cplusplus

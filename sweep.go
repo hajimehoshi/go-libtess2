@@ -26,7 +26,6 @@
 
 package libtess2
 
-// #include "mesh.h"
 // #include "tess.h"
 // #include "tesselator.h"
 import "C"

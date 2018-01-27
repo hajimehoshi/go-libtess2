@@ -26,7 +26,7 @@
 
 package libtess2
 
-// #include "mesh.h"
+// #include "tesselator.h"
 import "C"
 
 // The mesh operations below have three motivations: completeness,

@@ -26,7 +26,7 @@
 
 package libtess2
 
-// #include "mesh.h"
+// #include "tesselator.h"
 import "C"
 
 func vertEq(u, v *vertex) bool {
