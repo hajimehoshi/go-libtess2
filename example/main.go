@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/go-libtess2"
 
@@ -17,15 +18,20 @@ const (
 	screenHeight = 480
 )
 
+func circle(radius float64) libtess2.Contour {
+	vs := make([]libtess2.Vertex, int(math.Ceil(radius*20)))
+	for i := range vs {
+		theta := float64(i) / float64(len(vs))
+		vs[i].X = float32(math.Cos(2 * math.Pi * theta) * radius)
+		vs[i].Y = float32(math.Sin(2 * math.Pi * theta) * radius)
+	}
+	return vs
+}
+
 func update(screen *ebiten.Image) error {
 	e, v, err := libtess2.Tesselate([]libtess2.Contour{
-		{
-			{X: 0.0, Y: 3.0},
-			{X: -1.0, Y: 0.0},
-			{X: 1.6, Y: 1.9},
-			{X: -1.6, Y: 1.9},
-			{X: 1.0, Y: 0.0},
-		},
+		circle(1),
+		circle(0.5),
 	}, libtess2.WindingRuleOdd)
 	if err != nil {
 		return err
