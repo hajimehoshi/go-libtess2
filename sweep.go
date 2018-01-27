@@ -108,20 +108,20 @@ func (e *halfEdge) setDst(v *vertex) {
 	e.Sym.Org = v
 }
 
-func rPrev(e *halfEdge) *halfEdge {
+func (e *halfEdge) rPrev() *halfEdge {
 	return e.Sym.Onext
 }
 
-func oPrev(e *halfEdge) *halfEdge {
+func (e *halfEdge) oPrev() *halfEdge {
 	return e.Sym.Lnext
 }
 
-func lPrev(e *halfEdge) *halfEdge {
+func (e *halfEdge) lPrev() *halfEdge {
 	return e.Onext.Sym
 }
 
-func dNext(e *halfEdge) *halfEdge {
-	return rPrev(e).Sym
+func (e *halfEdge) dNext() *halfEdge {
+	return e.rPrev().Sym
 }
 
 func (r *activeRegion) below() *activeRegion {
@@ -313,13 +313,13 @@ func finishLeftRegions(tess *tesselator, regFirst *activeRegion, regLast *active
 			}
 			// If the edge below was a temporary edge introduced by
 			// ConnectRightVertex, now is the time to fix it.
-			e = tessMeshConnect(tess.mesh, lPrev(ePrev), e.Sym)
+			e = tessMeshConnect(tess.mesh, ePrev.lPrev(), e.Sym)
 			fixUpperEdge(tess, reg, e)
 		}
 
 		// Relink edges so that ePrev.Onext == e
 		if ePrev.Onext != e {
-			tessMeshSplice(tess.mesh, oPrev(e), e)
+			tessMeshSplice(tess.mesh, e.oPrev(), e)
 			tessMeshSplice(tess.mesh, ePrev, e)
 		}
 		finishRegion(tess, regPrev) // may change reg.eUp
@@ -356,7 +356,7 @@ func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *halfEdge, eLas
 	// updating the winding numbers of each region, and re-linking the mesh
 	// edges to match the dictionary ordering (if necessary).
 	if eTopLeft == nil {
-		eTopLeft = rPrev(regUp.below().eUp)
+		eTopLeft = regUp.below().eUp.rPrev()
 	}
 	regPrev := regUp
 	ePrev := eTopLeft
@@ -370,8 +370,8 @@ func addRightEdges(tess *tesselator, regUp *activeRegion, eFirst *halfEdge, eLas
 
 		if e.Onext != ePrev {
 			// Unlink e from its current position, and relink below ePrev
-			tessMeshSplice(tess.mesh, oPrev(e), e)
-			tessMeshSplice(tess.mesh, oPrev(ePrev), e)
+			tessMeshSplice(tess.mesh, e.oPrev(), e)
+			tessMeshSplice(tess.mesh, ePrev.oPrev(), e)
 		}
 		// Compute the winding number and "inside" flag for the new regions
 		reg.windingNumber = regPrev.windingNumber - int(e.winding)
@@ -473,14 +473,14 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 		if !vertEq(eUp.Org, eLo.Org) {
 			// Splice eUp.Org into eLo
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
-			tessMeshSplice(tess.mesh, eUp, oPrev(eLo))
+			tessMeshSplice(tess.mesh, eUp, eLo.oPrev())
 			regUp.dirty = true
 			regLo.dirty = true
 
 		} else if eUp.Org != eLo.Org {
 			// merge the two vertices, discarding eUp.Org
 			tess.pq.delete(eUp.Org.pqHandle)
-			spliceMergeVertices(tess, oPrev(eLo), eUp)
+			spliceMergeVertices(tess, eLo.oPrev(), eUp)
 		}
 	} else {
 		if edgeSign(eUp.dst(), eLo.Org, eUp.Org) < 0 {
@@ -491,7 +491,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 		regUp.above().dirty = true
 		regUp.dirty = true
 		tessMeshSplitEdge(tess.mesh, eUp.Sym)
-		tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
+		tessMeshSplice(tess.mesh, eLo.oPrev(), eUp)
 	}
 	return true
 }
@@ -638,19 +638,19 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 			regUp = topLeftRegion(tess, regUp)
 			eUp = regUp.below().eUp
 			finishLeftRegions(tess, regUp.below(), regLo)
-			addRightEdges(tess, regUp, oPrev(eUp), eUp, eUp, true)
+			addRightEdges(tess, regUp, eUp.oPrev(), eUp, eUp, true)
 			return true
 		}
 		if dstUp == tess.event {
 			// Splice dstUp into eLo, and process the new region(s)
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
-			tessMeshSplice(tess.mesh, eUp.Lnext, oPrev(eLo))
+			tessMeshSplice(tess.mesh, eUp.Lnext, eLo.oPrev())
 			regLo = regUp
 			regUp = topRightRegion(regUp)
-			e := rPrev(regUp.below().eUp)
-			regLo.eUp = oPrev(eLo)
+			e := regUp.below().eUp.rPrev()
+			regLo.eUp = eLo.oPrev()
 			eLo = finishLeftRegions(tess, regLo, nil)
-			addRightEdges(tess, regUp, eLo.Onext, rPrev(eUp), e, true)
+			addRightEdges(tess, regUp, eLo.Onext, eUp.rPrev(), e, true)
 			return true
 		}
 		// Special case: called from ConnectRightVertex.  If either
@@ -683,7 +683,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	// unprocessed original contours (which will be eLo.Oprev.Lface).
 	tessMeshSplitEdge(tess.mesh, eUp.Sym)
 	tessMeshSplitEdge(tess.mesh, eLo.Sym)
-	tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
+	tessMeshSplice(tess.mesh, eLo.oPrev(), eUp)
 	eUp.Org.s = isect.s
 	eUp.Org.t = isect.t
 	eUp.Org.pqHandle = tess.pq.insert(eUp.Org)
@@ -815,14 +815,14 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *half
 	// Possible new degeneracies: upper or lower edge of regUp may pass
 	// through vEvent, or may coincide with new intersection vertex
 	if vertEq(eUp.Org, tess.event) {
-		tessMeshSplice(tess.mesh, oPrev(eTopLeft), eUp)
+		tessMeshSplice(tess.mesh, eTopLeft.oPrev(), eUp)
 		regUp = topLeftRegion(tess, regUp)
 		eTopLeft = regUp.below().eUp
 		finishLeftRegions(tess, regUp.below(), regLo)
 		degenerate = true
 	}
 	if vertEq(eLo.Org, tess.event) {
-		tessMeshSplice(tess.mesh, eBottomLeft, oPrev(eLo))
+		tessMeshSplice(tess.mesh, eBottomLeft, eLo.oPrev())
 		eBottomLeft = finishLeftRegions(tess, regLo, nil)
 		degenerate = true
 	}
@@ -835,11 +835,11 @@ func connectRightVertex(tess *tesselator, regUp *activeRegion, eBottomLeft *half
 	// Connect to the closer of eLo.Org, eUp.Org.
 	var eNew *halfEdge
 	if vertLeq(eLo.Org, eUp.Org) {
-		eNew = oPrev(eLo)
+		eNew = eLo.oPrev()
 	} else {
 		eNew = eUp
 	}
-	eNew = tessMeshConnect(tess.mesh, lPrev(eBottomLeft), eNew)
+	eNew = tessMeshConnect(tess.mesh, eBottomLeft.lPrev(), eNew)
 
 	// Prevent cleanup, otherwise eNew might disappear before we've even
 	// had a chance to mark it as a temporary edge.
@@ -898,7 +898,7 @@ func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *vertex
 		assert(eTopLeft != eTopRight) // there are some left edges too
 		deleteRegion(tess, reg)
 		tessMeshDelete(tess.mesh, eTopRight)
-		eTopRight = oPrev(eTopLeft)
+		eTopRight = eTopLeft.oPrev()
 	}
 	tessMeshSplice(tess.mesh, vEvent.anEdge, eTopRight)
 	if !edgeGoesLeft(eTopLeft) {
@@ -958,7 +958,7 @@ func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 		if reg == regUp {
 			eNew = tessMeshConnect(tess.mesh, vEvent.anEdge.Sym, eUp.Lnext)
 		} else {
-			tempHalfEdge := tessMeshConnect(tess.mesh, dNext(eLo), vEvent.anEdge)
+			tempHalfEdge := tessMeshConnect(tess.mesh, eLo.dNext(), vEvent.anEdge)
 			eNew = tempHalfEdge.Sym
 		}
 		if reg.fixUpperEdge {

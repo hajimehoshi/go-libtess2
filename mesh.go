@@ -499,10 +499,10 @@ func tessMeshDelete(mesh *mesh, eDel *halfEdge) {
 		killVertex(mesh, eDel.Org, nil)
 	} else {
 		// Make sure that eDel.Org and eDel.Rface point to valid half-edges
-		eDel.rFace().anEdge = oPrev(eDel)
+		eDel.rFace().anEdge = eDel.oPrev()
 		eDel.Org.anEdge = eDel.Onext
 
-		splice(eDel, oPrev(eDel))
+		splice(eDel, eDel.oPrev())
 		if !joiningLoops {
 			newFace := &face{}
 
@@ -518,9 +518,9 @@ func tessMeshDelete(mesh *mesh, eDel *halfEdge) {
 		killFace(mesh, eDelSym.Lface, nil)
 	} else {
 		// Make sure that eDel.Dst and eDel.Lface point to valid half-edges
-		eDel.Lface.anEdge = oPrev(eDelSym)
+		eDel.Lface.anEdge = eDelSym.oPrev()
 		eDelSym.Org.anEdge = eDelSym.Onext
-		splice(eDelSym, oPrev(eDelSym))
+		splice(eDelSym, eDelSym.oPrev())
 	}
 
 	// Any isolated vertices or faces have already been freed.
@@ -559,7 +559,7 @@ func tessMeshSplitEdge(mesh *mesh, eOrg *halfEdge) *halfEdge {
 	eNew := tempHalfEdge.Sym
 
 	// Disconnect eOrg from eOrg.Dst and connect it to eNew.Org
-	splice(eOrg.Sym, oPrev(eOrg.Sym))
+	splice(eOrg.Sym, eOrg.Sym.oPrev())
 	splice(eOrg.Sym, eNew)
 
 	// Set the vertex and face information
@@ -638,7 +638,7 @@ func tessMeshZapFace(mesh *mesh, fZap *face) {
 			} else {
 				// Make sure that e.Org points to a valid half-edge
 				e.Org.anEdge = e.Onext
-				splice(e, oPrev(e))
+				splice(e, e.oPrev())
 			}
 			eSym := e.Sym
 			if eSym.Onext == eSym {
@@ -646,7 +646,7 @@ func tessMeshZapFace(mesh *mesh, fZap *face) {
 			} else {
 				// Make sure that eSym.Org points to a valid half-edge
 				eSym.Org.anEdge = eSym.Onext
-				splice(eSym, oPrev(eSym))
+				splice(eSym, eSym.oPrev())
 			}
 			killEdge(mesh, e)
 		}
@@ -775,7 +775,7 @@ func tessMeshMergeConvexFaces(mesh *mesh, maxVertsPerFace int) {
 				symNv := countFaceVerts(eSym.Lface)
 				if curNv+symNv-2 <= maxVertsPerFace {
 					// Merge if the resulting poly is convex.
-					if vertCCW(lPrev(eCur).Org, eCur.Org, eSym.Lnext.Lnext.Org) && vertCCW(lPrev(eSym).Org, eSym.Org, eCur.Lnext.Lnext.Org) {
+					if vertCCW(eCur.lPrev().Org, eCur.Org, eSym.Lnext.Lnext.Org) && vertCCW(eSym.lPrev().Org, eSym.Org, eCur.Lnext.Lnext.Org) {
 						eNext = eSym.Lnext
 						tessMeshDelete(mesh, eSym)
 						eCur = nil
