@@ -112,11 +112,11 @@ type vertex struct {
 
 	// Internal data (keep hidden)
 
-	coords   [3]C.TESSreal // vertex location in 3D
-	s, t     C.TESSreal    // projection onto the sweep plane
-	pqHandle *vertex       // to allow deletion from priority queue
-	n        index         // to allow identify unique vertices
-	idx      index         // to allow map result to original verts
+	coords   [3]float // vertex location in 3D
+	s, t     float    // projection onto the sweep plane
+	pqHandle *vertex  // to allow deletion from priority queue
+	n        index    // to allow identify unique vertices
+	idx      index    // to allow map result to original verts
 }
 
 type face struct {

@@ -114,8 +114,6 @@ enum TessElementType
 	TESS_BOUNDARY_CONTOURS,
 };
 
-typedef float TESSreal;
-
 #ifdef __cplusplus
 };
 #endif

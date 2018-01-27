@@ -74,7 +74,7 @@ func min(a, b C.int) C.int {
 	return b
 }
 
-func minf(a, b C.TESSreal) C.TESSreal {
+func minf(a, b float) float {
 	if a < b {
 		return a
 	}
@@ -88,7 +88,7 @@ func max(a, b C.int) C.int {
 	return a
 }
 
-func maxf(a, b C.TESSreal) C.TESSreal {
+func maxf(a, b float) float {
 	if a < b {
 		return b
 	}
@@ -135,7 +135,7 @@ func regionAbove(r *activeRegion) *activeRegion {
 	return dictKey(dictSucc((*dictNode)(r.nodeUp)))
 }
 
-func adjust(x C.TESSreal) C.TESSreal {
+func adjust(x float) float {
 	if x > 0 {
 		return x
 	}
@@ -1023,7 +1023,7 @@ func sweepEvent(tess *tesselator, vEvent *vertex) {
 //
 // We add two sentinel edges above and below all other edges,
 // to avoid special cases at the top and bottom.
-func addSentinel(tess *tesselator, smin, smax C.TESSreal, t C.TESSreal) {
+func addSentinel(tess *tesselator, smin, smax float, t float) {
 	reg := &activeRegion{}
 
 	e := tessMeshMakeEdge(tess.mesh)

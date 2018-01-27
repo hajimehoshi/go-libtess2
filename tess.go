@@ -33,6 +33,8 @@ import (
 	"fmt"
 )
 
+type float float32
+
 type index int
 
 type tesselator struct {
@@ -44,12 +46,12 @@ type tesselator struct {
 
 	// state needed for projecting onto the sweep plane
 
-	normal [3]C.TESSreal // user-specified normal (if provided)
-	sUnit  [3]C.TESSreal // unit vector in s-direction (debugging)
-	tUnit  [3]C.TESSreal // unit vector in t-direction (debugging)
+	normal [3]float // user-specified normal (if provided)
+	sUnit  [3]float // unit vector in s-direction (debugging)
+	tUnit  [3]float // unit vector in t-direction (debugging)
 
-	bmin [2]C.TESSreal
-	bmax [2]C.TESSreal
+	bmin [2]float
+	bmax [2]float
 
 	// state needed for the line sweep
 
@@ -61,7 +63,7 @@ type tesselator struct {
 
 	vertexIndexCounter index
 
-	vertices      []C.TESSreal
+	vertices      []float
 	vertexIndices []index
 	vertexCount   int
 	elements      []index
@@ -132,14 +134,14 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	return elements, vertices, nil
 }
 
-func abs(x C.TESSreal) C.TESSreal {
+func abs(x float) float {
 	if x < 0 {
 		return -x
 	}
 	return x
 }
 
-func longAxis(v []C.TESSreal) int {
+func longAxis(v []float) int {
 	i := 0
 	if abs(v[1]) > abs(v[0]) {
 		i = 1
@@ -150,7 +152,7 @@ func longAxis(v []C.TESSreal) int {
 	return i
 }
 
-func shortAxis(v []C.TESSreal) int {
+func shortAxis(v []float) int {
 	i := 0
 	if abs(v[1]) < abs(v[0]) {
 		i = 1
@@ -161,12 +163,12 @@ func shortAxis(v []C.TESSreal) int {
 	return i
 }
 
-func computeNormal(tess *tesselator, norm []C.TESSreal) {
-	maxVal := make([]C.TESSreal, 3)
-	minVal := make([]C.TESSreal, 3)
-	d1 := make([]C.TESSreal, 3)
-	d2 := make([]C.TESSreal, 3)
-	tNorm := make([]C.TESSreal, 3)
+func computeNormal(tess *tesselator, norm []float) {
+	maxVal := make([]float, 3)
+	minVal := make([]float, 3)
+	d1 := make([]float, 3)
+	d2 := make([]float, 3)
+	tNorm := make([]float, 3)
 	maxVert := make([]*vertex, 3)
 	minVert := make([]*vertex, 3)
 
@@ -213,7 +215,7 @@ func computeNormal(tess *tesselator, norm []C.TESSreal) {
 
 	// Look for a third vertex which forms the triangle with maximum area
 	// (Length of normal == twice the triangle area)
-	maxLen2 := C.TESSreal(0)
+	maxLen2 := float(0)
 	v1 := minVert[i]
 	v2 := maxVert[i]
 	d1[0] = v1.coords[0] - v2.coords[0]
@@ -250,7 +252,7 @@ func checkOrientation(tess *tesselator) {
 
 	// When we compute the normal automatically, we choose the orientation
 	// so that the the sum of the signed areas of all contours is non-negative.
-	area := C.TESSreal(0)
+	area := float(0)
 	for f := fHead.next; f != fHead; f = f.next {
 		e := f.anEdge
 		if e.winding <= 0 {
@@ -275,7 +277,7 @@ func checkOrientation(tess *tesselator) {
 	}
 }
 
-func dot(u, v []C.TESSreal) C.TESSreal {
+func dot(u, v []float) float {
 	return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
 }
 
@@ -288,7 +290,7 @@ func tessProjectPolygon(tess *tesselator) {
 	)
 
 	vHead := &tess.mesh.vHead
-	norm := make([]C.TESSreal, 3)
+	norm := make([]float, 3)
 	computedNormal := false
 
 	norm[0] = tess.normal[0]
@@ -562,7 +564,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType int, polySize int,
 	}
 	tess.elements = make([]index, maxFaceCount*polySize)
 	tess.vertexCount = maxVertexCount
-	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
+	tess.vertices = make([]float, int(tess.vertexCount)*vertexSize)
 	tess.vertexIndices = make([]index, tess.vertexCount)
 
 	// Output vertices.
@@ -647,7 +649,7 @@ func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 	}
 
 	tess.elements = make([]index, tess.elementCount*2)
-	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
+	tess.vertices = make([]float, int(tess.vertexCount)*vertexSize)
 	tess.vertexIndices = make([]index, int(tess.vertexCount))
 
 	verts := tess.vertices
@@ -691,7 +693,7 @@ func outputContours(tess *tesselator, mesh *mesh, vertexSize int) {
 }
 
 // tessAddContour: - Adds a contour to be tesselated.
-// The type of the vertex coordinates is assumed to be TESSreal.
+// The type of the vertex coordinates is assumed to be TESSfloat.
 // Parameters:
 //   tess - pointer to tesselator object.
 //   size - number of coordinates per vertex. Must be 2 or 3.
@@ -727,10 +729,10 @@ func tessAddContour(tess *tesselator, size int, vertices []float32) {
 		}
 
 		// The new vertex is now e.Org.
-		e.Org.coords[0] = C.TESSreal(coords[0])
-		e.Org.coords[1] = C.TESSreal(coords[1])
+		e.Org.coords[0] = float(coords[0])
+		e.Org.coords[1] = float(coords[1])
 		if size > 2 {
-			e.Org.coords[2] = C.TESSreal(coords[2])
+			e.Org.coords[2] = float(coords[2])
 		} else {
 			e.Org.coords[2] = 0
 		}
@@ -757,7 +759,7 @@ func tessAddContour(tess *tesselator, size int, vertices []float32) {
 //   normal - defines the normal of the input contours, of null the normal is calculated automatically.
 // Returns:
 //   true if succeed, false if failed.
-func tessTesselate(tess *tesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []C.TESSreal) bool {
+func tessTesselate(tess *tesselator, windingRule int, elementType int, polySize int, vertexSize int, normal []float) bool {
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {

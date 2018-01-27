@@ -37,7 +37,7 @@ func vertLeq(u, v *vertex) bool {
 	return (u.s < v.s) || (u.s == v.s && u.t <= v.t)
 }
 
-func vertL1dist(u, v *vertex) C.TESSreal {
+func vertL1dist(u, v *vertex) float {
 	return abs(u.s-v.s) + abs(u.t-v.t)
 }
 
@@ -68,7 +68,7 @@ func tesvertLeq(u, v *vertex) bool {
 // is very close to u or w.  In particular if we set v.t = 0 and
 // let r be the negated result (this evaluates (uw)(v.s)), then
 // r is guaranteed to satisfy MIN(u.t,w.t) <= r <= MAX(u.t,w.t).
-func tesedgeEval(u, v, w *vertex) C.TESSreal {
+func tesedgeEval(u, v, w *vertex) float {
 	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
@@ -88,7 +88,7 @@ func tesedgeEval(u, v, w *vertex) C.TESSreal {
 // tesedgeSign returns a number whose sign matches EdgeEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
-func tesedgeSign(u, v, w *vertex) C.TESSreal {
+func tesedgeSign(u, v, w *vertex) float {
 	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
@@ -111,7 +111,7 @@ func tesedgeSign(u, v, w *vertex) C.TESSreal {
 // is very close to u or w.  In particular if we set v.s = 0 and
 // let r be the negated result (this evaluates (uw)(v.t)), then
 // r is guaranteed to satisfy MIN(u.s,w.s) <= r <= MAX(u.s,w.s).
-func testransEval(u, v, w *vertex) C.TESSreal {
+func testransEval(u, v, w *vertex) float {
 	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
@@ -131,7 +131,7 @@ func testransEval(u, v, w *vertex) C.TESSreal {
 // testransSign returns a number whose sign matches TransEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
-func testransSign(u, v, w *vertex) C.TESSreal {
+func testransSign(u, v, w *vertex) float {
 	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
@@ -162,7 +162,7 @@ func tesvertCCW(u, v, w *vertex) bool {
 // In particular it guarantees that the result r satisfies
 // MIN(x,y) <= r <= MAX(x,y), and the results are very accurate
 // even when a and b differ greatly in magnitude.
-func interpolate(a, x, b, y C.TESSreal) C.TESSreal {
+func interpolate(a, x, b, y float) float {
 	if a < 0 {
 		a = 0
 	}
