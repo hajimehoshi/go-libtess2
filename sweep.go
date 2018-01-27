@@ -125,11 +125,11 @@ func dNext(e *halfEdge) *halfEdge {
 }
 
 func regionBelow(r *activeRegion) *activeRegion {
-	return dictKey(dictPred((*dictNode)(r.nodeUp)))
+	return dictKey(dictPred(r.nodeUp))
 }
 
 func regionAbove(r *activeRegion) *activeRegion {
-	return dictKey(dictSucc((*dictNode)(r.nodeUp)))
+	return dictKey(dictSucc(r.nodeUp))
 }
 
 func adjust(x float) float {
@@ -147,7 +147,7 @@ func deleteRegion(tess *tesselator, reg *activeRegion) {
 		assert(reg.eUp.winding == 0)
 	}
 	reg.eUp.activeRegion = nil
-	dictDelete((*dictNode)(reg.nodeUp))
+	dictDelete(reg.nodeUp)
 }
 
 // edgeLeq:
