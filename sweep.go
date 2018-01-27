@@ -479,7 +479,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 
 		} else if eUp.Org != eLo.Org {
 			// merge the two vertices, discarding eUp.Org
-			pqDelete((*pq)(tess.pq), eUp.Org.pqHandle)
+			tess.pq.delete(eUp.Org.pqHandle)
 			spliceMergeVertices(tess, oPrev(eLo), eUp)
 		}
 	} else {
@@ -686,7 +686,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
 	eUp.Org.s = isect.s
 	eUp.Org.t = isect.t
-	eUp.Org.pqHandle = pqInsert((*pq)(tess.pq), eUp.Org)
+	eUp.Org.pqHandle = tess.pq.insert(eUp.Org)
 	getIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
 	regionAbove(regUp).dirty = true
 	regUp.dirty = true
@@ -1117,7 +1117,7 @@ func initPriorityQ(tess *tesselator) {
 
 	vHead := &tess.mesh.vHead
 	for v := vHead.next; v != vHead; v = v.next {
-		v.pqHandle = pqInsert((*pq)(tess.pq), v)
+		v.pqHandle = tess.pq.insert(v)
 	}
 }
 
@@ -1166,12 +1166,12 @@ func tessComputeInterior(tess *tesselator) {
 	initEdgeDict(tess)
 
 	for {
-		v := pqExtractMin((*pq)(tess.pq))
+		v := tess.pq.extractMin()
 		if v == nil {
 			break
 		}
 		for {
-			vNext := (*vertex)(pqMinimum((*pq)(tess.pq)))
+			vNext := tess.pq.minimum()
 			if vNext == nil || !vertEq(vNext, v) {
 				break
 			}
@@ -1189,7 +1189,7 @@ func tessComputeInterior(tess *tesselator) {
 			// intersection point.  This might leave two edges with a small
 			// gap between them.  This kind of error is especially obvious
 			// when using boundary extraction (TESS_BOUNDARY_ONLY).
-			vNext = pqExtractMin((*pq)(tess.pq))
+			vNext = tess.pq.extractMin()
 			spliceMergeVertices(tess, v.anEdge, vNext.anEdge)
 		}
 		sweepEvent(tess, v)

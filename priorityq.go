@@ -70,19 +70,19 @@ func newPriorityQ() *pq {
 	return p
 }
 
-func pqInsert(p *pq, key *vertex) *vertex {
+func (p *pq) insert(key *vertex) *vertex {
 	heap.Push(p, key)
 	return key
 }
 
-func pqExtractMin(p *pq) *vertex {
+func (p *pq) extractMin() *vertex {
 	if len(*p) == 0 {
 		return nil
 	}
 	return heap.Pop(p).(*vertex)
 }
 
-func pqDelete(p *pq, key *vertex) {
+func (p *pq) delete(key *vertex) {
 	idx := -1
 	for i, v := range *p {
 		if key == v {
@@ -93,13 +93,9 @@ func pqDelete(p *pq, key *vertex) {
 	heap.Remove(p, idx)
 }
 
-func pqMinimum(p *pq) *vertex {
+func (p *pq) minimum() *vertex {
 	if len(*p) == 0 {
 		return nil
 	}
 	return (*p)[0]
-}
-
-func pqIsEmpty(p *pq) bool {
-	return len(*p) == 0
 }
