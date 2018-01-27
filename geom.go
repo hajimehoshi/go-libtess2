@@ -50,11 +50,6 @@ func edgeGoesRight(e *halfEdge) bool {
 	return vertLeq(e.Org, dst(e))
 }
 
-// tesvertLeq returns true if u is lexicographically <= v.
-func tesvertLeq(u, v *vertex) bool {
-	return vertLeq(u, v)
-}
-
 // tesedgeEval:
 // Given three vertices u,v,w such that vertLeq(u,v) && vertLeq(v,w),
 // evaluates the t-coord of the edge uw at the s-coord of the vertex v.
