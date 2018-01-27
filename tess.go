@@ -183,7 +183,6 @@ func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, er
 		return nil, nil, fmt.Errorf("libtess2: tessTesselate failed: error code: %d", r)
 	}
 
-	elements := []int{}
 	vertices := []Vertex{}
 
 	vc := int(t.vertexCount)
@@ -197,13 +196,9 @@ func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, er
 		vertices = append(vertices, v)
 	}
 
-	ec := t.elementCount
-	es := t.elements
-	for i := 0; i < ec; i++ {
-		for j := 0; j < polySize; j++ {
-			e := es[i*polySize+j]
-			elements = append(elements, int(e))
-		}
+	elements := make([]int, len(t.elements))
+	for i, e := range t.elements {
+		elements[i] = int(e)
 	}
 	return elements, vertices, nil
 }
@@ -683,7 +678,7 @@ func outputPolymesh(tess *tesselator, mesh *mesh, elementType elementType, polyS
 
 		// Store polygon connectivity
 		if elementType == elementTypeConnectedPolygons {
-			edge = f.anEdge
+			edge := f.anEdge
 			for {
 				elements[0] = neighbourFace(edge)
 				elements = elements[1:]
