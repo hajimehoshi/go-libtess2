@@ -152,32 +152,25 @@ type Vertex struct {
 	Y float32
 }
 
-type Tesselator struct {
-	p *tesselator
-}
+type Contour []Vertex
 
-func NewTesselator() *Tesselator {
-	return &Tesselator{
-		p: tessNewTess(),
+func Tesselate(contours []Contour) ([]int, []Vertex, error) {
+	t := tessNewTess()
+	for _, c := range contours {
+		fs := make([]float32, len(c)*2)
+		for i, v := range c {
+			fs[2*i] = v.X
+			fs[2*i+1] = v.Y
+		}
+		tessAddContour(t, 2, fs)
 	}
-}
 
-func (t *Tesselator) AddContour(contour []Vertex) {
-	fs := make([]float32, len(contour)*2)
-	for i, v := range contour {
-		fs[2*i] = v.X
-		fs[2*i+1] = v.Y
-	}
-	tessAddContour(t.p, 2, fs)
-}
-
-func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	const (
 		polySize   = 3
 		vertexSize = 2
 	)
 
-	r := tessTesselate(t.p,
+	r := tessTesselate(t,
 		windingRuleOdd,
 		elementTypePolygons,
 		polySize,
@@ -190,8 +183,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	elements := []int{}
 	vertices := []Vertex{}
 
-	vc := int(t.p.vertexCount)
-	vs := t.p.vertices
+	vc := int(t.vertexCount)
+	vs := t.vertices
 	for i := 0; i < vc; i++ {
 		v := Vertex{
 			X: float32(vs[index(i)*2]),
@@ -200,8 +193,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 		vertices = append(vertices, v)
 	}
 
-	ec := t.p.elementCount
-	es := t.p.elements
+	ec := t.elementCount
+	es := t.elements
 	for i := 0; i < ec; i++ {
 		for j := 0; j < polySize; j++ {
 			e := es[i*polySize+j]

@@ -18,15 +18,15 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
-	t := libtess2.NewTesselator()
-	t.AddContour([]libtess2.Vertex{
-		{X: 0.0, Y: 3.0},
-		{X: -1.0, Y: 0.0},
-		{X: 1.6, Y: 1.9},
-		{X: -1.6, Y: 1.9},
-		{X: 1.0, Y: 0.0},
+	e, v, err := libtess2.Tesselate([]libtess2.Contour{
+		{
+			{X: 0.0, Y: 3.0},
+			{X: -1.0, Y: 0.0},
+			{X: 1.6, Y: 1.9},
+			{X: -1.6, Y: 1.9},
+			{X: 1.0, Y: 0.0},
+		},
 	})
-	e, v, err := t.Tesselate()
 	if err != nil {
 		return err
 	}

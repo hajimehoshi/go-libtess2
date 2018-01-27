@@ -7,16 +7,15 @@ import (
 )
 
 func ExampleTriangles() {
-	contour := []Vertex{
-		{X: 0.0, Y: 3.0},
-		{X: -1.0, Y: 0.0},
-		{X: 1.6, Y: 1.9},
-		{X: -1.6, Y: 1.9},
-		{X: 1.0, Y: 0.0},
-	}
-	t := NewTesselator()
-	t.AddContour(contour)
-	e, v, err := t.Tesselate()
+	e, v, err := Tesselate([]Contour{
+		{
+			{X: 0.0, Y: 3.0},
+			{X: -1.0, Y: 0.0},
+			{X: 1.6, Y: 1.9},
+			{X: -1.6, Y: 1.9},
+			{X: 1.0, Y: 0.0},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -35,20 +34,20 @@ func ExampleTriangles() {
 }
 
 func ExampleFg() {
-	t := NewTesselator()
-	t.AddContour([]Vertex{
-		{X: 57.25, Y: 0},
-		{X: 74.941, Y: 35.848},
-		{X: 114.5, Y: 41.595},
-		{X: 85.875, Y: 69.498},
-		{X: 92.633, Y: 108.897},
-		{X: 57.25, Y: 90.296},
-		{X: 21.868, Y: 108.897},
-		{X: 28.625, Y: 69.498},
-		{X: 0, Y: 41.595},
-		{X: 39.559, Y: 35.848},
+	e, v, err := Tesselate([]Contour{
+		{
+			{X: 57.25, Y: 0},
+			{X: 74.941, Y: 35.848},
+			{X: 114.5, Y: 41.595},
+			{X: 85.875, Y: 69.498},
+			{X: 92.633, Y: 108.897},
+			{X: 57.25, Y: 90.296},
+			{X: 21.868, Y: 108.897},
+			{X: 28.625, Y: 69.498},
+			{X: 0, Y: 41.595},
+			{X: 39.559, Y: 35.848},
+		},
 	})
-	e, v, err := t.Tesselate()
 	if err != nil {
 		panic(err)
 	}
