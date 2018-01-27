@@ -40,9 +40,9 @@ func update(screen *ebiten.Image) error {
 			idx0 := 3*i + j
 			idx1 := 3*i + (j+1)%3
 			x0 := float64(v[e[idx0]].X*100 + screenWidth/2)
-			y0 := float64(v[e[idx0]].Y*100 + screenHeight/2)
+			y0 := float64(-v[e[idx0]].Y*100 + screenHeight/2)
 			x1 := float64(v[e[idx1]].X*100 + screenWidth/2)
-			y1 := float64(v[e[idx1]].Y*100 + screenHeight/2)
+			y1 := float64(-v[e[idx1]].Y*100 + screenHeight/2)
 			ebitenutil.DrawLine(screen, x0, y0, x1, y1, color.White)
 		}
 	}
