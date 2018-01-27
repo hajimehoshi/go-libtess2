@@ -775,7 +775,7 @@ func tessMeshMergeConvexFaces(mesh *mesh, maxVertsPerFace int) {
 				symNv := countFaceVerts(eSym.Lface)
 				if curNv+symNv-2 <= maxVertsPerFace {
 					// Merge if the resulting poly is convex.
-					if tesvertCCW(lPrev(eCur).Org, eCur.Org, eSym.Lnext.Lnext.Org) && tesvertCCW(lPrev(eSym).Org, eSym.Org, eCur.Lnext.Lnext.Org) {
+					if vertCCW(lPrev(eCur).Org, eCur.Org, eSym.Lnext.Lnext.Org) && vertCCW(lPrev(eSym).Org, eSym.Org, eCur.Lnext.Lnext.Org) {
 						eNext = eSym.Lnext
 						tessMeshDelete(mesh, eSym)
 						eCur = nil

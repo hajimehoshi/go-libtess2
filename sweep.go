@@ -170,19 +170,19 @@ func edgeLeq(tess *tesselator, reg1 *activeRegion, reg2 *activeRegion) bool {
 			// Two edges right of the sweep line which meet at the sweep event.
 			// Sort them by slope.
 			if vertLeq(e1.Org, e2.Org) {
-				return tesedgeSign(dst(e2), e1.Org, e2.Org) <= 0
+				return edgeSign(dst(e2), e1.Org, e2.Org) <= 0
 			}
-			return tesedgeSign(dst(e1), e2.Org, e1.Org) >= 0
+			return edgeSign(dst(e1), e2.Org, e1.Org) >= 0
 		}
-		return tesedgeSign(dst(e2), event, e2.Org) <= 0
+		return edgeSign(dst(e2), event, e2.Org) <= 0
 	}
 	if dst(e2) == event {
-		return tesedgeSign(dst(e1), event, e1.Org) >= 0
+		return edgeSign(dst(e1), event, e1.Org) >= 0
 	}
 
 	// General case - compute signed distance *from* e1, e2 to event
-	t1 := tesedgeEval(dst(e1), event, e1.Org)
-	t2 := tesedgeEval(dst(e2), event, e2.Org)
+	t1 := edgeEval(dst(e1), event, e1.Org)
+	t2 := edgeEval(dst(e2), event, e2.Org)
 	return (t1 >= t2)
 }
 
@@ -465,7 +465,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 	eLo := regLo.eUp
 
 	if vertLeq(eUp.Org, eLo.Org) {
-		if tesedgeSign(dst(eLo), eUp.Org, eLo.Org) > 0 {
+		if edgeSign(dst(eLo), eUp.Org, eLo.Org) > 0 {
 			return false
 		}
 
@@ -483,7 +483,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 			spliceMergeVertices(tess, oPrev(eLo), eUp)
 		}
 	} else {
-		if tesedgeSign(dst(eUp), eLo.Org, eUp.Org) < 0 {
+		if edgeSign(dst(eUp), eLo.Org, eUp.Org) < 0 {
 			return false
 		}
 
@@ -520,7 +520,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 	assert(!vertEq(dst(eUp), dst(eLo)))
 
 	if vertLeq(dst(eUp), dst(eLo)) {
-		if tesedgeSign(dst(eUp), dst(eLo), eUp.Org) < 0 {
+		if edgeSign(dst(eUp), dst(eLo), eUp.Org) < 0 {
 			return false
 		}
 
@@ -531,7 +531,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 		tessMeshSplice(tess.mesh, eLo.Sym, e)
 		e.Lface.inside = regUp.inside
 	} else {
-		if tesedgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
+		if edgeSign(dst(eLo), dst(eUp), eLo.Org) > 0 {
 			return false
 		}
 		// eUp.Dst is below eLo, so splice eUp.Dst into eLo
@@ -561,8 +561,8 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	dstLo := dst(eLo)
 
 	assert(!vertEq(dstLo, dstUp))
-	assert(tesedgeSign(dstUp, tess.event, orgUp) <= 0)
-	assert(tesedgeSign(dstLo, tess.event, orgLo) >= 0)
+	assert(edgeSign(dstUp, tess.event, orgUp) <= 0)
+	assert(edgeSign(dstLo, tess.event, orgLo) >= 0)
 	assert(orgUp != tess.event && orgLo != tess.event)
 	assert(!regUp.fixUpperEdge && !regLo.fixUpperEdge)
 
@@ -579,17 +579,17 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	}
 
 	if vertLeq(orgUp, orgLo) {
-		if tesedgeSign(dstLo, orgUp, orgLo) > 0 {
+		if edgeSign(dstLo, orgUp, orgLo) > 0 {
 			return false
 		}
 	} else {
-		if tesedgeSign(dstUp, orgLo, orgUp) < 0 {
+		if edgeSign(dstUp, orgLo, orgUp) < 0 {
 			return false
 		}
 	}
 
 	var isect vertex
-	tesedgeIntersect(dstUp, orgUp, dstLo, orgLo, &isect)
+	edgeIntersect(dstUp, orgUp, dstLo, orgLo, &isect)
 	// The following properties are guaranteed:
 	assert(minf(orgUp.t, dstUp.t) <= isect.t)
 	assert(isect.t <= maxf(orgLo.t, dstLo.t))
@@ -627,7 +627,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 		return false
 	}
 
-	if (!vertEq(dstUp, tess.event) && tesedgeSign(dstUp, tess.event, &isect) >= 0) || (!vertEq(dstLo, tess.event) && tesedgeSign(dstLo, tess.event, &isect) <= 0) {
+	if (!vertEq(dstUp, tess.event) && edgeSign(dstUp, tess.event, &isect) >= 0) || (!vertEq(dstLo, tess.event) && edgeSign(dstLo, tess.event, &isect) <= 0) {
 		// Very unusual -- the new upper or lower edge would pass on the
 		// wrong side of the sweep event, or through it.  This can happen
 		// due to very small numerical errors in the intersection calculation.
@@ -656,14 +656,14 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 		// Special case: called from ConnectRightVertex.  If either
 		// edge passes on the wrong side of tess.event, split it
 		// (and wait for ConnectRightVertex to splice it appropriately).
-		if tesedgeSign(dstUp, tess.event, &isect) >= 0 {
+		if edgeSign(dstUp, tess.event, &isect) >= 0 {
 			regionAbove(regUp).dirty = true
 			regUp.dirty = true
 			tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			eUp.Org.s = tess.event.s
 			eUp.Org.t = tess.event.t
 		}
-		if tesedgeSign(dstLo, tess.event, &isect) <= 0 {
+		if edgeSign(dstLo, tess.event, &isect) <= 0 {
 			regUp.dirty = true
 			regLo.dirty = true
 			tessMeshSplitEdge(tess.mesh, eLo.Sym)
@@ -939,7 +939,7 @@ func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 	eLo := regLo.eUp
 
 	// Try merging with U or L first
-	if tesedgeSign(dst(eUp), vEvent, eUp.Org) == 0 {
+	if edgeSign(dst(eUp), vEvent, eUp.Org) == 0 {
 		connectLeftDegenerate(tess, regUp, vEvent)
 		return
 	}

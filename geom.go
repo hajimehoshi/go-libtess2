@@ -50,7 +50,7 @@ func edgeGoesRight(e *halfEdge) bool {
 	return vertLeq(e.Org, dst(e))
 }
 
-// tesedgeEval:
+// edgeEval:
 // Given three vertices u,v,w such that vertLeq(u,v) && vertLeq(v,w),
 // evaluates the t-coord of the edge uw at the s-coord of the vertex v.
 // Returns v.t - (uw)(v.s), ie. the signed distance from uw to v.
@@ -60,7 +60,7 @@ func edgeGoesRight(e *halfEdge) bool {
 // is very close to u or w.  In particular if we set v.t = 0 and
 // let r be the negated result (this evaluates (uw)(v.s)), then
 // r is guaranteed to satisfy MIN(u.t,w.t) <= r <= MAX(u.t,w.t).
-func tesedgeEval(u, v, w *vertex) float {
+func edgeEval(u, v, w *vertex) float {
 	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
@@ -77,10 +77,10 @@ func tesedgeEval(u, v, w *vertex) float {
 	return 0
 }
 
-// tesedgeSign returns a number whose sign matches EdgeEval(u,v,w) but which
+// edgeSign returns a number whose sign matches EdgeEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
-func tesedgeSign(u, v, w *vertex) float {
+func edgeSign(u, v, w *vertex) float {
 	assert(vertLeq(u, v) && vertLeq(v, w))
 
 	gapL := v.s - u.s
@@ -93,7 +93,7 @@ func tesedgeSign(u, v, w *vertex) float {
 	return 0
 }
 
-// testransEval:
+// transEval:
 // Given three vertices u,v,w such that transLeq(u,v) && transLeq(v,w),
 // evaluates the t-coord of the edge uw at the s-coord of the vertex v.
 // Returns v.s - (uw)(v.t), ie. the signed distance from uw to v.
@@ -103,7 +103,7 @@ func tesedgeSign(u, v, w *vertex) float {
 // is very close to u or w.  In particular if we set v.s = 0 and
 // let r be the negated result (this evaluates (uw)(v.t)), then
 // r is guaranteed to satisfy MIN(u.s,w.s) <= r <= MAX(u.s,w.s).
-func testransEval(u, v, w *vertex) float {
+func transEval(u, v, w *vertex) float {
 	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
@@ -120,10 +120,10 @@ func testransEval(u, v, w *vertex) float {
 	return 0
 }
 
-// testransSign returns a number whose sign matches TransEval(u,v,w) but which
+// transSign returns a number whose sign matches TransEval(u,v,w) but which
 // is cheaper to evaluate.  Returns > 0, == 0 , or < 0
 // as v is above, on, or below the edge uw.
-func testransSign(u, v, w *vertex) float {
+func transSign(u, v, w *vertex) float {
 	assert(transLeq(u, v) && transLeq(v, w))
 
 	gapL := v.t - u.t
@@ -136,13 +136,13 @@ func testransSign(u, v, w *vertex) float {
 	return 0
 }
 
-// tesvertCCW:
+// vertCCW:
 // For almost-degenerate situations, the results are not reliable.
 // Unless the floating-point arithmetic can be performed without
 // rounding errors, *any* implementation will give incorrect results
 // on some degenerate inputs, so the client must have some way to
 // handle this situation.
-func tesvertCCW(u, v, w *vertex) bool {
+func vertCCW(u, v, w *vertex) bool {
 	return (u.s*(v.t-w.t) + v.s*(w.t-u.t) + w.s*(u.t-v.t)) >= 0
 }
 
@@ -170,11 +170,11 @@ func interpolate(a, x, b, y float) float {
 	return y + (x-y)*(b/(a+b))
 }
 
-// tesedgeIntersect:
+// edgeIntersect:
 // Given edges (o1,d1) and (o2,d2), compute their point of intersection.
 // The computed point is guaranteed to lie in the intersection of the
 // bounding rectangles defined by each edge.
-func tesedgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex) {
+func edgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex) {
 	// This is certainly not the most efficient way to find the intersection
 	// of two line segments, but it is very numerically stable.
 	//
@@ -198,8 +198,8 @@ func tesedgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex)
 		v.s = (o2.s + d1.s) / 2
 	} else if vertLeq(d1, d2) {
 		// Interpolate between o2 and d1
-		z1 := tesedgeEval(o1, o2, d1)
-		z2 := tesedgeEval(o2, d1, d2)
+		z1 := edgeEval(o1, o2, d1)
+		z2 := edgeEval(o2, d1, d2)
 		if z1+z2 < 0 {
 			z1 = -z1
 			z2 = -z2
@@ -207,8 +207,8 @@ func tesedgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex)
 		v.s = interpolate(z1, o2.s, z2, d1.s)
 	} else {
 		// Interpolate between o2 and d2
-		z1 := tesedgeSign(o1, o2, d1)
-		z2 := -tesedgeSign(o1, d2, d1)
+		z1 := edgeSign(o1, o2, d1)
+		z2 := -edgeSign(o1, d2, d1)
 		if z1+z2 < 0 {
 			z1 = -z1
 			z2 = -z2
@@ -234,8 +234,8 @@ func tesedgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex)
 		v.t = (o2.t + d1.t) / 2
 	} else if transLeq(d1, d2) {
 		// Interpolate between o2 and d1
-		z1 := testransEval(o1, o2, d1)
-		z2 := testransEval(o2, d1, d2)
+		z1 := transEval(o1, o2, d1)
+		z2 := transEval(o2, d1, d2)
 		if z1+z2 < 0 {
 			z1 = -z1
 			z2 = -z2
@@ -243,8 +243,8 @@ func tesedgeIntersect(o1 *vertex, d1 *vertex, o2 *vertex, d2 *vertex, v *vertex)
 		v.t = interpolate(z1, o2.t, z2, d1.t)
 	} else {
 		// Interpolate between o2 and d2
-		z1 := testransSign(o1, o2, d1)
-		z2 := -testransSign(o1, d2, d1)
+		z1 := transSign(o1, o2, d1)
+		z2 := -transSign(o1, d2, d1)
 		if z1+z2 < 0 {
 			z1 = -z1
 			z2 = -z2
