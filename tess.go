@@ -183,17 +183,11 @@ func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, er
 		return nil, nil, fmt.Errorf("libtess2: tessTesselate failed: error code: %d", r)
 	}
 
-	vertices := []Vertex{}
-
-	vc := int(t.vertexCount)
-	vs := t.vertices
-	for i := 0; i < vc; i++ {
-		v := Vertex{
-			X: float32(vs[i*3]),
-			Y: float32(vs[i*3+1]),
-			Z: float32(vs[i*3+2]),
-		}
-		vertices = append(vertices, v)
+	vertices := make([]Vertex, t.vertexCount)
+	for i := range vertices {
+		vertices[i].X = float32(t.vertices[i*3])
+		vertices[i].Y = float32(t.vertices[i*3+1])
+		vertices[i].Z = float32(t.vertices[i*3+2])
 	}
 
 	elements := make([]int, len(t.elements))
