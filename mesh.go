@@ -94,8 +94,8 @@ package libtess2
 // tessMeshDeleteMesh( mesh ) will free all storage for any valid mesh.
 //
 // tessMeshZapFace( fZap ) destroys a face and removes it from the
-// global face list.  All edges of fZap will have a NULL pointer as their
-// left face.  Any edges which also have a NULL pointer as their right face
+// global face list.  All edges of fZap will have a nil pointer as their
+// left face.  Any edges which also have a nil pointer as their right face
 // are deleted entirely (along with any isolated vertices this produces).
 // An entire mesh can be deleted by zapping its faces, one at a time,
 // in any order.  Zapped faces cannot be used in further mesh operations!
@@ -103,8 +103,8 @@ package libtess2
 // tessMeshCheckMesh( mesh ) checks a mesh for self-consistency.
 
 type vertex struct {
-	next   *vertex   // next vertex (never NULL)
-	prev   *vertex   // previous vertex (never NULL)
+	next   *vertex   // next vertex (never nil)
+	prev   *vertex   // previous vertex (never nil)
 	anEdge *halfEdge // a half-edge with this origin
 
 	// Internal data (keep hidden)
@@ -117,8 +117,8 @@ type vertex struct {
 }
 
 type face struct {
-	next   *face     // next face (never NULL)
-	prev   *face     // previous face (never NULL)
+	next   *face     // next face (never nil)
+	prev   *face     // previous face (never nil)
 	anEdge *halfEdge // a half edge with this left face
 
 	// Internal data (keep hidden)
@@ -187,12 +187,12 @@ type halfEdge struct {
 //
 // Each vertex has a pointer to next and previous vertices in the
 // circular list, and a pointer to a half-edge with this vertex as
-// the origin (NULL if this is the dummy header).  There is also a
+// the origin (nil if this is the dummy header).  There is also a
 // field "data" for client data.
 //
 // Each face has a pointer to the next and previous faces in the
 // circular list, and a pointer to a half-edge with this face as
-// the left face (NULL if this is the dummy header).  There is also
+// the left face (nil if this is the dummy header).  There is also
 // a field "data" for client data.
 //
 // Note that what we call a "face" is really a loop; faces may consist
@@ -205,10 +205,10 @@ type halfEdge struct {
 // The mesh does NOT support isolated vertices; a vertex is deleted along
 // with its last edge.  Similarly when two faces are merged, one of the
 // faces is deleted (see tessMeshDelete below).  For mesh operations,
-// all face (loop) and vertex pointers must not be NULL.  However, once
+// all face (loop) and vertex pointers must not be nil.  However, once
 // mesh manipulation is finished, TESSmeshZapFace can be used to delete
 // faces of the mesh, one at a time.  All external faces can be "zapped"
-// before the mesh is returned to the client; then a NULL face indicates
+// before the mesh is returned to the client; then a nil face indicates
 // a region which is not part of the output polygon.
 type mesh struct {
 	vHead    vertex   // dummy header for vertex list
