@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/go-libtess2"
@@ -45,6 +46,8 @@ func update(screen *ebiten.Image) error {
 			ebitenutil.DrawLine(screen, x0, y0, x1, y1, color.White)
 		}
 	}
+
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 
 	return nil
 }
