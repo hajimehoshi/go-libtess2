@@ -27,21 +27,6 @@
 package libtess2
 
 // #include "tess.h"
-//
-// #include <stdlib.h>
-// #include <string.h>
-//
-// static TESSindex golibtess2_elementAt(TESSindex* elements, int i) {
-//   return elements[i];
-// }
-//
-// static TESSindex golibtess2_setElementAt(TESSindex* elements, int i, TESSindex v) {
-//   return elements[i] = v;
-// }
-//
-// static TESSindex* golibtess2_incElement(TESSindex* elements) {
-//   return elements + 1;
-// }
 import "C"
 
 import (
@@ -77,7 +62,7 @@ type tesselator struct {
 	vertices      []C.TESSreal
 	vertexIndices []C.TESSindex
 	vertexCount   int
-	elements      *C.TESSindex
+	elements      []C.TESSindex
 	elementCount  int
 }
 
@@ -138,8 +123,8 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	es := t.p.elements
 	for i := 0; i < ec; i++ {
 		for j := 0; j < polySize; j++ {
-			e := int(C.golibtess2_elementAt(es, C.int(i)*polySize+C.int(j)))
-			elements = append(elements, e)
+			e := es[i*polySize+j]
+			elements = append(elements, int(e))
 		}
 	}
 	return elements, vertices, nil
@@ -573,7 +558,7 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 	if elementType == C.TESS_CONNECTED_POLYGONS {
 		maxFaceCount *= 2
 	}
-	tess.elements = &make([]C.TESSindex, maxFaceCount*polySize)[0]
+	tess.elements = make([]C.TESSindex, maxFaceCount*polySize)
 	tess.vertexCount = maxVertexCount
 	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
 	tess.vertexIndices = make([]C.TESSindex, tess.vertexCount)
@@ -604,8 +589,8 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 		faceVerts := 0
 		for {
 			v := edge.Org
-			*elements = v.n
-			elements = C.golibtess2_incElement(elements)
+			elements[0] = v.n
+			elements = elements[1:]
 			faceVerts++
 			edge = edge.Lnext
 			if edge == f.anEdge {
@@ -614,16 +599,16 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 		}
 		// Fill unused.
 		for i := faceVerts; i < polySize; i++ {
-			*elements = undef
-			elements = C.golibtess2_incElement(elements)
+			elements[0] = undef
+			elements = elements[1:]
 		}
 
 		// Store polygon connectivity
 		if elementType == C.TESS_CONNECTED_POLYGONS {
 			edge = f.anEdge
 			for {
-				*elements = neighbourFace(edge)
-				elements = C.golibtess2_incElement(elements)
+				elements[0] = neighbourFace(edge)
+				elements = elements[1:]
 				edge = edge.Lnext
 				if edge == f.anEdge {
 					break
@@ -631,8 +616,8 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 			}
 			// Fill unused.
 			for i := faceVerts; i < polySize; i++ {
-				*elements = undef
-				elements = C.golibtess2_incElement(elements)
+				elements[0] = undef
+				elements = elements[1:]
 			}
 		}
 	}
@@ -659,7 +644,7 @@ func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 		tess.elementCount++
 	}
 
-	tess.elements = &make([]C.TESSindex, tess.elementCount*2)[0]
+	tess.elements = make([]C.TESSindex, tess.elementCount*2)
 	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
 	tess.vertexIndices = make([]C.TESSindex, int(tess.vertexCount))
 
@@ -695,10 +680,9 @@ func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 			}
 		}
 
-		C.golibtess2_setElementAt(elements, 0, C.TESSindex(startVert))
-		C.golibtess2_setElementAt(elements, 1, C.TESSindex(vertCount))
-		elements = C.golibtess2_incElement(elements)
-		elements = C.golibtess2_incElement(elements)
+		elements[0] = C.TESSindex(startVert)
+		elements[1] = C.TESSindex(vertCount)
+		elements = elements[2:]
 
 		startVert += vertCount
 	}
