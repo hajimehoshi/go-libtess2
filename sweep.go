@@ -128,7 +128,7 @@ func regionBelow(r *activeRegion) *activeRegion {
 	return dictKey(dictPred(r.nodeUp))
 }
 
-func regionAbove(r *activeRegion) *activeRegion {
+func (r *activeRegion) above() *activeRegion {
 	return dictKey(dictSucc(r.nodeUp))
 }
 
@@ -208,7 +208,7 @@ func topLeftRegion(tess *tesselator, reg *activeRegion) *activeRegion {
 
 	// Find the region above the uppermost edge with the same origin
 	for {
-		reg = regionAbove(reg)
+		reg = reg.above()
 		if reg.eUp.Org != org {
 			break
 		}
@@ -219,7 +219,7 @@ func topLeftRegion(tess *tesselator, reg *activeRegion) *activeRegion {
 	if reg.fixUpperEdge {
 		e := tessMeshConnect(tess.mesh, regionBelow(reg).eUp.Sym, reg.eUp.Lnext)
 		fixUpperEdge(tess, reg, e)
-		reg = regionAbove(reg)
+		reg = reg.above()
 	}
 	return reg
 }
@@ -228,7 +228,7 @@ func topRightRegion(reg *activeRegion) *activeRegion {
 	d := dst(reg.eUp)
 	// Find the region above the uppermost edge with the same destination
 	for {
-		reg = regionAbove(reg)
+		reg = reg.above()
 		if dst(reg.eUp) != d {
 			break
 		}
@@ -265,7 +265,7 @@ func isWindingInside(tess *tesselator, n int) bool {
 }
 
 func computeWinding(tess *tesselator, reg *activeRegion) {
-	reg.windingNumber = regionAbove(reg).windingNumber + int(reg.eUp.winding)
+	reg.windingNumber = reg.above().windingNumber + int(reg.eUp.winding)
 	reg.inside = isWindingInside(tess, int(reg.windingNumber))
 }
 
@@ -488,7 +488,7 @@ func checkForRightSplice(tess *tesselator, regUp *activeRegion) bool {
 		}
 
 		// eLo.Org appears to be above eUp, so splice eLo.Org into eUp
-		regionAbove(regUp).dirty = true
+		regUp.above().dirty = true
 		regUp.dirty = true
 		tessMeshSplitEdge(tess.mesh, eUp.Sym)
 		tessMeshSplice(tess.mesh, oPrev(eLo), eUp)
@@ -525,7 +525,7 @@ func checkForLeftSplice(tess *tesselator, regUp *activeRegion) bool {
 		}
 
 		// eLo.Dst is above eUp, so splice eLo.Dst into eUp
-		regionAbove(regUp).dirty = true
+		regUp.above().dirty = true
 		regUp.dirty = true
 		e := tessMeshSplitEdge(tess.mesh, eUp)
 		tessMeshSplice(tess.mesh, eLo.Sym, e)
@@ -657,7 +657,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 		// edge passes on the wrong side of tess.event, split it
 		// (and wait for ConnectRightVertex to splice it appropriately).
 		if edgeSign(dstUp, tess.event, &isect) >= 0 {
-			regionAbove(regUp).dirty = true
+			regUp.above().dirty = true
 			regUp.dirty = true
 			tessMeshSplitEdge(tess.mesh, eUp.Sym)
 			eUp.Org.s = tess.event.s
@@ -688,7 +688,7 @@ func checkForIntersect(tess *tesselator, regUp *activeRegion) bool {
 	eUp.Org.t = isect.t
 	eUp.Org.pqHandle = tess.pq.insert(eUp.Org)
 	getIntersectData(tess, eUp.Org, orgUp, dstUp, orgLo, dstLo)
-	regionAbove(regUp).dirty = true
+	regUp.above().dirty = true
 	regUp.dirty = true
 	regLo.dirty = true
 	return false
@@ -712,7 +712,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 		}
 		if !regUp.dirty {
 			regLo = regUp
-			regUp = regionAbove(regUp)
+			regUp = regUp.above()
 			if regUp == nil || !regUp.dirty {
 				// We've walked all the dirty regions
 				return
@@ -737,7 +737,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 				} else if regUp.fixUpperEdge {
 					deleteRegion(tess, regUp)
 					tessMeshDelete(tess.mesh, eUp)
-					regUp = regionAbove(regLo)
+					regUp = regLo.above()
 					eUp = regUp.eUp
 				}
 			}
@@ -766,7 +766,7 @@ func walkDirtyRegions(tess *tesselator, regUp *activeRegion) {
 			addWinding(eLo, eUp)
 			deleteRegion(tess, regUp)
 			tessMeshDelete(tess.mesh, eUp)
-			regUp = regionAbove(regLo)
+			regUp = regLo.above()
 		}
 	}
 }
