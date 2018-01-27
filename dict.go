@@ -70,7 +70,7 @@ type dict struct {
 	frame *tesselator
 }
 
-func dictNewDict(frame *tesselator) *dict {
+func newDict(frame *tesselator) *dict {
 	d := &dict{
 		frame: frame,
 	}
@@ -79,7 +79,7 @@ func dictNewDict(frame *tesselator) *dict {
 	return d
 }
 
-func dictInsertBefore(d *dict, n *dictNode, key *activeRegion) *dictNode {
+func (d *dict) insertBefore(n *dictNode, key *activeRegion) *dictNode {
 	for {
 		n = n.prev
 		if n.key == nil || edgeLeq(d.frame, n.key, key) {
@@ -103,10 +103,10 @@ func dictDelete(n *dictNode) {
 	n.prev.next = n.next
 }
 
-// dictSearch returns the node with the smallest key greater than or equal
+// search returns the node with the smallest key greater than or equal
 // to the given key.  If there is no such key, returns a node whose
 // key is NULL.  Similarly, Succ(Max(d)) has a NULL key, etc.
-func dictSearch(d *dict, key *activeRegion) *dictNode {
+func (d *dict) search(key *activeRegion) *dictNode {
 	n := &d.head
 	for {
 		n = n.next
@@ -129,14 +129,10 @@ func dictPred(n *dictNode) *dictNode {
 	return n.prev
 }
 
-func dictMin(d *dict) *dictNode {
+func (d *dict) min() *dictNode {
 	return d.head.next
 }
 
-func dictMax(d *dict) *dictNode {
-	return d.head.prev
-}
-
-func dictInsert(d *dict, key *activeRegion) *dictNode {
-	return dictInsertBefore(d, &d.head, key)
+func (d *dict) insert(key *activeRegion) *dictNode {
+	return d.insertBefore(&d.head, key)
 }

@@ -243,7 +243,7 @@ func topRightRegion(reg *activeRegion) *activeRegion {
 func addRegionBelow(tess *tesselator, regAbove *activeRegion, eNewUp *halfEdge) *activeRegion {
 	regNew := &activeRegion{}
 	regNew.eUp = eNewUp
-	regNew.nodeUp = dictInsertBefore((*dict)(tess.dict), (*dictNode)(regAbove.nodeUp), regNew)
+	regNew.nodeUp = tess.dict.insertBefore(regAbove.nodeUp, regNew)
 	eNewUp.activeRegion = regNew
 	return regNew
 }
@@ -929,7 +929,7 @@ func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 
 	// Get a pointer to the active region containing vEvent
 	tmp.eUp = vEvent.anEdge.Sym
-	regUp := dictKey(dictSearch((*dict)(tess.dict), &tmp))
+	regUp := dictKey(tess.dict.search(&tmp))
 	regLo := regionBelow(regUp)
 	if regLo == nil {
 		// This may happen if the input polygon is coplanar.
@@ -1033,14 +1033,14 @@ func addSentinel(tess *tesselator, smin, smax float, t float) {
 
 	reg.eUp = e
 	reg.sentinel = true
-	reg.nodeUp = dictInsert((*dict)(tess.dict), reg)
+	reg.nodeUp = tess.dict.insert(reg)
 }
 
 // initEdgeDict:
 // We maintain an ordering of edge intersections with the sweep line.
 // This order is maintained in a dynamic dictionary.
 func initEdgeDict(tess *tesselator) {
-	tess.dict = dictNewDict(tess)
+	tess.dict = newDict(tess)
 
 	w := (tess.bmax[0] - tess.bmin[0])
 	h := (tess.bmax[1] - tess.bmin[1])
@@ -1061,7 +1061,7 @@ func initEdgeDict(tess *tesselator) {
 func doneEdgeDict(tess *tesselator) {
 	fixedEdges := 0
 	for {
-		reg := dictKey(dictMin((*dict)(tess.dict)))
+		reg := dictKey(tess.dict.min())
 		if reg == nil {
 			break
 		}
@@ -1205,7 +1205,7 @@ func tessComputeInterior(tess *tesselator) {
 	}
 
 	// Set tess.event for debugging purposes
-	tess.event = dictKey(dictMin((*dict)(tess.dict))).eUp.Org
+	tess.event = dictKey(tess.dict.min()).eUp.Org
 	doneEdgeDict(tess)
 
 	removeDegenerateFaces(tess, tess.mesh)
