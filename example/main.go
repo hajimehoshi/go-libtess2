@@ -26,7 +26,7 @@ func update(screen *ebiten.Image) error {
 			{X: -1.6, Y: 1.9},
 			{X: 1.0, Y: 0.0},
 		},
-	})
+	}, libtess2.WindingRuleOdd)
 	if err != nil {
 		return err
 	}

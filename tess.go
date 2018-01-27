@@ -30,16 +30,17 @@ import (
 	"fmt"
 )
 
+// WindingRule:
 // See OpenGL Red Book for description of the winding rules
 // http://www.glprogramming.com/red/chapter11.html
-type windingRule int
+type WindingRule int
 
 const (
-	windingRuleOdd windingRule = iota
-	windingRuleNonzero
-	windingRulePositive
-	windingRuleNegative
-	windingRuleAbsGeqTwo
+	WindingRuleOdd WindingRule = iota
+	WindingRuleNonzero
+	WindingRulePositive
+	WindingRuleNegative
+	WindingRuleAbsGeqTwo
 )
 
 // The contents of the tessGetElements() depends on element type being passed to tessTesselate().
@@ -132,7 +133,7 @@ type tesselator struct {
 
 	// state needed for the line sweep
 
-	windingRule windingRule // rule for determining polygon interior
+	windingRule WindingRule // rule for determining polygon interior
 
 	dict  *dict   // edge dictionary for sweep line
 	pq    *pq     // priority queue of vertex events
@@ -154,7 +155,7 @@ type Vertex struct {
 
 type Contour []Vertex
 
-func Tesselate(contours []Contour) ([]int, []Vertex, error) {
+func Tesselate(contours []Contour, windingRule WindingRule) ([]int, []Vertex, error) {
 	t := tessNewTess()
 	for _, c := range contours {
 		fs := make([]float32, len(c)*2)
@@ -171,7 +172,7 @@ func Tesselate(contours []Contour) ([]int, []Vertex, error) {
 	)
 
 	r := tessTesselate(t,
-		windingRuleOdd,
+		windingRule,
 		elementTypePolygons,
 		polySize,
 		vertexSize,
@@ -561,7 +562,7 @@ func tessNewTess() *tesselator {
 	tess.bmax[0] = 0
 	tess.bmax[1] = 0
 
-	tess.windingRule = windingRuleOdd
+	tess.windingRule = WindingRuleOdd
 
 	// Initialize to begin polygon.
 	tess.mesh = nil
@@ -829,7 +830,7 @@ func tessAddContour(tess *tesselator, size int, vertices []float32) {
 //   normal - defines the normal of the input contours, of null the normal is calculated automatically.
 // Returns:
 //   true if succeed, false if failed.
-func tessTesselate(tess *tesselator, windingRule windingRule, elementType elementType, polySize int, vertexSize int, normal []float) bool {
+func tessTesselate(tess *tesselator, windingRule WindingRule, elementType elementType, polySize int, vertexSize int, normal []float) bool {
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {

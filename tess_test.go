@@ -15,7 +15,7 @@ func ExampleTriangles() {
 			{X: -1.6, Y: 1.9},
 			{X: 1.0, Y: 0.0},
 		},
-	})
+	}, WindingRuleOdd)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func ExampleFg() {
 			{X: 0, Y: 41.595},
 			{X: 39.559, Y: 35.848},
 		},
-	})
+	}, WindingRuleOdd)
 	if err != nil {
 		panic(err)
 	}

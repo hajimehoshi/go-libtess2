@@ -250,15 +250,15 @@ func addRegionBelow(tess *tesselator, regAbove *activeRegion, eNewUp *halfEdge) 
 
 func isWindingInside(tess *tesselator, n int) bool {
 	switch tess.windingRule {
-	case windingRuleOdd:
+	case WindingRuleOdd:
 		return (n & 1) != 0
-	case windingRuleNonzero:
+	case WindingRuleNonzero:
 		return (n != 0)
-	case windingRulePositive:
+	case WindingRulePositive:
 		return (n > 0)
-	case windingRuleNegative:
+	case WindingRuleNegative:
 		return (n < 0)
-	case windingRuleAbsGeqTwo:
+	case WindingRuleAbsGeqTwo:
 		return (n >= 2) || (n <= -2)
 	}
 	panic("not reached")
