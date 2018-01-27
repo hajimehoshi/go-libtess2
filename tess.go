@@ -75,7 +75,7 @@ type tesselator struct {
 	vertexIndexCounter C.TESSindex
 
 	vertices      []C.TESSreal
-	vertexIndices *C.TESSindex
+	vertexIndices []C.TESSindex
 	vertexCount   int
 	elements      *C.TESSindex
 	elementCount  int
@@ -576,7 +576,7 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 	tess.elements = &make([]C.TESSindex, maxFaceCount*polySize)[0]
 	tess.vertexCount = maxVertexCount
 	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
-	tess.vertexIndices = &make([]C.TESSindex, tess.vertexCount)[0]
+	tess.vertexIndices = make([]C.TESSindex, tess.vertexCount)
 
 	// Output vertices.
 	for v := mesh.vHead.next; v != &mesh.vHead; v = v.next {
@@ -588,7 +588,7 @@ func outputPolymesh(tess *tesselator, mesh *C.TESSmesh, elementType int, polySiz
 				tess.vertices[int(v.n)*vertexSize+2] = v.coords[2]
 			}
 			// Store vertex index.
-			C.golibtess2_setElementAt(tess.vertexIndices, C.int(v.n), v.idx)
+			tess.vertexIndices[v.n] = v.idx
 		}
 	}
 
@@ -661,7 +661,7 @@ func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 
 	tess.elements = &make([]C.TESSindex, tess.elementCount*2)[0]
 	tess.vertices = make([]C.TESSreal, int(tess.vertexCount)*vertexSize)
-	tess.vertexIndices = &make([]C.TESSindex, int(tess.vertexCount))[0]
+	tess.vertexIndices = make([]C.TESSindex, int(tess.vertexCount))
 
 	verts := tess.vertices
 	elements := tess.elements
@@ -686,8 +686,8 @@ func outputContours(tess *tesselator, mesh *C.TESSmesh, vertexSize int) {
 				verts[0] = edge.Org.coords[2]
 				verts = verts[1:]
 			}
-			*vertInds = edge.Org.idx
-			vertInds = C.golibtess2_incElement(vertInds)
+			vertInds[0] = edge.Org.idx
+			vertInds = vertInds[1:]
 			vertCount++
 			edge = edge.Lnext
 			if edge == start {
