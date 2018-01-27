@@ -36,17 +36,6 @@
 extern "C" {
 #endif
 
-// See OpenGL Red Book for description of the winding rules
-// http://www.glprogramming.com/red/chapter11.html
-enum TessWindingRule
-{
-	TESS_WINDING_ODD,
-	TESS_WINDING_NONZERO,
-	TESS_WINDING_POSITIVE,
-	TESS_WINDING_NEGATIVE,
-	TESS_WINDING_ABS_GEQ_TWO,
-};
-
 #ifdef __cplusplus
 };
 #endif

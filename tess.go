@@ -33,6 +33,18 @@ import (
 	"fmt"
 )
 
+// See OpenGL Red Book for description of the winding rules
+// http://www.glprogramming.com/red/chapter11.html
+type windingRule int
+
+const (
+	windingRuleOdd windingRule = iota
+	windingRuleNonzero
+	windingRulePositive
+	windingRuleNegative
+	windingRuleAbsGeqTwo
+)
+
 // The contents of the tessGetElements() depends on element type being passed to tessTesselate().
 // Tesselation result element types:
 // POLYGONS
@@ -123,7 +135,7 @@ type tesselator struct {
 
 	// state needed for the line sweep
 
-	windingRule int // rule for determining polygon interior
+	windingRule windingRule // rule for determining polygon interior
 
 	dict  *dict   // edge dictionary for sweep line
 	pq    *pq     // priority queue of vertex events
@@ -169,7 +181,7 @@ func (t *Tesselator) Tesselate() ([]int, []Vertex, error) {
 	)
 
 	r := tessTesselate(t.p,
-		C.TESS_WINDING_ODD,
+		windingRuleOdd,
 		elementTypePolygons,
 		polySize,
 		vertexSize,
@@ -559,7 +571,7 @@ func tessNewTess() *tesselator {
 	tess.bmax[0] = 0
 	tess.bmax[1] = 0
 
-	tess.windingRule = C.TESS_WINDING_ODD
+	tess.windingRule = windingRuleOdd
 
 	// Initialize to begin polygon.
 	tess.mesh = nil
@@ -827,7 +839,7 @@ func tessAddContour(tess *tesselator, size int, vertices []float32) {
 //   normal - defines the normal of the input contours, of null the normal is calculated automatically.
 // Returns:
 //   true if succeed, false if failed.
-func tessTesselate(tess *tesselator, windingRule int, elementType elementType, polySize int, vertexSize int, normal []float) bool {
+func tessTesselate(tess *tesselator, windingRule windingRule, elementType elementType, polySize int, vertexSize int, normal []float) bool {
 	tess.vertexIndexCounter = 0
 
 	if normal != nil {
