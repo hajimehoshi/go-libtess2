@@ -26,9 +26,6 @@
 
 package libtess2
 
-// #include "tess.h"
-import "C"
-
 // activeRegion:
 // For each pair of adjacent edges crossing the sweep line, there is
 // an ActiveRegion to represent the region between them.  The active

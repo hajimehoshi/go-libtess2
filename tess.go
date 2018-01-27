@@ -26,7 +26,7 @@
 
 package libtess2
 
-// #include "tess.h"
+// #include "tesselator.h"
 import "C"
 
 import (
