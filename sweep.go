@@ -829,7 +829,7 @@ func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *vertex
 	// merge features which are close together, the cases below marked
 	// TOLERANCE_NONZERO will be useful.  They were debugged before the
 	// code to merge identical vertices in the main loop was added.
-	const TOLERANCE_NONZERO = false
+	const TOLERANCE_NONZERO = true
 
 	e := regUp.eUp
 	if vertEq(e.Org, vEvent) {
@@ -889,9 +889,9 @@ func connectLeftDegenerate(tess *tesselator, regUp *activeRegion, vEvent *vertex
 //
 // - the degenerate case: if vEvent is close enough to U or L, we
 //   merge vEvent into that edge chain.  The subcases are:
-//	- merging with the rightmost vertex of U or L
-//	- merging with the active edge of U or L
-//	- merging with an already-processed portion of U or L
+//  - merging with the rightmost vertex of U or L
+//  - merging with the active edge of U or L
+//  - merging with an already-processed portion of U or L
 func connectLeftVertex(tess *tesselator, vEvent *vertex) {
 	var tmp activeRegion
 
@@ -1130,7 +1130,7 @@ func tessComputeInterior(tess *tesselator) {
 	// all the vertices in a priority queue.  Events are processed in
 	// lexicographic order, ie.
 	//
-	//	e1 < e2  iff  e1.x < e2.x || (e1.x == e2.x && e1.y < e2.y)
+	//  e1 < e2  iff  e1.x < e2.x || (e1.x == e2.x && e1.y < e2.y)
 	removeDegenerateEdges(tess)
 	initPriorityQ(tess)
 	initEdgeDict(tess)
